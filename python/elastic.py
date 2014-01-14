@@ -2,6 +2,8 @@
 
 import sys
 import os
+import glob
+import filecmp
 import time
 import shutil
 import json
@@ -32,14 +34,19 @@ es = None
 
 conf=hltdconf.hltdConf('/etc/hltd.conf')
 es_url = 'http://localhost:9200'
+hostname = os.uname()[1]
+
+class BadIniFile(Exception):
+    pass
 
 class LumiSectionRanger(threading.Thread):
-    def __init__(self,es_url,run_index,ls):
+    def __init__(self,es_url,run_index,streams,ls):
         threading.Thread.__init__(self)
         self.coll = collate.Collation(es_url)
         self.target = 0
         self.index = run_index
         self.ls=ls
+        self.active_streams = streams
 
     def filestem(self,stream):
         return self.index+'_ls'+str(self.ls).zfill(4)+'_'+stream+'_'+os.uname()[1]
@@ -63,15 +70,6 @@ class LumiSectionRanger(threading.Thread):
         fp.close()
 
     def filemover(self,stream):
-        #do the ini file if it isn't already there
-        
-        if not os.path.exists(self.outpath()+stream+'.ini'): 
-            infile=self.inpath()+stream+'.ini'
-            outfile=self.outpath()+stream+'.ini'
-            if os.path.exists(self.inpath()+stream+'.ini'): 
-                if not os.path.exists(self.outpath()):
-                    os.makedirs(self.outpath())
-                shutil.move(infile,outfile)
         #check once more that files are there
         datafile = self.inpath()+self.filestem(stream)+'.dat'
         jsonfile = self.inpath()+self.filestem(stream)+'.jsn'
@@ -79,8 +77,10 @@ class LumiSectionRanger(threading.Thread):
         if not os.path.exists(jsonfile): return False
         datadest = self.outpath()+self.filestem(stream)+'.dat'
         jsondest = self.outpath()+self.filestem(stream)+'.jsn'
-        if not os.path.exists(self.outpath()):
-            os.makedirs(self.outpath())
+        try:
+             os.makedirs(self.outpath())
+        except OSError:
+            pass
             
         shutil.move(datafile,datadest)
         shutil.move(jsonfile,jsondest)
@@ -112,13 +112,10 @@ class LumiSectionRanger(threading.Thread):
                     if total_in == None: break;
                     complete = True
 
-                    res = self.coll.search(self.index,'prc-out',self.ls)
-                    lslogger.info("search for prc-out for ls "+str(self.ls)+" returned "+str(res))
-                    streams = list(set([res['hits']['hits'][i]['_source']['stream'] for i in range(len(res['hits']['hits']))]))
-                    lslogger.info(self.index+" ls "+str(self.ls)+" streams found "+
-                                  str(streams)+" iterations "+str(iterations))
-                    if len(streams) != 0:
-                        for x in streams:
+                    lslogger.info(self.index+" ls "+str(self.ls)+" looking for streams "+
+                                  str(self.active_streams)+" iterations "+str(iterations))
+                    if len(self.active_streams) != 0:
+                        for x in self.active_streams:
                             if x not in complete_streams:
                                 res = self.coll.collate(self.index,'prc-out',self.ls,x)
                                 lslogger.info("collate of prc-out for ls "+str(self.ls)+" returned "+str(res))
@@ -149,21 +146,18 @@ class MonitorRanger(pyinotify.ProcessEvent):
     def __init__(self,s,dirname):
         pyinotify.ProcessEvent.__init__(self,s)
 #        print 'MonitorRanger constructor'
+        self.streams = []
         self.thread_history = {}
         self.dirname = dirname
 
     def process_IN_MOVED_TO(self, event):
         if 'open' in event.pathname:
             return
-        if '.dat' in event.pathname:
+        if event.pathname.endswith('.dat'):
             return
 
-#        print 'MonitorRanger-MOVEDTO: event '+event.pathname
+        #mologger.info('MonitorRanger-MOVEDTO: event '+event.pathname)
         if es:
-            if 'open' in event.pathname: 
-                return
-            if '.dat' in event.pathname:
-                return
             try:
                 path=event.pathname[0:event.pathname.rfind("/")+1]
                 name=event.pathname[event.pathname.rfind("/")+1:]
@@ -180,12 +174,38 @@ class MonitorRanger(pyinotify.ProcessEvent):
 
         if 'open' in event.pathname:
             return
-        if '.dat' in event.pathname:
+        if event.pathname.endswith('.dat'):
             return
+        #mologger.info('MonitorRanger-CLOSE_WRITE: event '+event.pathname)
+        if event.pathname.endswith('.ini'):
+            path=event.pathname[0:event.pathname.rfind("/")+1]
+            in_name=event.pathname[event.pathname.rfind("/")+1:]
+            out_name=in_name[0:in_name.rfind("_")+1]+hostname+'.ini'
+            stream_name=in_name[in_name.find("_")+1:in_name.rfind("_")]
+            # Keep a local copy to compare later ini messages
+            # Thus, we do not rely on what happens on the remote version
+            local_out_path = path+out_name
+            if not os.path.exists(local_out_path):
+                self.streams.append(stream_name)
+                shutil.move(event.pathname,local_out_path)
+                remote_out_path = conf.micromerge_output+'/'+self.dirname
+                try:
+                    os.makedirs(remote_out_path)
+                except OSError:
+                    pass
+                shutil.copy(local_out_path,remote_out_path)
+            else:
+                if not filecmp.cmp(local_out_path,event.pathname,False):
+                    # Where shall this exception be handled?
+                    raise BadIniFile("Found a bad ini file "+event.pathname)
+                else:
+                    os.remove(event.pathname)
+            return
+
         if 'complete' in event.pathname:
             mologger.info("exiting because run "+self.dirname+" is complete")
             sys.exit(0) 
-#        print 'MonitorRanger-CLOSE_WRITE: event '+event.pathname
+
         if es:
 
             try:
@@ -205,6 +225,7 @@ class MonitorRanger(pyinotify.ProcessEvent):
                         if ls not in self.thread_history:
                             self.thread_history[ls] = LumiSectionRanger(es_url,
                                                                         dirname,
+                                                                        self.streams,
                                                                         ls)
                             self.thread_history[ls].start()
 
@@ -216,7 +237,7 @@ class MonitorRanger(pyinotify.ProcessEvent):
                 mologger.error("when processing event "+name)
             
     def process_default(self, event):
-#        print 'MonitorRanger: event '+event.pathname+' type '+event.maskname
+        #mologger.info('MonitorRanger: event '+event.pathname+' type '+event.maskname)
         filename=event.pathname[event.pathname.rfind("/")+1:]
 
 
