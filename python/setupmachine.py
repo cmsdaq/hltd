@@ -63,11 +63,12 @@ vm_bu_override = ['bu-vm-01-01.cern.ch']
 
 
 def getmachinetype():
+
     #print "running on host ",myhost
     if   myhost.startswith('dvrubu-') or myhost.startswith('dvfu-') : return 'daq2val','fu'
     elif myhost.startswith('dvbu-') : return 'daq2val','bu'
-    elif myhost.startswith('fu-') and myhost_domain=='cms904': return 'cdaq904','fu'
-    elif myhost.startswith('bu-') and myhost_domain=='cms904': return 'cdaq904','bu'
+    elif myhost.startswith('fu-') and myhost_domain=='cms904': return 'daq2_904','fu'
+    elif myhost.startswith('bu-') and myhost_domain=='cms904': return 'daq2_904','bu'
     elif myhost.startswith('fu-') : return 'daq2','fu'
     elif myhost.startswith('hilton-') : return 'hilton','fu'
     elif myhost.startswith('bu-') : return 'daq2','bu'
@@ -148,7 +149,7 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
                     sys.exit(2)
                     #con = cx_Oracle.connect(dblogin_+'/'+dbpwd_+'@'+dbhost_+':10121/'+dbsid_,
                     #          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-            elif parentTag == 'cdaq904':
+            elif parentTag == 'daq2_904':
                 con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
                               cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
             else: #daq2val
@@ -561,7 +562,7 @@ if __name__ == "__main__":
                 cmsswloglevel = 'ERROR'
                 cmssw_base = '/home/dqmdevlocal'
                 execdir = '/home/dqmdevlocal/output' ##not yet
-    elif cluster == 'cdaq904':
+    elif cluster == 'daq2_904':
         runindex_name = 'b904'
         use_elasticsearch = 'False'
         elastic_host = 'http://localhost:9200' #will be changed in future
@@ -574,7 +575,7 @@ if __name__ == "__main__":
     buDataAddr=[]
 
     if type == 'fu':
-        if cluster == 'daq2val' or cluster == 'daq2' or cluster == 'cdaq904':
+        if cluster == 'daq2val' or cluster == 'daq2' or cluster == 'daq2_904':
             for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dbhost,dblogin,dbpwd,dbsid):
                 if buName==None:
                     buName = addr[1].split('.')[0]
