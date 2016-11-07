@@ -280,6 +280,20 @@ class elasticBandBU:
         doc_pars = {"parent":str(self.runnumber)}
         return self.index_documents('pathlegend',documents,doc_id,doc_params=doc_pars,bulk=False)
 
+    def elasticize_inputlegend(self,fullpath):
+        self.logger.info(os.path.basename(fullpath))
+        document = {}
+        doc_id="inputstatelegend_"+self.runnumber
+        try:
+            with open(fullpath,'r') as fp:
+                doc = json.load(fp)
+                document['stateNames'] = doc['names']
+        except Exception as ex:
+            self.logger.warning("can not parse "+fullpath)
+        documents = [document]
+        doc_pars = {"parent":str(self.runnumber)}
+        return self.index_documents('inputstatelegend',documents,doc_id,doc_params=doc_pars,bulk=False)
+
     def elasticize_stream_label(self,infile):
         #elasticize stream name information
         self.logger.info(infile.filepath)
@@ -483,6 +497,7 @@ class elasticCollectorBU():
 
         self.insertedModuleLegend = False
         self.insertedPathLegend = False
+        self.insertedInputLegend = False
         self.inRunDir=inRunDir
         self.outRunDir=outRunDir
 
@@ -572,6 +587,9 @@ class elasticCollectorBU():
             elif filetype in [PATHLEGEND] and self.insertedPathLegend == False:
                 if self.es.elasticize_pathlegend(filepath):
                     self.insertedPathLegend = True
+            elif filetype in [INPUTLEGEND] and self.insertedInputLegend == False:
+                if self.es.elasticize_inputlegend(filepath):
+                    self.insertedInputLegend = True
             elif filetype == INI:
                 self.es.elasticize_stream_label(self.infile)
             elif filetype == EOLS:

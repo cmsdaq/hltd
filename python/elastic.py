@@ -98,6 +98,13 @@ class elasticCollector():
                 except Exception,ex:
                     logger.error(ex)
                     pass
+            elif filetype in [INPUTLEGEND]:
+                try:
+                    if not os.path.exists(self.inputMonDir+'/inputlegend.jsn') and os.path.exists(self.inputMonDir):
+                        self.infile.moveFile(self.inputMonDir+'/inputlegend.jsn',silent=True,createDestinationDir=False)
+                except Exception,ex:
+                    logger.error(ex)
+                    pass
             elif filetype == INI:
                 destname = os.path.join(self.inputMonDir,infile.run+'_'+infile.ls+'_'+infile.stream+'_mon.ini')
                 try:

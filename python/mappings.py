@@ -107,7 +107,6 @@ central_runindex_mapping = {
                     }
             },
             'pathlegend' : {
-
                 '_parent':{'type':'run'},
 		 '_all': {'enabled': "false" },
                 'properties' : {
@@ -121,6 +120,18 @@ central_runindex_mapping = {
                         },
                     'reserved':{
                         'type':'integer'
+                        },
+                    'fm_date':{
+                        'type':'date'
+                        }
+                    }
+                },
+            'inputstatelegend' : {
+                '_parent':{'type':'run'},
+		 '_all': {'enabled': "false" },
+                'properties' : {
+                    'stateNames':{
+                        'type':'string','index':'no'
                         },
                     'fm_date':{
                         'type':'date'
