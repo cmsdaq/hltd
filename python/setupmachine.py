@@ -21,7 +21,6 @@ try:
 except ImportError:
     pass
 
-
 backup_dir = '/opt/fff/backup'
 try:
     os.makedirs(backup_dir)
@@ -50,6 +49,8 @@ es_cdaq_list = ['ncsrv-c2e42-09-02', 'ncsrv-c2e42-11-02', 'ncsrv-c2e42-13-02', '
 es_local_list =[ 'ncsrv-c2e42-21-02', 'ncsrv-c2e42-23-02', 'ncsrv-c2e42-13-03', 'ncsrv-c2e42-23-03']
 
 myhost = os.uname()[1]
+try:myhost_domain = socket.getfqdn(myhost).split('.')[1]
+except:myhost_domain=''
 
 #testing dual mount point
 vm_override_buHNs = {
@@ -66,6 +67,8 @@ def getmachinetype():
     #print "running on host ",myhost
     if   myhost.startswith('dvrubu-') or myhost.startswith('dvfu-') : return 'daq2val','fu'
     elif myhost.startswith('dvbu-') : return 'daq2val','bu'
+    elif myhost.startswith('fu-') and myhost_domain=='cms904': return 'daq2_904','fu'
+    elif myhost.startswith('bu-') and myhost_domain=='cms904': return 'daq2_904','bu'
     elif myhost.startswith('fu-') : return 'daq2','fu'
     elif myhost.startswith('hilton-') : return 'hilton','fu'
     elif myhost.startswith('bu-') : return 'daq2','bu'
@@ -124,11 +127,8 @@ def name_identifier():
 
 def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=True):
 
-    #con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_W/'+dbpwd+'@'+dbhost+':10121/int2r_lb.cern.ch',
     try:
-
         if env_ == "vm":
-
             try:
             #cluster in openstack that is not (yet) in mysql
                 retval = []
@@ -146,10 +146,14 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
                     con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
                               cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
                 else:
-                    con = cx_Oracle.connect(dblogin_+'/'+dbpwd_+'@'+dbhost_+':10121/'+dbsid_,
+                    sys.exit(2)
+                    #con = cx_Oracle.connect(dblogin_+'/'+dbpwd_+'@'+dbhost_+':10121/'+dbsid_,
+                    #          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+            elif parentTag == 'daq2_904':
+                con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
                               cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-            else:
-                con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R/'+dbpwd_+'@int2r2-v.cern.ch:10121/int2r_lb.cern.ch',
+            else: #daq2val
+                con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
                               cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
 
     except Exception as ex:
@@ -163,7 +167,7 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
 
     cur = con.cursor()
 
-    #IMPORTANT: first query requires uppercase parent eq, while the latter requires lowercase
+    #IMPORTANT: first query requires uppercase parent eq, while the latter requires lowercase eqset_
 
     qstring=  "select attr_name, attr_value from \
                 DAQ_EQCFG_HOST_ATTRIBUTE ha, \
@@ -195,7 +199,6 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
                 #AND d.eqset_id = (select child.eqset_id from DAQ_EQCFG_EQSET child, DAQ_EQCFG_EQSET \
                 #parent WHERE child.parent_id = parent.eqset_id AND parent.cfgkey = '"+parentTag+"' and child.cfgkey = '"+ eqset_ + "')"
 
-
     #NOTE: to query squid master for the FU, replace 'myBU%' with 'mySquidMaster%'
 
     if eqset_ == 'latest':
@@ -212,100 +215,89 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
     return retval
 
 #was used only for tribe:
-def getAllBU(requireFU=False):
-
-    #setups = ['daq2','daq2val']
-    parentTag = 'daq2'
-    if True:
-    #if parentTag == 'daq2':
-        if dbhost.strip()=='null':
-                #con = cx_Oracle.connect('CMS_DAQ2_HW_CONF_W','pwd','cms_rcms',
-            con = cx_Oracle.connect(dblogin,dbpwd,dbsid,
-                      cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
-        else:
-            con = cx_Oracle.connect(dblogin+'/'+dbpwd+'@'+dbhost+':10121/'+dbsid,
-                      cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
-    #else:
-    #    con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_W/'+dbpwd+'@int2r2-v.cern.ch:10121/int2r_lb.cern.ch',
-    #                  cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
-
-    cur = con.cursor()
-    retval = []
-    if requireFU==False:
-        qstring= "select dnsname from DAQ_EQCFG_DNSNAME where (dnsname like 'bu-%' OR dnsname like '__bu-%') \
-                  AND eqset_id = (select eqset_id from DAQ_EQCFG_EQSET where tag='"+parentTag.upper()+"' AND \
-                                  ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
-
-    else:
-        qstring = "select attr_value from \
-                        DAQ_EQCFG_HOST_ATTRIBUTE ha,       \
-                        DAQ_EQCFG_HOST_NIC hn,              \
-                        DAQ_EQCFG_DNSNAME d                  \
-                        where                                 \
-                        ha.eqset_id=hn.eqset_id AND            \
-                        hn.eqset_id=d.eqset_id AND              \
-                        ha.host_id = hn.host_id AND              \
-                        ha.attr_name like 'myBU!_%' escape '!' AND \
-                        hn.nic_id = d.nic_id AND                   \
-                        d.dnsname like 'fu-%'                       \
-                        AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
-                        where tag='"+parentTag.upper()+"' AND                    \
-                        ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
-
-
-
-
-    cur.execute(qstring)
-
-    for res in cur:
-        retval.append(res[0])
-    cur.close()
-    retval = sorted(list(set(map(lambda v: v.split('.')[0], retval))))
-    print retval
-    return retval
-
-
-def getSelfDataAddr(parentTag):
-
-
-    global equipmentSet
-    #con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_W/'+dbpwd+'@'+dbhost+':10121/int2r_lb.cern.ch',
-
-    con = cx_Oracle.connect(dblogin+'/'+dbpwd+'@'+dbhost+':10121/'+dbsid,
-                        cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
-    #print con.version
-
-    cur = con.cursor()
-
-    hostname = os.uname()[1]
-
-    qstring1= "select dnsname from DAQ_EQCFG_DNSNAME where dnsname like '%"+os.uname()[1]+"%' \
-                AND d.eqset_id = (select child.eqset_id from DAQ_EQCFG_EQSET child, DAQ_EQCFG_EQSET \
-                parent WHERE child.parent_id = parent.eqset_id AND parent.cfgkey = '"+parentTag+"' and child.cfgkey = '"+ equipmentSet + "')"
-
-    qstring2 = "select dnsname from DAQ_EQCFG_DNSNAME where dnsname like '%"+os.uname()[1]+"%' \
-                AND eqset_id = (select child.eqset_id from DAQ_EQCFG_EQSET child, DAQ_EQCFG_EQSET parent \
-                WHERE child.parent_id = parent.eqset_id AND parent.cfgkey = '"+parentTag+"' and child.cfgkey = '"+ equipmentSet + "')"
-
-
-    if equipmentSet == 'latest':
-        cur.execute(qstring1)
-    else:
-        print "query equipment set (data network name): ",parentTag+'/'+equipmentSet
-        #print '\n',qstring2
-        cur.execute(qstring2)
-
-    retval = []
-    for res in cur:
-        if res[0] != os.uname()[1]+".cms": retval.append(res[0])
-    cur.close()
-
-    if len(retval)>1:
-        for r in res:
-            #prefer .daq2 network if available
-            if r.startswith(os.uname()[1]+'.daq2'): return [r]
-
-    return retval
+#def getAllBU(requireFU=False):
+#
+#    #setups = ['daq2','daq2val']
+#    parentTag = 'daq2'
+#    if True:
+#    #if parentTag == 'daq2':
+#        if dbhost.strip()=='null':
+#                #con = cx_Oracle.connect('CMS_DAQ2_HW_CONF_W','pwd','cms_rcms',
+#            con = cx_Oracle.connect(dblogin,dbpwd,dbsid,
+#                      cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
+#        else:
+#            con = cx_Oracle.connect(dblogin+'/'+dbpwd+'@'+dbhost+':10121/'+dbsid,
+#                      cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
+#    #else:
+#    #    con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_W/'+dbpwd+'@int2r2-v.cern.ch:10121/int2r_lb.cern.ch',
+#    #                  cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
+#
+#    cur = con.cursor()
+#    retval = []
+#    if requireFU==False:
+#        qstring= "select dnsname from DAQ_EQCFG_DNSNAME where (dnsname like 'bu-%' OR dnsname like '__bu-%') \
+#                  AND eqset_id = (select eqset_id from DAQ_EQCFG_EQSET where tag='"+parentTag.upper()+"' AND \
+#                                  ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
+#
+#    else:
+#        qstring = "select attr_value from \
+#                        DAQ_EQCFG_HOST_ATTRIBUTE ha,       \
+#                        DAQ_EQCFG_HOST_NIC hn,              \
+#                        DAQ_EQCFG_DNSNAME d                  \
+#                        where                                 \
+#                        ha.eqset_id=hn.eqset_id AND            \
+#                        hn.eqset_id=d.eqset_id AND              \
+#                        ha.host_id = hn.host_id AND              \
+#                        ha.attr_name like 'myBU!_%' escape '!' AND \
+#                        hn.nic_id = d.nic_id AND                   \
+#                        d.dnsname like 'fu-%'                       \
+#                        AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
+#                        where tag='"+parentTag.upper()+"' AND                    \
+#                        ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
+#
+#
+#
+#def getSelfDataAddr(parentTag):
+#
+#
+#    global equipmentSet
+#    #con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_W/'+dbpwd+'@'+dbhost+':10121/int2r_lb.cern.ch',
+#
+#    con = cx_Oracle.connect(dblogin+'/'+dbpwd+'@'+dbhost+':10121/'+dbsid,
+#                        cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
+#    #print con.version
+#
+#    cur = con.cursor()
+#
+#    hostname = os.uname()[1]
+#
+#    qstring1= "select dnsname from DAQ_EQCFG_DNSNAME where dnsname like '%"+os.uname()[1]+"%' \
+#                AND d.eqset_id = (select child.eqset_id from DAQ_EQCFG_EQSET child, DAQ_EQCFG_EQSET \
+#                parent WHERE child.parent_id = parent.eqset_id AND parent.cfgkey = '"+parentTag+"' and child.cfgkey = '"+ equipmentSet + "')"
+#
+#    qstring2 = "select dnsname from DAQ_EQCFG_DNSNAME where dnsname like '%"+os.uname()[1]+"%' \
+#                AND eqset_id = (select child.eqset_id from DAQ_EQCFG_EQSET child, DAQ_EQCFG_EQSET parent \
+#                WHERE child.parent_id = parent.eqset_id AND parent.cfgkey = '"+parentTag+"' and child.cfgkey = '"+ equipmentSet + "')"
+#
+#
+#    if equipmentSet == 'latest':
+#        cur.execute(qstring1)
+#    else:
+#        print "query equipment set (data network name): ",parentTag+'/'+equipmentSet
+#        #print '\n',qstring2
+#        cur.execute(qstring2)
+#
+#    retval = []
+#    for res in cur:
+#        if res[0] != os.uname()[1]+".cms": retval.append(res[0])
+#    cur.close()
+#
+#    if len(retval)>1:
+#        for r in res:
+#            #prefer .daq2 network if available
+#            if r.startswith(os.uname()[1]+'.daq2'): return [r]
+#
+#    return retval
 
 def getInstances(hostname):
     #instance.input example:
@@ -509,8 +501,6 @@ if __name__ == "__main__":
     #nfwkstreams = 4
     resource_cmsswstreams = nfwkstreams
 
-
-
     argvc+=1
     if not sys.argv[argvc]:
         print "CMSSW log collection level is missing"
@@ -522,7 +512,7 @@ if __name__ == "__main__":
     if env == "vm":
         cnhostname = os.uname()[1]
     else:
-        cnhostname = os.uname()[1]+'.cms'
+        cnhostname = os.uname()[1]+'.'+myhost_domain
 
     use_elasticsearch = 'True'
     cmssw_version = 'CMSSW_7_1_4_patch1'
@@ -572,6 +562,10 @@ if __name__ == "__main__":
                 cmsswloglevel = 'ERROR'
                 cmssw_base = '/home/dqmdevlocal'
                 execdir = '/home/dqmdevlocal/output' ##not yet
+    elif cluster == 'daq2_904':
+        runindex_name = 'b904'
+        use_elasticsearch = 'False'
+        elastic_host = 'http://localhost:9200' #will be changed in future
     elif cluster == 'hilton':
         runindex_name = 'dv'
         use_elasticsearch = 'False'
@@ -581,7 +575,7 @@ if __name__ == "__main__":
     buDataAddr=[]
 
     if type == 'fu':
-        if cluster == 'daq2val' or cluster == 'daq2':
+        if cluster == 'daq2val' or cluster == 'daq2' or cluster == 'daq2_904':
             for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dbhost,dblogin,dbpwd,dbsid):
                 if buName==None:
                     buName = addr[1].split('.')[0]
@@ -743,7 +737,6 @@ if __name__ == "__main__":
                 with open('/etc/hltd.instances',"w") as fi:
                     for instance in instances: fi.write(instance+"\n")
 
-
         if type=='fu':
             hltdcfg = FileManager(hltdconf,'=',hltdEdited,' ',' ')
 
@@ -787,3 +780,4 @@ if __name__ == "__main__":
             else:
                 hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
             hltdcfg.commit()
+
