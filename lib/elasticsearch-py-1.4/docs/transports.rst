@@ -13,7 +13,7 @@ For example to use the thrift connection just import it and use it. The
 connection classes are aware of their respective default ports (9500 for
 thrift) so there is no need to specify them unless modified::
 
-    from elasticsearch import Elasticsearch, ThriftConnection
+    from elasticsearch_hltd import Elasticsearch, ThriftConnection
     es = Elasticsearch(connection_class=ThriftConnection)
 
 

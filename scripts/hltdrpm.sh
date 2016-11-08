@@ -1,5 +1,6 @@
 #!/bin/bash -e
-alias python=python2.6
+alias python=`readlink /usr/bin/python2`
+python_dir=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 BUILD_ARCH=x86_64
@@ -80,7 +81,7 @@ Provides:/etc/hltd.conf
 Provides:/etc/logrotate.d/hltd
 Provides:/etc/init.d/hltd
 Provides:/etc/init.d/soap2file
-Requires:hltd-libs >= 1.9.6,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil
+Requires:hltd-libs >= 1.9.6,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,cx_Oracle
 
 %description
 fff hlt daemon
@@ -98,7 +99,7 @@ tar -C $TOPDIR -c etc | tar -xC \$RPM_BUILD_ROOT
 rm \$RPM_BUILD_ROOT/opt/hltd/python/setupmachine.py
 rm \$RPM_BUILD_ROOT/opt/hltd/python/disablenode.py
 rm \$RPM_BUILD_ROOT/opt/hltd/python/dbcheck.py
-rm \$RPM_BUILD_ROOT/opt/hltd/TODO
+rm \$RPM_BUILD_ROOT/opt/hltd/TODO || true
 %post
 %files
 %dir %attr(777, -, -) /var/log/hltd

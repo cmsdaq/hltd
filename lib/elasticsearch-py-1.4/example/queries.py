@@ -4,7 +4,7 @@ from __future__ import print_function
 import logging
 from dateutil.parser import parse as parse_date
 
-from elasticsearch import Elasticsearch
+from elasticsearch_hltd import Elasticsearch
 
 def print_hits(results, facet_masks={}):
     " Simple utility function to print results of a search query. "

@@ -44,7 +44,7 @@ Example use
 Simple use-case::
 
     >>> from datetime import datetime
-    >>> from elasticsearch import Elasticsearch
+    >>> from elasticsearch_hltd import Elasticsearch
 
     # by default we connect to localhost:9200
     >>> es = Elasticsearch()

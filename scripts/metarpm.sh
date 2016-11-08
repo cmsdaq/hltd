@@ -209,22 +209,22 @@ echo
 
 echo "if [ -n \"\\\$1\" ]; then"                                       >> %{buildroot}/opt/fff/configurefff.sh
 echo "  if [ \\\$1 == \"hltd\" ]; then"                                >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh
+echo "    python2 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
+echo "    python2 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh
 echo "  elif [ \\\$1 == \"init\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/hltd/python/fillresources.py ignorecloud"     >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh 
+echo "    python2 /opt/hltd/python/fillresources.py ignorecloud"     >> %{buildroot}/opt/fff/configurefff.sh
+echo "    python2 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh 
 echo "  fi"                                                            >> %{buildroot}/opt/fff/configurefff.sh
 echo "else"                                                            >> %{buildroot}/opt/fff/configurefff.sh
-echo "  python2.6 /opt/hltd/python/fillresources.py"                   >> %{buildroot}/opt/fff/configurefff.sh
-echo "  python2.6 /opt/fff/setupmachine.py hltd $params"               >> %{buildroot}/opt/fff/configurefff.sh 
+echo "  python2 /opt/hltd/python/fillresources.py"                   >> %{buildroot}/opt/fff/configurefff.sh
+echo "  python2 /opt/fff/setupmachine.py hltd $params"               >> %{buildroot}/opt/fff/configurefff.sh 
 echo "fi"                                                              >> %{buildroot}/opt/fff/configurefff.sh
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/dbcheck.sh
 echo "if [ -n \"\\\$1\" ]; then "                                   >> %{buildroot}/opt/fff/dbcheck.sh
-echo "  python2.6 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid $1"    >> %{buildroot}/opt/fff/dbcheck.sh
+echo "  python2 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid $1"    >> %{buildroot}/opt/fff/dbcheck.sh
 echo "else" >> %{buildroot}/opt/fff/dbcheck.sh                      >> %{buildroot}/opt/fff/dbcheck.sh
-echo "  python2.6 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid"       >> %{buildroot}/opt/fff/dbcheck.sh
+echo "  python2 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid"       >> %{buildroot}/opt/fff/dbcheck.sh
 echo "fi"                                                           >> %{buildroot}/opt/fff/dbcheck.sh
 
 echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsid}\" }"    >> %{buildroot}/opt/fff/db.jsn
@@ -281,8 +281,8 @@ chkconfig --add fffmeta
 /sbin/service soap2file stop || true
 rm -rf /etc/hltd.instances
 
-python2.6 /opt/fff/setupmachine.py restore,hltd
-python2.6 /opt/fff/setupmachine.py hltd $params
+python2 /opt/fff/setupmachine.py restore,hltd
+python2 /opt/fff/setupmachine.py hltd $params
 
 #adjust ownership of unpriviledged child process log files
 
@@ -318,7 +318,7 @@ if [ \$1 == 0 ]; then
 
   /sbin/service hltd stop || true
 
-  python2.6 /opt/fff/setupmachine.py restore,hltd
+  python2 /opt/fff/setupmachine.py restore,hltd
 
 fi
 

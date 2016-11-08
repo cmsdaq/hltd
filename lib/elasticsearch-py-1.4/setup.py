@@ -17,8 +17,8 @@ install_requires = [
 ]
 
 setup(
-    name = 'elasticsearch',
-    description = "Python client for Elasticsearch",
+    name = 'elasticsearch_hltd',
+    description = "Python client for Elasticsearch (HLTD modified)",
     license="Apache License, Version 2.0",
     url = "https://github.com/elasticsearch/elasticsearch-py",
     long_description = long_description,

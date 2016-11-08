@@ -32,7 +32,7 @@ you do not wish an exception to be raised you can always pass in an ``ignore``
 parameter with either a single status code that should be ignored or a list of
 them::
 
-    from elasticsearch import Elasticsearch
+    from elasticsearch_hltd import Elasticsearch
     es = Elasticsearch()
 
     # ignore 400 cause by IndexAlreadyExistsException when creating an index

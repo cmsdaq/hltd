@@ -6,14 +6,14 @@ try:
 except ImportError:
     from unittest import TestCase, SkipTest
 
-from elasticsearch import Elasticsearch
-from elasticsearch.exceptions import ConnectionError
+from elasticsearch_hltd import Elasticsearch
+from elasticsearch_hltd.exceptions import ConnectionError
 
 def get_test_client(nowait=False):
     # construct kwargs from the environment
     kw = {}
     if 'TEST_ES_CONNECTION' in os.environ:
-        from elasticsearch import connection
+        from elasticsearch_hltd import connection
         kw['connection_class'] = getattr(connection, os.environ['TEST_ES_CONNECTION'])
 
     client = Elasticsearch([os.environ.get('TEST_ES_SERVER', {})], **kw)
