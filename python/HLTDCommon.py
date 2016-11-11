@@ -29,6 +29,9 @@ def preexec_function():
     #    os.setpgrp()
 
 def updateBlacklist(conf,logger,blfile):
+    if conf.static_blacklist:
+        blfile = '/etc/appliance/blacklist'
+        logger.warning('using static blacklist file: '+blfile)
     black_list=[]
     active_black_list=[]
     if conf.role=='bu':
