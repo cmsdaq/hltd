@@ -65,8 +65,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: hltd
-Version: 1.9.9
-Release: 5
+Version: 2.1.0
+Release: 1
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -81,7 +81,7 @@ Provides:/etc/hltd.conf
 Provides:/etc/logrotate.d/hltd
 Provides:/etc/init.d/hltd
 Provides:/etc/init.d/soap2file
-Requires:hltd-libs >= 1.9.6,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,cx_Oracle
+Requires:hltd-libs >= 2.1.0,SOAPpy,python-simplejson >= 3.3.3,jsonMerger,python-psutil,cx_Oracle
 
 %description
 fff hlt daemon

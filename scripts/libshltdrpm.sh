@@ -167,7 +167,7 @@ rm -rf opt
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
 Name: hltd-libs
-Version: 1.9.6
+Version: 2.1.0
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -179,7 +179,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:python,libcap,python-six >= 1.4 ,python-requests,python-elasticsearch
+Requires:python,libcap,python-six >= 1.9 ,python-requests,python-elasticsearch
 
 %description
 fff hlt daemon libraries
