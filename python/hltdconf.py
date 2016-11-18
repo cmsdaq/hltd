@@ -28,6 +28,7 @@ class hltdConf:
         #override default values into imposed types
         self.enabled = cfg.getboolean('General','enabled')
         self.mount_control_path = cfg.getboolean('General','mount_control_path')
+        self.static_blacklist = cfg.getboolean('General','static_blacklist')
 
         #default
         try:
