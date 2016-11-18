@@ -716,6 +716,12 @@ if __name__ == "__main__":
                 hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
 
                 hltdcfg.reg('watch_directory',watch_dir_bu,'[General]')
+
+                if cluster=='daq2val':
+                    hltdcfg.reg('static_blacklist','True','[General]')
+                else:
+                    hltdcfg.reg('static_blacklist','False','[General]')
+
                 #hltdcfg.reg('micromerge_output',out_dir_bu,'[General]')
                 hltdcfg.reg('elastic_runindex_url',elastic_host,'[Monitoring]')
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
@@ -751,6 +757,7 @@ if __name__ == "__main__":
 
             hltdcfg.reg('exec_directory',execdir,'[General]')
             hltdcfg.reg('watch_directory','/fff/data','[General]')
+            hltdcfg.reg('static_blacklist','False','[General]')
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
             hltdcfg.reg('soap2file_port','0','[Web]')
