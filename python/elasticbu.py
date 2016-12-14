@@ -746,7 +746,7 @@ class RunCompletedChecker(threading.Thread):
         self.runObj = runObj
         rundirstr = 'run'+ str(runObj.runnumber).zfill(conf.run_number_padding)
         self.indexPrefix = rundirstr + '_' + conf.elastic_cluster
-        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/fu-complete/_count'
+        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/fu-complete/_search&size=0'
         self.urlclose =  'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/_close'
         self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/fu-complete/_search?size=1'
         self.url_query = '{  "query": { "filtered": {"query": {"match_all": {}}}}, "sort": { "fm_date": { "order": "desc" }}}'
@@ -764,7 +764,7 @@ class RunCompletedChecker(threading.Thread):
                 try:
                     resp = requests.post(self.url, '',timeout=5)
                     data = json.loads(resp.content)
-                    if int(data['count']) >= len(self.runObj.online_resource_list):
+                    if int(data['hits']['total']) >= len(self.runObj.online_resource_list):
                         try:
                             respq = requests.post(self.urlsearch,self.url_query,timeout=5)
                             dataq = json.loads(respq.content)

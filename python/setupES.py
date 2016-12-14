@@ -113,7 +113,8 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                     #this is for index pre-creator
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:
-                        doc_resp = es.send_request('GET', [create_index_name,'_count'])['count']
+                        #doc_resp = es.send_request('GET', [create_index_name,'_count'])['count']
+                        doc_resp = es.send_request('GET', [create_index_name,'_search'],size = 0)['hits']['total']
                     except ElasticHttpError as ex:
                         try:
                             if ex[1]['type'] == "index_closed_exception":
