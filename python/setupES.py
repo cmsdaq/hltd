@@ -86,13 +86,15 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                         settingsSame=False
                     if int(norm_name['settings']['index']['number_of_shards'])!=int(loaddoc['settings']['index']['number_of_shards']):
                         settingsSame=False
+                    if int(norm_name['settings']['index']['translog']['durability'])!=int(loaddoc['settings']['index']['translog']['durability']):
+                        settingsSame=False
                     #currently analyzer settings are ot checked
 
                     if not (mappingSame and settingsSame) or deleteOld>1:
                         #test is override
                         if overrideTests==False:
                             try:
-                                if norm_name['settings']['index,test']==True:
+                                if norm_name['settings']['test']==True:
                                     printout("Template test setting found, skipping update...",doPrint,True)
                                     break
                             except:pass

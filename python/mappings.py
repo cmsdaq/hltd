@@ -10,7 +10,9 @@ central_es_settings = {
             },
             "index":{
                 'number_of_shards' : 12,
-                'number_of_replicas' : 2
+                'number_of_replicas' : 2,
+                'translog':{'durability':'async'},
+                'mapper':{'dynamic':'false'}
             }
         }
 
@@ -33,7 +35,9 @@ central_es_settings_hltlogs = {
             },
             "index":{
                 'number_of_shards' : 12,
-                'number_of_replicas' : 1
+                'number_of_replicas' : 1,
+                'translog':{'durability':'async'},
+                'mapper':{'dynamic':'false'}
             }
         }
 
