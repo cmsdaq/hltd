@@ -310,7 +310,7 @@ class elasticBandBU:
         #first update: endtime field
         self.index_documents('run',[{"endTime":endtime}],doc_id,bulk=False,update_only=True)
         #second update:decrease atomically active BU counter
-        self.index_documents('run',[{"script":"ctx._source.activeBUs-=1"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1","lang":"painless"}}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')

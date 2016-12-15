@@ -86,7 +86,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                         settingsSame=False
                     if int(norm_name['settings']['index']['number_of_shards'])!=int(loaddoc['settings']['index']['number_of_shards']):
                         settingsSame=False
-                    if int(norm_name['settings']['index']['translog']['durability'])!=int(loaddoc['settings']['index']['translog']['durability']):
+                    if 'translog' not in norm_name['settings']['index'] or int(norm_name['settings']['index']['translog']['durability'])!=int(loaddoc['settings']['index']['translog']['durability']):
                         settingsSame=False
                     #currently analyzer settings are ot checked
 
