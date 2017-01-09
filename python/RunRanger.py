@@ -611,7 +611,7 @@ class RunRanger:
             self.resource_lock.acquire()
             #schedule cloud mode cancel when HLT shutdown is completed
             if self.state.entering_cloud_mode:
-                self.logger.info('include receiver while entering cloud mode. setting abort flag...')
+                self.logger.info('include received while entering cloud mode. setting abort flag...')
                 self.state.abort_cloud_mode=True
                 self.resource_lock.release()
                 os.remove(fullpath)
@@ -645,8 +645,8 @@ class RunRanger:
                       self.logger.warning('external cloud script reports error code' + str(last_status) + '.')
                       if err_attempts>100:
                         #if error is persistent, give up eventually and complain with fatal error 
-                        os.remove(fullpath)
                         self.state.exiting_cloud_mode=False
+                        os.remove(fullpath)
                         time.sleep(1)
                         self.logger.critical('failed to switch off cloud. last status reported: '+str(last_status))
                         return
@@ -659,8 +659,8 @@ class RunRanger:
                         returnstatus = self.state.extinguish_cloud(True)
                         retried=True
                     if attempts>600:
-                        os.remove(fullpath)
                         self.state.exiting_cloud_mode=False
+                        os.remove(fullpath)
                         time.sleep(1)
                         self.logger.critical('failed to switch off cloud after attempting for 10 minutes! last status reports cloud is running...')
                         return

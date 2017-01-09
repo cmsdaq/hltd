@@ -18,7 +18,8 @@
     },
     "index": {
       "number_of_shards": 2,
-      "number_of_replicas": 1
+      "number_of_replicas": 1,
+      "translog":{"durability":"async"}
     }
   },
   "mappings": {
@@ -66,10 +67,6 @@
           "type": "string",
           "index":"not_analyzed"
         }
-      },
-      "_ttl": {
-        "enabled": true,
-        "default": 300000
       }
     },
     "prc-s-state": {
@@ -201,9 +198,6 @@
           "store": false,
           "doc_values":false
         }
-      },
-      "_timestamp": {
-        "enabled": true
       }
     },
     "prc-in": {
@@ -240,9 +234,6 @@
         "fm_date": {
           "type": "date"
         }
-      },
-      "_timestamp": {
-        "enabled": true
       }
     },
     "fu-out": {
@@ -311,9 +302,6 @@
         "MergingTimePerFile":{
           "type": "float"
         }
-      },
-      "_timestamp": {
-        "enabled": true
       }
     },
     "fu-complete": {
@@ -326,9 +314,6 @@
         "fm_date": {
           "type": "date"
         }
-      },
-      "_timestamp": {
-        "enabled": true
       }
     },
     "qstatus": {
@@ -359,20 +344,10 @@
           "type": "string",
           "index":"not_analyzed"
         }
-      },
-      "_timestamp": {
-        "enabled": true
       }
     },
     "cmsswlog": {
-      "_timestamp": {
-        "enabled": true
-      },
       "_all": {"enabled": "false" },
-      "_ttl": {
-        "enabled": true,
-        "default": 2592000000
-      },
       "properties": {
         "host": {
           "type": "string",

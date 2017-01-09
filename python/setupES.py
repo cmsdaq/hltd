@@ -86,13 +86,15 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                         settingsSame=False
                     if int(norm_name['settings']['index']['number_of_shards'])!=int(loaddoc['settings']['index']['number_of_shards']):
                         settingsSame=False
+                    if 'translog' not in norm_name['settings']['index'] or norm_name['settings']['index']['translog']['durability']!=loaddoc['settings']['index']['translog']['durability']:
+                        settingsSame=False
                     #currently analyzer settings are ot checked
 
                     if not (mappingSame and settingsSame) or deleteOld>1:
                         #test is override
                         if overrideTests==False:
                             try:
-                                if norm_name['settings']['index,test']==True:
+                                if norm_name['settings']['test']==True:
                                     printout("Template test setting found, skipping update...",doPrint,True)
                                     break
                             except:pass
@@ -113,7 +115,8 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                     #this is for index pre-creator
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:
-                        doc_resp = es.send_request('GET', [create_index_name,'_count'])['count']
+                        #doc_resp = es.send_request('GET', [create_index_name,'_count'])['count']
+                        doc_resp = es.send_request('GET', [create_index_name,'_search'],size = 0)['hits']['total']
                     except ElasticHttpError as ex:
                         try:
                             if ex[1]['type'] == "index_closed_exception":

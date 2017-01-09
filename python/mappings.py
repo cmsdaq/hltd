@@ -10,7 +10,9 @@ central_es_settings = {
             },
             "index":{
                 'number_of_shards' : 12,
-                'number_of_replicas' : 2
+                'number_of_replicas' : 2,
+                'translog':{'durability':'async'},
+                'mapper':{'dynamic':'false'}
             }
         }
 
@@ -33,7 +35,9 @@ central_es_settings_hltlogs = {
             },
             "index":{
                 'number_of_shards' : 12,
-                'number_of_replicas' : 1
+                'number_of_replicas' : 1,
+                'translog':{'durability':'async'},
+                'mapper':{'dynamic':'false'}
             }
         }
 
@@ -74,10 +78,7 @@ central_runindex_mapping = {
                     'CMSSW_arch':{
 	              'type':'string','index':'not_analyzed'
                     }
-                },
-                '_timestamp' : {
-                    'enabled' : "true"
-                    }
+                }
             },
             'microstatelegend' : {
 
@@ -164,13 +165,9 @@ central_runindex_mapping = {
                     'NLostEvents'   :{'type':'integer'},
                     'NBytes'        :{'type':'long'},
                     'appliance'     :{'type':'string','index' : 'not_analyzed'}
-                    },
-                '_timestamp' : {
-                    'enabled'   : "true"
-                    },
+                    }
                 },
             'minimerge' : {
-                '_timestamp' : { "enabled": "true"},
                 '_all': {'enabled': "false" },
                 'properties' : {
                     'fm_date'       :{'type':'date'
@@ -191,7 +188,6 @@ central_runindex_mapping = {
                     }
                 },
             'macromerge' : {
-                '_timestamp' : { "enabled": "true"},
                 '_all': {'enabled': "false" },
                 'properties' : {
                     'fm_date'       :{'type':'date'
@@ -213,9 +209,6 @@ central_runindex_mapping = {
             'stream-hist' : {
                     "_parent": {
                             "type": "run"
-                    },
-                    "_timestamp": {
-                            "enabled": "true"
                     },
                     "properties": {
                             "stream": {
@@ -251,9 +244,6 @@ central_runindex_mapping = {
 	    "state-hist": {
 		    "_parent": {
 			    "type": "run"
-		    },
-		    "_timestamp": {
-			    "enabled": "true"
 		    },
 		    '_all': {'enabled': "false" },
 		    "properties": {
@@ -319,9 +309,6 @@ central_runindex_mapping = {
             "state-hist-summary": {
                             "_parent": {
                                     "type": "run"
-                            },
-                            "_timestamp": {
-                                    "enabled": "true"
                             },
 		            '_all': {'enabled': "false" },
                             "properties": {
@@ -435,13 +422,7 @@ central_boxinfo_mapping = {
               'detectedStaleHandle':{'type':'boolean'},
               'blacklist' : {'type':'string',"index":"not_analyzed"}
               #'activeRunsErrors':{'type':'string',"index":"not_analyzed"},#deprecated
-              },
-            '_timestamp' : {
-              'enabled'   : "true",
-              },
-            '_ttl'       : { 'enabled' : "true",
-                             'default' :  '30d'
-                           }
+              }
           },
           'resource_summary' : {
             '_all': {'enabled': "false" },
@@ -473,13 +454,9 @@ central_boxinfo_mapping = {
               "fuDataNetIn":                {"type":"float"},
               "resPerFU":                   {"type":"byte"}
               },
-            '_timestamp' : {
-              'enabled'   : "true"
-              }
           },
           "fu-box-status" : {
             "_all": {"enabled": "false" },
-            "_timestamp" : {"enabled"   : "true"},
             "properties": {
               "date":{"type":"date"},
 
@@ -511,12 +488,6 @@ central_boxinfo_mapping = {
 
 central_hltdlogs_mapping = {
             'hltdlog' : {
-                '_timestamp' : {
-                    'enabled'   : "true"
-                },
-                #'_ttl'       : { 'enabled' : True,
-                #              'default' :  '30d'}
-                #,
                 'properties' : {
                     'host'      : {'type' : 'string',"index":"not_analyzed"},
                     'type'      : {'type' : 'string',"index" : "not_analyzed"},
@@ -536,9 +507,6 @@ central_hltdlogs_mapping = {
             },
 
             "cmsswlog": {
-                    "_timestamp": {
-                            "enabled": "true"
-                    },
                     "properties": {
                             "host": {
                                     "type": "string",
