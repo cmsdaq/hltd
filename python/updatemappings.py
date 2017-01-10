@@ -12,15 +12,36 @@ class elasticUpdater:
 
     def __init__(self):
         if len(sys.argv)<2:
-          print "Usage: python updatemappings.py central-es-hostname subsystem (e.g. es-vm-cdaq-01 cdaq)"
+          print "Usage:"
+          print "  for runindex, boxinfo and hltdlogs indices:"
+          print "       python updatemappings.py central-es-hostname subsystem"
+          print "       (e.g. es-vm-cdaq-01 cdaq)"
+          print "  or for copying mapping from one index to another:"
+          print "       python updatemappings.py central-es-hostname subsystem input_index_mapping target_index"
+          print "       (e.g. es-vm-cdaq-01 cdaq runindex_cdaq merging_cdaq)"
+
           os._exit(0)
         self.url=sys.argv[1]
         self.runindex_name="runindex_"+sys.argv[2]
         self.boxinfo_name="boxinfo_"+sys.argv[2]
         self.hltdlogs_name="hltdlogs_"+sys.argv[2]
-        self.updateIndexMappingMaybe(self.runindex_name,mappings.central_runindex_mapping)
-        self.updateIndexMappingMaybe(self.boxinfo_name,mappings.central_boxinfo_mapping)
-        self.updateIndexMappingMaybe(self.hltdlogs_name,mappings.central_hltdlogs_mapping)
+
+        if len(sys.argv)>=5:
+           res = requests.get('http://'+self.url+':9200/'+sys.argv[3]+'/_mapping')
+           if res.status_code==200:
+             res_j = json.loads(res.content)
+             for idx in res_j:
+               #else:alias
+               new_mapping = res_j[idx]['mappings']
+               print idx
+               self.updateIndexMappingMaybe(sys.argv[4],new_mapping)
+               break
+        else:
+          import mappings
+
+          self.updateIndexMappingMaybe(self.runindex_name,mappings.central_runindex_mapping)
+          self.updateIndexMappingMaybe(self.boxinfo_name,mappings.central_boxinfo_mapping)
+          self.updateIndexMappingMaybe(self.hltdlogs_name,mappings.central_hltdlogs_mapping)
 
     def updateIndexMappingMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
