@@ -81,7 +81,7 @@ Provides:/etc/hltd.conf
 Provides:/etc/logrotate.d/hltd
 Provides:/etc/init.d/hltd
 Provides:/etc/init.d/soap2file
-Requires:hltd-libs >= 1.9.6,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,cx_Oracle
+Requires:hltd-libs >= 1.9.6,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,python-dateutil,cx_Oracle
 
 %description
 fff hlt daemon
