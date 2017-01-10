@@ -1,0 +1,15 @@
+<site-local-config>
+<site name="LOCAL">
+<calib-data>
+<frontier-connect>
+<server url="http://cmsfrontier.cern.ch:8000/FrontierInt"/>
+<server url="http://cmsfrontier1.cern.ch:8000/FrontierInt"/>
+<server url="http://cmsfrontier2.cern.ch:8000/FrontierInt"/>
+<server url="http://cmsfrontier3.cern.ch:8000/FrontierInt"/>
+<server url="http://cmsfrontier4.cern.ch:8000/FrontierInt"/>
+</frontier-connect>
+<catalog url=""/>
+</calib-data>
+</site>
+</site-local-config>
+
