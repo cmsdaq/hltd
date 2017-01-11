@@ -59,7 +59,6 @@ rm -rf $TOPDIR/opt/hltd/esplugins
 rm -rf $TOPDIR/opt/hltd/scripts/paramcache*
 rm -rf $TOPDIR/opt/hltd/scripts/*rpm.sh
 rm -rf $TOPDIR/opt/hltd/scripts/*.php
-rm -rf $TOPDIR/opt/hltd/scripts/fff-es
 
 cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
