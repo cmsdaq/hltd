@@ -441,9 +441,12 @@ class system_monitor(threading.Thread):
                         else:
                             p = subprocess.Popen("du -s --exclude " + ES_DIR_NAME + " --exclude mon --exclude open " + str(conf.watch_directory), shell=True, stdout=subprocess.PIPE)
                             p.wait()
-                            std_out=p.stdout.read()
-                            out = std_out.split('\t')[0]
-                            d_used = int(out)>>10
+                            try:
+                              std_out=p.stdout.read()
+                              out = std_out.split('\t')[0]
+                              d_used = int(out)>>10
+                            except:
+                              d_used=0
                             d_total = conf.max_local_disk_usage
 
                         lastrun = self.runList.getLastRun()
