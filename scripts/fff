@@ -1,6 +1,6 @@
 #!/bin/env python
 #
-#restart of fff services (elasticsearch and hltd)
+#restart of fff services (hltd)
 #
 import os,sys
 sys.path.append('/opt/hltd/python')
@@ -31,46 +31,32 @@ def executeService(service,commands):
       print 'command output:\n',output
       return proc.returncode
 
-def reconfigureScript(services=['elasticsearch','hltd']):
+def reconfigureScript(services=['hltd']):
 
-
-  if 'hltd' in services and 'elasticsearch' in services:
-    proc = Popen(['/sbin/chkconfig', 'fffmeta', 'on'], stdout=PIPE, stderr=PIPE)
-    output = proc.communicate()[0]
 
   #activate services in the boot sequence
   if 'hltd' in services:
-      proc = Popen(['/sbin/chkconfig', 'hltd', 'on'], stdout=PIPE, stderr=PIPE)
-      output = proc.communicate()[0]
+    proc = Popen(['/sbin/chkconfig', 'fffmeta', 'on'], stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0]
+    proc = Popen(['/sbin/chkconfig', 'hltd', 'on'], stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0]
 
-  if 'elasticsearch' in services:
-      proc = Popen(['/sbin/chkconfig', 'elasticsearch', 'on'], stdout=PIPE, stderr=PIPE)
-      output = proc.communicate()[0]
+    proc = Popen(['/etc/init.d/hltd','status'], stdout=PIPE)
+    output = proc.communicate()[0]
+    if 'is running' in output:
+      print "Unable to reconfigure if hltd already running",' [  \033[1;31mFAILED\033[0;39m  ]'
+      return 1
 
-  if 'hltd' in services:
-      proc = Popen(['/etc/init.d/hltd','status'], stdout=PIPE)
-      output = proc.communicate()[0]
-      if 'is running' in output:
-        print "Unable to reconfigure if hltd already running",' [  \033[1;31mFAILED\033[0;39m  ]'
-        return 1
+    #TODO:detect problems in execution of the reconfigure script
 
-  if 'elasticsearch' in services:
-      proc = Popen(['/etc/init.d/elasticsearch','status'], stdout=PIPE)
-      output = proc.communicate()[0]
-      if proc.returncode==0:
-        print "Unable to reconfigure if elasticsearch already running",' [  \033[1;31mFAILED\033[0;39m  ]'
-        return 1
-
-  #TODO:detect problems in execution of the reconfigure script
-  if 'hltd' in services and 'elasticsearch' in services:
     proc = Popen('/opt/fff/configurefff.sh', stdout=PIPE, stderr=PIPE)
-  else:
-    proc = Popen(['/opt/fff/configurefff.sh',services[0]], stdout=PIPE, stderr=PIPE)
-  output = proc.communicate()[0]
-  if proc.returncode!=0:
+    output = proc.communicate()[0]
+
+    if proc.returncode!=0:
       print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
       return 1
-  time.sleep(.1)
+
+    time.sleep(.1)
   return 0
 
 def isBlacklisted():
@@ -97,17 +83,13 @@ if __name__ == "__main__":
 
     if 'start' == sys.argv[1]:
         if reconfigureScript()==0:
-            #rc1=executeService('elasticsearch','start')
             rc2=executeService('hltd','start')
-            #sys.exit(rc1|rc2)
             sys.exit(rc2)
         else:
             sys.exit(1)
 
     elif 'stop' == sys.argv[1]:
         rc1=executeService('hltd','stop')
-        #rc2=executeService('elasticsearch','stop')
-        #sys.exit(rc1|rc2)
         sys.exit(rc1)
 
     elif sys.argv[1].startswith('restart'):
@@ -117,31 +99,23 @@ if __name__ == "__main__":
             sys.exit(1)
 
         executeService('hltd','stop')
-        #executeService('elasticsearch','stop')
         time.sleep(.5)
         if reconfigureScript()==0:
-            #rc1=executeService('elasticsearch','restart')
             rc2=executeService('hltd','restart')
-            #sys.exit(rc1|rc2)
             sys.exit(rc2)
         else:
             sys.exit(1)
 
     elif 'status' == sys.argv[1]:
       rc1=executeService('hltd',sys.argv[1])
-      #rc2=executeService('elasticsearch',sys.argv[1])
-      #sys.exit(rc1|rc2)
       sys.exit(rc1)
 
     elif sys.argv[1].startswith('disable'):
       if (sys.argv[1]=='disableBlacklisted' and isBlacklisted()) or True:
-        proc = Popen(['/opt/fff/disablenode.py','hltd,elasticsearch'], stdout=PIPE, stderr=PIPE)
+        proc = Popen(['/opt/fff/disablenode.py','hltd'], stdout=PIPE, stderr=PIPE)
         output = proc.communicate()[0]
         executeService('hltd','stop')
-        executeService('elasticsearch','stop')
         proc = Popen('chmod -x /etc/init.d/fff', stdout=PIPE, stderr=PIPE, shell=True)
-        output = proc.communicate()[0]
-        proc = Popen(['/sbin/chkconfig','elasticsearch','off'], stdout=PIPE, stderr=PIPE)
         output = proc.communicate()[0]
         proc = Popen(['/sbin/chkconfig', 'hltd', 'off'], stdout=PIPE, stderr=PIPE)
         output = proc.communicate()[0]
@@ -161,7 +135,7 @@ if __name__ == "__main__":
 
   elif len(sys.argv) > 2:
 
-        if sys.argv[1]!='hltd' and sys.argv[1]!='elasticsearch':
+        if sys.argv[1]!='hltd':
             print "Unrecognized service",sys.argv[1]
             sys.exit(1)
 
@@ -195,7 +169,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
   else:
-    print "usage: %s |hltd|elasticsearch start|stop|restart|status" % sys.argv[0]
+    print "usage: %s |hltd start|stop|restart|status" % sys.argv[0]
     sys.exit(1)
 
 sys.exit(0)
