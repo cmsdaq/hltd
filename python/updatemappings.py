@@ -6,7 +6,10 @@ import os
 import mappings
 
 import requests
-import simplejson as json
+try:
+  import simplejson as json
+except:
+  import json
 
 class elasticUpdater:
 
@@ -15,30 +18,77 @@ class elasticUpdater:
           print "Usage:"
           print "  for runindex, boxinfo and hltdlogs indices:"
           print "       python updatemappings.py central-es-hostname subsystem"
-          print "       (e.g. es-vm-cdaq-01 cdaq)"
+          print "       (es-vm-cdaq-01 cdaq)"
+          print "  or use this syntax to specify exact index names for runindex,boxinfo and hltdlogs:"
+          print "       python updatemappings.py central-es-hostname null runindex_index boxinfo_index hltdlogs_index"
+          print "       (es-vm-cdaq-01 auto runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101)"
           print "  or for copying mapping from one index to another:"
           print "       python updatemappings.py central-es-hostname subsystem input_index_mapping target_index"
-          print "       (e.g. es-vm-cdaq-01 cdaq runindex_cdaq merging_cdaq)"
-
+          print "       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)"
+          print " or for setting up subsystem aliases:"
+          print "       python updatemappings.py central-es-hostname aliases subsystem runindex_index boxinfo_index hltdlogs_index merging_index"
+          print "       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101)"
           os._exit(0)
+
         self.url=sys.argv[1]
-        self.runindex_name="runindex_"+sys.argv[2]
-        self.boxinfo_name="boxinfo_"+sys.argv[2]
-        self.hltdlogs_name="hltdlogs_"+sys.argv[2]
 
-        if len(sys.argv)>=5:
-           res = requests.get('http://'+self.url+':9200/'+sys.argv[3]+'/_mapping')
-           if res.status_code==200:
-             res_j = json.loads(res.content)
-             for idx in res_j:
-               #else:alias
-               new_mapping = res_j[idx]['mappings']
-               print idx
-               self.updateIndexMappingMaybe(sys.argv[4],new_mapping)
-               break
+        if sys.argv[2]=="auto":
+          #update 3 explicitly specified indices
+          self.updateIndexMappingMaybe(sys.argv[3],mappings.central_runindex_mapping)
+          self.updateIndexMappingMaybe(sys.argv[4],mappings.central_boxinfo_mapping)
+          self.updateIndexMappingMaybe(sys.argv[5],mappings.central_hltdlogs_mapping)
+        elif sys.argv[2]=="copy":
+          #copy single index mapping to another
+          res = requests.get('http://'+self.url+':9200/'+sys.argv[3]+'/_mapping')
+          if res.status_code==200:
+            res_j = json.loads(res.content)
+            for idx in res_j:
+              #else:alias
+              new_mapping = res_j[idx]['mappings']
+              print idx
+              self.updateIndexMappingMaybe(sys.argv[4],new_mapping)
+              break
+        elif sys.argv[2]=="aliases":
+          res = requests.get('http://'+self.url+':9200/_aliases')
+          aliases = json.loads(res.content)
+          actions = []
+          for idx in aliases:
+            #print idx
+            for alias in aliases[idx]["aliases"]:
+              if alias in ['runindex_'+sys.argv[3],'runindex_'+sys.argv[3]+'_read','runindex_'+sys.argv[3]+'_write',
+                           'boxinfo_'+sys.argv[3],'boxinfo_'+sys.argv[3]+'_read','boxinfo_'+sys.argv[3]+'_write',
+                           'hltdlogs_'+sys.argv[3],'hltdlogs_'+sys.argv[3]+'_read','hltdlogs_'+sys.argv[3]+'_write',
+                           'merging_'+sys.argv[3],'merging_'+sys.argv[3]+'_write']:
+                actions.append({"remove":{"index":idx,"alias":alias}})
+
+          actions.append({"add":{"alias":"runindex_"+sys.argv[3],"index":sys.argv[4]}})
+          actions.append({"add":{"alias":"runindex_"+sys.argv[3]+"_read","index":sys.argv[4]}})
+          actions.append({"add":{"alias":"runindex_"+sys.argv[3]+"_write","index":sys.argv[4]}})
+
+          actions.append({"add":{"alias":"boxinfo_"+sys.argv[3],"index":sys.argv[5]}})
+          actions.append({"add":{"alias":"boxinfo_"+sys.argv[3]+"_read","index":sys.argv[5]}})
+          actions.append({"add":{"alias":"boxinfo_"+sys.argv[3]+"_write","index":sys.argv[5]}})
+
+          actions.append({"add":{"alias":"hltdlogs_"+sys.argv[3],"index":sys.argv[6]}})
+          actions.append({"add":{"alias":"hltdlogs_"+sys.argv[3]+"_read","index":sys.argv[6]}})
+          actions.append({"add":{"alias":"hltdlogs_"+sys.argv[3]+"_write","index":sys.argv[6]}})
+
+          actions.append({"add":{"alias":"merging_"+sys.argv[3],"index":sys.argv[7]}})
+          actions.append({"add":{"alias":"runindex_"+sys.argv[3]+"_read","index":sys.argv[7]}}) #!
+          actions.append({"add":{"alias":"merging_"+sys.argv[3]+"_write","index":sys.argv[7]}})
+
+          data = json.dumps({"actions":actions})
+          print data
+          res = requests.post('http://'+self.url+':9200/_aliases',data)
+          print res.status_code
+
+          
+          pass
         else:
-          import mappings
-
+          self.runindex_name="runindex_"+sys.argv[2]
+          self.boxinfo_name="boxinfo_"+sys.argv[2]
+          self.hltdlogs_name="hltdlogs_"+sys.argv[2]
+          #update by alias
           self.updateIndexMappingMaybe(self.runindex_name,mappings.central_runindex_mapping)
           self.updateIndexMappingMaybe(self.boxinfo_name,mappings.central_boxinfo_mapping)
           self.updateIndexMappingMaybe(self.hltdlogs_name,mappings.central_hltdlogs_mapping)
