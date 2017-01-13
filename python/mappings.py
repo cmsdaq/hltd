@@ -184,7 +184,8 @@ central_runindex_mapping = {
 		    'eolField1'     :{'type':'integer'},
 		    'eolField2'     :{'type':'integer'},
 		    'fname'         :{'type':'string','index':'not_analyzed'},
-		    'adler32'       :{'type':'long'}
+		    'adler32'       :{'type':'long'},
+                    'runNumber'     :{'type':'integer'}
                     }
                 },
             'macromerge' : {
@@ -203,7 +204,8 @@ central_runindex_mapping = {
                     'size'          :{'type':'long'},
 		    'eolField1'     :{'type':'integer'},
 		    'eolField2'     :{'type':'integer'},
-		    'fname'         :{'type':'string','index':'not_analyzed'}
+		    'fname'         :{'type':'string','index':'not_analyzed'},
+                    'runNumber'     :{'type':'integer'}
                     }
                 },
             'stream-hist' : {
