@@ -495,7 +495,7 @@ central_hltdlogs_mapping = {
                     'type'      : {'type' : 'string',"index" : "not_analyzed"},
                     'severity'  : {'type' : 'string',"index" : "not_analyzed"},
                     'severityVal'  : {'type' : 'integer'},
-                    'message'   : {'type' : 'string'},
+                    'message'   : {'type' : 'string',"index" : "analyzed"},
                     'lexicalId' : {'type' : 'string',"index" : "not_analyzed"},
                     "run"       : {'type':'integer'},
                     'msgtime' : {
@@ -559,7 +559,8 @@ central_hltdlogs_mapping = {
                                     "type": "long"
                             },
                             "message": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "index": "analyzed"
                             },
                             "lexicalId": {
                                     "type": "string",
