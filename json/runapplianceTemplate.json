@@ -19,7 +19,7 @@
     "index": {
       "number_of_shards": 2,
       "number_of_replicas": 1,
-      "translog":{"durability":"async"}
+      "translog":{"durability":"async","flush_threshold_size":"4g"}
     }
   },
   "mappings": {
@@ -397,7 +397,8 @@
           "type": "long"
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "index": "analyzed"
         },
         "lexicalId": {
           "type": "string",
