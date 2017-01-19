@@ -446,6 +446,16 @@ if __name__ == "__main__":
     if len(elastic_host.split(':'))<3:
         elastic_host+=':9200'
 
+    #es-vm-local configuration based on es-vm-cdaq* setup
+    if elastic_host.startswith('http://es-cdaq'):
+        es_local = 'http://es-local'
+    elif elastic_host.startswith('http://es-vm-cdaq-01'):
+        es_local = 'es-vm-local-01'
+    elif elastic_host.startswith('http://es-vm-cdaq'):
+        es_local = 'es-vm-local'
+    else:
+        es_local = 'es-local'
+
     argvc += 1
     if not sys.argv[argvc]:
         print "CMSSW base missing"
@@ -729,11 +739,10 @@ if __name__ == "__main__":
                 #hltdcfg.reg('micromerge_output',out_dir_bu,'[General]')
                 hltdcfg.reg('elastic_runindex_url',elastic_host,'[Monitoring]')
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
+                hltdcfg.reg('es_local',es_local,'[Monitoring]')
                 if env=='vm':
-                    hltdcfg.reg('es_local','es-vm-local','[Monitoring]')
                     hltdcfg.reg('force_replicas','0','[Monitoring]')
                 else:
-                    hltdcfg.reg('es_local','es-local','[Monitoring]')
                     hltdcfg.reg('force_replicas','1','[Monitoring]')
                 hltdcfg.reg('force_shards','4','[Monitoring]')
                 hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
@@ -769,15 +778,12 @@ if __name__ == "__main__":
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_url',elastic_host,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
-
+            hltdcfg.reg('es_local',es_local,'[Monitoring]')
             if env=='vm':
-                hltdcfg.reg('es_local','es-vm-local','[Monitoring]')
                 hltdcfg.reg('force_replicas','0','[Monitoring]')
                 hltdcfg.reg('dynamic_resources','False','[Resources]')
             else:
-                hltdcfg.reg('es_local','es-local','[Monitoring]')
                 hltdcfg.reg('force_replicas','1','[Monitoring]')
-
             hltdcfg.reg('force_shards','4','[Monitoring]')
             hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
             hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
@@ -786,9 +792,9 @@ if __name__ == "__main__":
             hltdcfg.reg('cmssw_default_version',cmssw_version,'[CMSSW]')
             hltdcfg.reg('cmssw_threads',str(resource_cmsswthreads),'[CMSSW]')
             hltdcfg.reg('cmssw_streams',str(resource_cmsswstreams),'[CMSSW]')
-            if myhost.startswith('fu-c2d'):
-                hltdcfg.reg('resource_use_fraction',str(resourcefractd),'[Resources]')
-            else:
-                hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
+            #if myhost.startswith('fu-c2d'):
+            hltdcfg.reg('resource_use_fraction',str(resourcefractd),'[Resources]')
+            #else:
+            #    hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
             hltdcfg.commit()
 
