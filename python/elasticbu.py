@@ -123,7 +123,8 @@ class elasticBandBU:
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
             if isinstance(ret,tuple) and ret[1]==409:
                 #run document was already created by another BU. In that case increase atomically active BU counter
-                self.index_documents('run',[{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+                #self.index_documents('run',[{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+                self.index_documents('run',[{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
 
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
@@ -310,7 +311,8 @@ class elasticBandBU:
         #first update: endtime field
         self.index_documents('run',[{"endTime":endtime}],doc_id,bulk=False,update_only=True)
         #second update:decrease atomically active BU counter
-        self.index_documents('run',[{"inline":"ctx._source.activeBUs-=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+        #self.index_documents('run',[{"inline":"ctx._source.activeBUs-=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+        self.index_documents('run',[{"inline":"ctx._source.activeBUs-=1"],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')
