@@ -1,5 +1,5 @@
 vm
-http://es-vm-cdaq:9200
+http://es-vm-cdaq-01:9200
 /home/daqlocal
 null
 null
