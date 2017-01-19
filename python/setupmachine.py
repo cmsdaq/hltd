@@ -451,7 +451,7 @@ if __name__ == "__main__":
         es_local = 'http://es-local'
     elif elastic_host.startswith('http://es-vm-cdaq-01'):
         es_local = 'es-vm-local-01'
-    elif: elastic_host.startswith('http://es-vm-cdaq'):
+    elif elastic_host.startswith('http://es-vm-cdaq'):
         es_local = 'es-vm-local'
     else:
         es_local = 'es-local'
