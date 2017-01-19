@@ -32,9 +32,9 @@ def create_template(es,name,label,subsystem,forceReplicas,forceShards,send=True)
     doc["template"]="run*"+subsystem
     doc["order"]=1
     if forceReplicas>=0:
-        doc['settings']['index']['number_of_replicas']=forceReplicas
+        doc['settings']['index']['number_of_replicas']=str(forceReplicas)
     if forceShards>=0:
-        doc['settings']['index']['number_of_shards']=forceShards
+        doc['settings']['index']['number_of_shards']=str(forceShards)
     if send:send_template(es,name,doc)
     return doc
 
@@ -82,13 +82,15 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                     mappingSame =  norm_name['mappings']==loaddoc['mappings']
                     #settingSame = norm_name['settings']==loaddoc['settings']
                     settingsSame=True
+                    #convert to int before comparison
                     if int(norm_name['settings']['index']['number_of_replicas'])!=int(loaddoc['settings']['index']['number_of_replicas']):
                         settingsSame=False
                     if int(norm_name['settings']['index']['number_of_shards'])!=int(loaddoc['settings']['index']['number_of_shards']):
                         settingsSame=False
-                    if 'translog' not in norm_name['settings']['index'] or norm_name['settings']['index']['translog']['durability']!=loaddoc['settings']['index']['translog']['durability']:
+                    #add more here if other settings need to be added
+                    if 'translog' not in norm_name['settings']['index'] or norm_name['settings']['index']['translog']!=loaddoc['settings']['index']['translog']:
                         settingsSame=False
-                    #currently analyzer settings are ot checked
+                    #currently analyzer settings are not verified
 
                     if not (mappingSame and settingsSame) or deleteOld>1:
                         #test is override
