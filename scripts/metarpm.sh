@@ -162,7 +162,7 @@ cd $TOPDIR
 cat > fffmeta.spec <<EOF
 Name: $PACKAGENAME
 Version: 2.1.1
-Release: 0es5
+Release: 0
 Summary: hlt daemon
 License: gpl
 Group: DAQ
