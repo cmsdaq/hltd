@@ -380,7 +380,7 @@ class elasticBand():
                         else:break #no docs left to inject
 
                 except Exception as ex:
-                    self.logger.error("unable to parse error reply from elasticsearch: "+str(reply)+" documents:"+len(documents))
+                    self.logger.error("unable to parse error reply from elasticsearch: "+str(reply)+" documents:"+str(len(documents)))
                     continue
                 break
             except (ConnectionError,Timeout) as ex:
