@@ -117,19 +117,14 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                     #this is for index pre-creator
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:
-                        #doc_resp = es.send_request('GET', [create_index_name,'_count'])['count']
-                        doc_resp = es.send_request('GET', [create_index_name,'_search'],size = 0)['hits']['total']
+                        doc_resp = es.send_request('GET', ['_cat','indices',create_index_name],query_params={'h':'status'})
+                        if doc_resp.strip('\n')=='close':
+                            printout("Index "+create_index_name+ " is already closed! Index will be reopened",doPrint,True)
+                            c_res = es.send_request('POST', [create_index_name,'_open'])
                     except ElasticHttpError as ex:
-                        try:
-                            if ex[1]['type'] == "index_closed_exception":
-                                printout("Index "+create_index_name+ " is already closed! Index will be reopened",doPrint,True)
-                                c_res = es.send_request('POST', [create_index_name,'_open'])
-                            else:
-                                printout(str(ex),doPrint,True)
-                        except:
-                            printout("setupES exception: "+str(ex),doPrint,True)
+                        printout("setupES got ElasticHttpError getting index open/close state: "+str(ex),doPrint,True)
                     except Exception as ex:
-                        printout("Unable to get doc count in index. Possible cluster problem: "+str(ex),doPrint,True)
+                        printout("setupEs got Exception getting index open/closed state: "+str(ex),doPrint,True)
             except Exception as ex:
                 #if type(ex)==RemoteTransportException: print "a",type(ex)
                 printout("Index not created: "+str(ex),doPrint,True)
