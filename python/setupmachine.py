@@ -418,11 +418,12 @@ if __name__ == "__main__":
     selection = sys.argv[argvc]
     #print selection
 
-    if 'restore' in selection:
-        if 'hltd' in selection:
-            restoreFileMaybe(hltdconf)
-
+    if 'restore' == selection:
+        restoreFileMaybe(hltdconf)
         sys.exit(0)
+    elif 'configure' != selection:
+        print "Unknown command. Known commands are: configure, restore"
+        sys.exit(1)
 
     argvc += 1
     if not sys.argv[argvc]:
@@ -430,39 +431,22 @@ if __name__ == "__main__":
         sys.exit(1)
     env = sys.argv[argvc]
 
+    #skipping rpm revision suffix
+    argvc += 1
+
     argvc += 1
     if not sys.argv[argvc]:
-        print "global elasticsearch URL name missing"
+        print "elasticsearch central host/alias missing"
         sys.exit(1)
     elastic_host = sys.argv[argvc]
-    #http prefix is required here
-    if not elastic_host.strip().startswith('http://'):
-        elastic_host = 'http://'+ elastic_host.strip()
-        #add default port name for elasticsearch
-    if len(elastic_host.split(':'))<3:
-        elastic_host+=':9200'
-
-    #es-vm-local configuration based on es-vm-cdaq* setup
-    if elastic_host.startswith('http://es-cdaq'):
-        es_local = 'http://es-local'
-    elif elastic_host.startswith('http://es-vm-cdaq-01'):
-        es_local = 'es-vm-local-01'
-    elif elastic_host.startswith('http://es-vm-cdaq'):
-        es_local = 'es-vm-local'
-    else:
-        es_local = 'es-local'
+    elastic_host_url = 'http://'+sys.argv[argvc]+':9200'
 
     argvc += 1
     if not sys.argv[argvc]:
-        print "CMSSW base missing"
+        print "elasticsearch local host/alias missing"
         sys.exit(1)
-    cmssw_base = sys.argv[argvc]
-
-    argvc += 1
-    if not sys.argv[argvc]:
-        print "DB connection hostname missing"
-        sys.exit(1)
-    dbhost = sys.argv[argvc]
+    elastic_host_local = sys.argv[argvc]
+    elastic_host_local_url = 'http://'+sys.argv[argvc]+':9200'
 
     argvc += 1
     if not sys.argv[argvc]:
@@ -491,6 +475,12 @@ if __name__ == "__main__":
 
     argvc += 1
     if not sys.argv[argvc]:
+        print "CMSSW base missing"
+        sys.exit(1)
+    cmssw_base = sys.argv[argvc]
+
+    argvc += 1
+    if not sys.argv[argvc]:
         print "CMSSW job username parameter is missing"
         sys.exit(1)
     username = sys.argv[argvc]
@@ -498,6 +488,7 @@ if __name__ == "__main__":
     argvc+=1
     if not sys.argv[argvc]:
         print "CMSSW number of threads/process is missing"
+        sys.exit(1)
     nthreads = sys.argv[argvc]
     #@SM: override
     #nthreads = 4
@@ -506,6 +497,7 @@ if __name__ == "__main__":
     argvc+=1
     if not sys.argv[argvc]:
         print "CMSSW number of framework streams/process is missing"
+        sys.exit(1)
     nfwkstreams = sys.argv[argvc]
      #@SM: override
     #nfwkstreams = 4
@@ -514,7 +506,16 @@ if __name__ == "__main__":
     argvc+=1
     if not sys.argv[argvc]:
         print "CMSSW log collection level is missing"
+        sys.exit(1)
     cmsswloglevel =  sys.argv[argvc]
+
+    argvc+=1
+    if not sys.argv[argvc]:
+        print "hltd log collection level is missing"
+        sys.exit(1)
+    hltdloglevel =  sys.argv[argvc]
+
+    #end of parameter parsing ----
 
     cluster,type = getmachinetype()
     #override for daq2val!
@@ -575,11 +576,11 @@ if __name__ == "__main__":
     elif cluster == 'daq2_904':
         runindex_name = 'b904'
         use_elasticsearch = 'False'
-        elastic_host = 'http://localhost:9200' #will be changed in future
+        elastic_host_url = 'http://localhost:9200' #will be changed in future
     elif cluster == 'hilton':
         runindex_name = 'dv'
         use_elasticsearch = 'False'
-        elastic_host = 'http://localhost:9200'
+        elastic_host_url = 'http://localhost:9200'
 
     buName = None
     buDataAddr=[]
@@ -733,9 +734,9 @@ if __name__ == "__main__":
                     hltdcfg.reg('static_blacklist','False','[General]')
 
                 #hltdcfg.reg('micromerge_output',out_dir_bu,'[General]')
-                hltdcfg.reg('elastic_runindex_url',elastic_host,'[Monitoring]')
+                hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
-                hltdcfg.reg('es_local',es_local,'[Monitoring]')
+                hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
                 if env=='vm':
                     hltdcfg.reg('force_replicas','0','[Monitoring]')
                 else:
@@ -743,6 +744,7 @@ if __name__ == "__main__":
                 hltdcfg.reg('force_shards','4','[Monitoring]')
                 hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
                 hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
+                hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
                 hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
                 hltdcfg.reg('log_dir',log_dir_bu,'[Logs]')
                 hltdcfg.commit()
@@ -772,9 +774,10 @@ if __name__ == "__main__":
             hltdcfg.reg('soap2file_port','0','[Web]')
             hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
-            hltdcfg.reg('elastic_runindex_url',elastic_host,'[Monitoring]')
+            hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
+            hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
-            hltdcfg.reg('es_local',es_local,'[Monitoring]')
+            hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
             if env=='vm':
                 hltdcfg.reg('force_replicas','0','[Monitoring]')
                 hltdcfg.reg('dynamic_resources','False','[Resources]')

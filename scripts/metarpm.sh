@@ -5,6 +5,7 @@ cd $SCRIPTDIR/..
 BASEDIR=$PWD
 
 PARAMCACHE="paramcache"
+NLINES=14
 
 if [ -n "$1" ]; then
   #PARAMCACHE=$1
@@ -16,106 +17,119 @@ echo "Using cache file $PARAMCACHE"
 if [ -f $SCRIPTDIR/$PARAMCACHE ];
 then
   readarray lines < $SCRIPTDIR/$PARAMCACHE
-  for (( i=0; i < 12; i++ ))
+  for (( i=0; i < ${NLINES}; i++ ))
   do
     lines[$i]=`echo -n ${lines[$i]} | tr -d "\n"`
   done
 else
-  for (( i=0; i < 12; i++ ))
+  for (( i=0; i < ${NLINES}; i++ ))
   do
     lines[$i]=""
   done
 fi
 
-echo "Enviroment (prod,vm) (press enter for \"${lines[0]}\"):"
+echo "Environment (prod,vm) (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[0]=$readin
 fi
 
-echo "ES server URL containg common run index (press enter for \"${lines[1]}\"):"
+echo "rpm revision suffix (enter null if none, press enter for \"${lines[1]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[1]=$readin
 fi
 
-echo "CMSSW base (press enter for \"${lines[2]}\"):"
+echo "ES central server host or alias (without .cms/.cern.ch) (press enter for \"${lines[2]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[2]=$readin
 fi
 
-echo "HWCFG DB server (press enter for \"${lines[3]}\"):"
+echo "ES local (previously tribe) server host or alias (without .cms/.cern.ch) (press enter for \"${lines[3]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[3]=$readin
 fi
 
-echo "HWCFG DB SID (or db name in VM enviroment) (press enter for: \"${lines[4]}\"):"
-echo "(SPECIFIES address in TNSNAMES.ORA file if DB server field was \"null\"!)"
+echo "HwCfg DB SID to be matched with tnsnames.ora (press enter for: \"${lines[4]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[4]=$readin
 fi
 
-echo "HWCFG DB username (press enter for: \"${lines[5]}\"):"
+echo "HwCfg DB username (press enter for: \"${lines[5]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[5]=$readin
 fi
 
-echo "HWCFG DB password (press enter for: \"${lines[6]}\"):"
+echo "HwCfg DB password (press enter for: \"${lines[6]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[6]=$readin
 fi
 
-echo "Equipment set (press enter for: \"${lines[7]}\") - type 'latest' or enter a specific one:"
+echo "equipment set (press enter for: \"${lines[7]}\") - type 'latest' or enter a specific one:"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[7]=$readin
 fi
 
-echo "job username (press enter for: \"${lines[8]}\"):"
+echo "CMSSW base (press enter for \"${lines[8]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[8]=$readin
 fi
 
-echo "number of threads per process (press enter for: ${lines[9]}):"
+echo "username for CMSSW jobs (press enter for: \"${lines[9]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[9]=$readin
 fi
 
-echo "number of framework streams per process (press enter for: ${lines[10]}):"
+echo "number of threads per process (press enter for: ${lines[10]}):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[10]=$readin
 fi
 
-echo "CMSSW log collection level (DEBUG,INFO,WARNING,ERROR or FATAL) (press enter for: ${lines[11]}):"
+echo "number of framework streams per process (press enter for: ${lines[11]}):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
 lines[11]=$readin
 fi
 
+echo "CMSSW log collection level (DEBUG,INFO,WARNING,ERROR or FATAL - default is ERROR) (press enter for: ${lines[12]}):"
+readin=""
+read readin
+if [ ${#readin} != "0" ]; then
+lines[12]=$readin
+fi
+
+
+echo "hltd log collection level (DEBUG,INFO,WARNING,ERROR or FATAL - default is ERROR) (press enter for: ${lines[13]}):"
+readin=""
+read readin
+if [ ${#readin} != "0" ]; then
+lines[13]=$readin
+fi
 
 
 params=""
-for (( i=0; i < 12; i++ ))
+for (( i=0; i < ${NLINES}; i++ ))
 do
   params="$params ${lines[i]}"
 done
@@ -162,7 +176,7 @@ cd $TOPDIR
 cat > fffmeta.spec <<EOF
 Name: $PACKAGENAME
 Version: 2.0.1
-Release: 0
+Release: 0${revsuffix}
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -210,14 +224,14 @@ echo
 echo "if [ -n \"\\\$1\" ]; then"                                       >> %{buildroot}/opt/fff/configurefff.sh
 echo "  if [ \\\$1 == \"hltd\" ]; then"                                >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2.6 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh
+echo "    python2.6 /opt/fff/setupmachine.py configure $params"        >> %{buildroot}/opt/fff/configurefff.sh
 echo "  elif [ \\\$1 == \"init\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2.6 /opt/hltd/python/fillresources.py ignorecloud"     >> %{buildroot}/opt/fff/configurefff.sh
-echo "    python2.6 /opt/fff/setupmachine.py hltd $params"             >> %{buildroot}/opt/fff/configurefff.sh 
+echo "    python2.6 /opt/fff/setupmachine.py configure $params"        >> %{buildroot}/opt/fff/configurefff.sh 
 echo "  fi"                                                            >> %{buildroot}/opt/fff/configurefff.sh
 echo "else"                                                            >> %{buildroot}/opt/fff/configurefff.sh
 echo "  python2.6 /opt/hltd/python/fillresources.py"                   >> %{buildroot}/opt/fff/configurefff.sh
-echo "  python2.6 /opt/fff/setupmachine.py hltd $params"               >> %{buildroot}/opt/fff/configurefff.sh 
+echo "  python2.6 /opt/fff/setupmachine.py configure $params"          >> %{buildroot}/opt/fff/configurefff.sh
 echo "fi"                                                              >> %{buildroot}/opt/fff/configurefff.sh
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/dbcheck.sh
@@ -281,17 +295,17 @@ chkconfig --add fffmeta
 /sbin/service soap2file stop || true
 rm -rf /etc/hltd.instances
 
-python2.6 /opt/fff/setupmachine.py restore,hltd
-python2.6 /opt/fff/setupmachine.py hltd $params
+python2.6 /opt/fff/setupmachine.py restore
+python2.6 /opt/fff/setupmachine.py configure $params
 
 #adjust ownership of unpriviledged child process log files
 
 if [ -f /var/log/hltd/elastic.log ]; then
-chown ${lines[8]} /var/log/hltd/elastic.log
+chown ${lines[9]} /var/log/hltd/elastic.log
 fi
 
 if [ -f /var/log/hltd/anelastic.log ]; then
-chown ${lines[8]} /var/log/hltd/anelastic.log
+chown ${lines[9]} /var/log/hltd/anelastic.log
 fi
 
 #set up resources for hltd (triggered at next service restart)
@@ -318,7 +332,7 @@ if [ \$1 == 0 ]; then
 
   /sbin/service hltd stop || true
 
-  python2.6 /opt/fff/setupmachine.py restore,hltd
+  python2.6 /opt/fff/setupmachine.py restore
 
 fi
 
