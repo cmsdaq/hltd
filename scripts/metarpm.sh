@@ -227,17 +227,18 @@ cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo
 
-echo "if [ -n \"\\\$1\" ]; then"                                       >> %{buildroot}/opt/fff/configurefff.sh
-echo "  if [ \\\$1 == \"hltd\" ]; then"                                >> %{buildroot}/opt/fff/configurefff.sh
+echo "if [ -n \"\\\$1\" ]; then"                                     >> %{buildroot}/opt/fff/configurefff.sh
+echo "  if [ \\\$1 == \"hltd\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/fff/setupmachine.py configure $params"        >> %{buildroot}/opt/fff/configurefff.sh
-echo "  elif [ \\\$1 == \"init\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
+echo "  elif [ \\\$1 == \"init\" ]; then"                            >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/hltd/python/fillresources.py ignorecloud"     >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/fff/setupmachine.py configure $params"        >> %{buildroot}/opt/fff/configurefff.sh 
-echo "  fi"                                                            >> %{buildroot}/opt/fff/configurefff.sh
-echo "else"                                                            >> %{buildroot}/opt/fff/configurefff.sh
+echo "  fi"                                                          >> %{buildroot}/opt/fff/configurefff.sh
+echo "else"                                                          >> %{buildroot}/opt/fff/configurefff.sh
 echo "  python2 /opt/hltd/python/fillresources.py"                   >> %{buildroot}/opt/fff/configurefff.sh
 echo "  python2 /opt/fff/setupmachine.py configure $params"          >> %{buildroot}/opt/fff/configurefff.sh
+echo "fi"                                                            >> %{buildroot}/opt/fff/configurefff.sh
 
 echo "#!/bin/bash" > %{buildroot}/opt/fff/dbcheck.sh
 echo "if [ -n \"\\\$1\" ]; then "                                   >> %{buildroot}/opt/fff/dbcheck.sh
