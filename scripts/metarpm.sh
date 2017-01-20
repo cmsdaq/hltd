@@ -42,7 +42,7 @@ if [ ${#readin} != "0" ]; then
 lines[1]=$readin
 fi
 
-echo "ES central server host or alias (without .cms/.cern.ch) (press enter for \"${lines[2]}\"):"
+echo "ES central server host or alias (with .cms or .cern.ch) (press enter for \"${lines[2]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then

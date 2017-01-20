@@ -1,12 +1,15 @@
 vm
-http://es-vm-cdaq-01:9200
-/home/daqlocal
+null
+es-vm-cdaq-01
+es-vm-local-01
 null
 null
 null
 null
 test
+/home/daqlocal
 daqlocal
 2
 2
 INFO
+ERROR
