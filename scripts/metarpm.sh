@@ -148,7 +148,7 @@ if [ -f $SCRIPTDIR/$PARAMCACHE ];
 then
     rm -rf -f $SCRIPTDIR/$PARAMCACHE
 fi
-for (( i=0; i < 12; i++ ))
+for (( i=0; i < ${NLINES}; i++ ))
 do
   echo ${lines[$i]} >> $SCRIPTDIR/$PARAMCACHE
 done
