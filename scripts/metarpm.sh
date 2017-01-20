@@ -123,10 +123,16 @@ dbsid=${lines[4]}
 dblogin=${lines[5]}
 dbpwd=${lines[6]}
 
+revsuffix=""
+if [ ${lines[1]} != "null" ];
+then
+    revsuffix=${lines[1]}
+fi
+
 #write cache
 if [ -f $SCRIPTDIR/$PARAMCACHE ];
 then
-rm -rf -f $SCRIPTDIR/$PARAMCACHE
+    rm -rf -f $SCRIPTDIR/$PARAMCACHE
 fi
 for (( i=0; i < 12; i++ ))
 do
