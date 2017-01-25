@@ -618,7 +618,7 @@ if __name__ == "__main__":
     if cluster=='hilton':
         clusterName='appliance_hilton'
 
-    if "hltd" in selection:
+    if "configure" in selection:
 
         #first prepare bus.config file
         if type == 'fu':
