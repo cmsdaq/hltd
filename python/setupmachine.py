@@ -145,7 +145,7 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
         else:
             session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
             if parentTag == 'daq2':
-                if dbhost_.strip()=='null':
+                if dbhost_.strip()=='empty':
                 #con = cx_Oracle.connect('CMS_DAQ2_HW_CONF_W','pwd','cms_rcms',
                     con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
                               cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
