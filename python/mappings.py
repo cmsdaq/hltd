@@ -254,7 +254,7 @@ central_runindex_mapping = {
 					    "entries": {
 						    "properties": {
 							    "key": {
-								    "type": "integer"
+								    "type": "short"
 							    },
 							    "count": {
 								    "type": "integer"
@@ -271,7 +271,7 @@ central_runindex_mapping = {
 					    "entries": {
 						    "properties": {
 							    "key": {
-								    "type": "integer"
+								    "type": "short"
 							    },
 							    "count": {
 								    "type": "integer"
@@ -288,7 +288,7 @@ central_runindex_mapping = {
 					    "entries": {
 						    "properties": {
 							    "key": {
-								    "type": "integer"
+								    "type": "short"
 							    },
 							    "count": {
 								    "type": "integer"
@@ -305,7 +305,13 @@ central_runindex_mapping = {
                             },
 			    "fm_date":{
 				    "type": "date"
-			    }
+			    },
+                            "cpuslots":{
+			            "type": "short"
+                            },
+                            "cpuslotsmax":{
+			            "type": "short"
+                            }
 		    }
 	    },
             "state-hist-summary": {
@@ -319,7 +325,7 @@ central_runindex_mapping = {
                                                     "entries": {
                                                             "type" : "nested",
                                                             "properties": {
-                                                                    "key": { "type": "integer"},
+                                                                    "key": { "type": "short"},
                                                                     "count": {"type": "integer"}
                                                             }
                                                     },
@@ -334,7 +340,7 @@ central_runindex_mapping = {
                                                             "type" : "nested",
                                                             "properties": {
                                                                     "key": {
-                                                                            "type": "integer"
+                                                                            "type": "short"
                                                                     },
                                                                     "count": {
                                                                             "type": "integer"
@@ -352,7 +358,7 @@ central_runindex_mapping = {
                                                             "type" : "nested",
                                                             "properties": {
                                                                     "key": {
-                                                                            "type": "integer"
+                                                                            "type": "short"
                                                                     },
                                                                     "count": {
                                                                             "type": "integer"
@@ -369,7 +375,13 @@ central_runindex_mapping = {
                                     },
 				    "fm_date":{
 				       "type": "date"
-				    }
+				    },
+                                    "cpuslots":{
+				       "type": "short"
+                                    },
+                                    "cpuslotsmax":{
+				       "type": "short"
+                                    }
 
 			    }
 	    }
