@@ -33,10 +33,10 @@ es = ElasticSearch(server_url)
 
 #pick mapping
 if index_name.startswith('runindex'):
-  my_settings = mappings.central_es_settings
+  my_settings = mappings.central_es_settings_runindex
   my_mapping = mappings.central_runindex_mapping
 if index_name.startswith('boxinfo'):
-  my_settings = mappings.central_es_settings,
+  my_settings = mappings.central_es_settings_boxinfo,
   my_mapping = mappings.central_boxinfo_mapping
 if index_name.startswith('hltdlogs'):
   my_settings = mappings.central_es_settings_hltlogs
@@ -57,6 +57,7 @@ if command=='alias':
     target_index = index_name
 
   #check if alias exists
+  alias_settings={}
   status1 = requests.get(server_url+'/_alias/'+alias_write).status_code
   status2 = requests.get(server_url+'/_alias/'+alias_read).status_code
   aliases_settings = { "actions": []}

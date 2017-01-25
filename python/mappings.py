@@ -1,6 +1,6 @@
 #!/bin/env python
 
-central_es_settings = {
+central_es_settings_runindex = {
             "analysis":{
                 "analyzer": {
                     "default": {
@@ -9,9 +9,28 @@ central_es_settings = {
                 }
             },
             "index":{
-                'number_of_shards' : 12,
+                'number_of_shards' : 8,
                 'number_of_replicas' : 2,
-                'translog':{'durability':'async'},
+                'codec' : 'best_compression',
+                'translog':{'durability':'async','flush_threshold_size':'4g'},
+                'mapper':{'dynamic':'false'}
+            }
+        }
+
+
+central_es_settings_boxinfo = {
+            "analysis":{
+                "analyzer": {
+                    "default": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "index":{
+                'number_of_shards' : 8,
+                'number_of_replicas' : 1,
+                'codec' : 'best_compression',
+                'translog':{'durability':'async','flush_threshold_size':'4g'},
                 'mapper':{'dynamic':'false'}
             }
         }
@@ -34,9 +53,10 @@ central_es_settings_hltlogs = {
                 }
             },
             "index":{
-                'number_of_shards' : 12,
+                'number_of_shards' : 8,
                 'number_of_replicas' : 1,
-                'translog':{'durability':'async'},
+                'codec' : 'best_compression',
+                'translog':{'durability':'async','flush_threshold_size':'4g'},
                 'mapper':{'dynamic':'false'}
             }
         }
@@ -81,9 +101,8 @@ central_runindex_mapping = {
                 }
             },
             'microstatelegend' : {
-
+		'_all': {'enabled': "false" },
                 '_parent':{'type':'run'},
-		 '_all': {'enabled': "false" },
                 'properties' : {
 	            'id':{'type':'string','index':'not_analyzed'},
                     'names':{
@@ -108,8 +127,8 @@ central_runindex_mapping = {
                     }
             },
             'pathlegend' : {
+		'_all': {'enabled': "false" },
                 '_parent':{'type':'run'},
-		 '_all': {'enabled': "false" },
                 'properties' : {
 	            'id':{'type':'string','index':'not_analyzed'},
                     'names':{
@@ -128,8 +147,8 @@ central_runindex_mapping = {
                     }
                 },
             'inputstatelegend' : {
-                '_parent':{'type':'run'},
 		 '_all': {'enabled': "false" },
+                '_parent':{'type':'run'},
                 'properties' : {
                     'stateNames':{
                         'type':'string','index':'no'
@@ -140,6 +159,7 @@ central_runindex_mapping = {
                     }
                 },
             'stream_label' : {
+                '_all': {'enabled': "false" },
                 '_parent':{'type':'run'},
                 'properties' : {
                     'stream':{
@@ -153,6 +173,7 @@ central_runindex_mapping = {
                     }
                 },
             'eols' : {
+                '_all': {'enabled': "false" },
                 '_parent'    :{'type':'run'},
                 'properties' : {
                     'fm_date'       :{'type':'date'
@@ -209,6 +230,9 @@ central_runindex_mapping = {
                     }
                 },
             'stream-hist' : {
+                    "_all":{
+                            "enabled": "false"
+                    },
                     "_parent": {
                             "type": "run"
                     },
@@ -244,10 +268,10 @@ central_runindex_mapping = {
                     },
                 },
 	    "state-hist": {
+		    '_all': {'enabled': "false" },
 		    "_parent": {
 			    "type": "run"
 		    },
-		    '_all': {'enabled': "false" },
 		    "properties": {
 			    "hminiv": {
 				    "properties": {
@@ -315,10 +339,10 @@ central_runindex_mapping = {
 		    }
 	    },
             "state-hist-summary": {
+		            '_all': {'enabled': "false" },
                             "_parent": {
                                     "type": "run"
                             },
-		            '_all': {'enabled': "false" },
                             "properties": {
                                     "hmini": {
                                             "properties": {
