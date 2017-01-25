@@ -385,6 +385,36 @@ central_runindex_mapping = {
 
 			    }
 	    }
+#           ,
+#           "transfer" : {
+#             "_all" : {
+#              "enabled" : False
+#             },
+#             "properties" : {
+#               "fm_date" : {
+#                 "type" : "date",
+#               },
+#               "id" : {
+#                 "type" : "string","index" : "not_analyzed"
+#               },
+#               "runNumber" : {
+#                 "type": "integer"
+#               },
+#               "ls" : {
+#                 "type":"integer"
+#               },
+#               "stream": {
+#                 "type":"string",
+#                 "index":"not_analyzed"
+#               },
+#               "host":{
+#                 "type":"string",
+#                 "index":"not_analyzed"
+#               },
+#               #tier0 stream flag (TODO)
+#
+#             }
+#           }
 }
 
 
