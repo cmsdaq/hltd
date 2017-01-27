@@ -414,9 +414,12 @@ class system_monitor(threading.Thread):
                                 "fuDataNetIn":fu_data_net_in,
                                 "resPerFU":int(round(res_per_fu))
                               }
-                    with open(res_path_temp,'w') as fp:
-                        json.dump(res_doc,fp,indent=True)
-                    os.rename(res_path_temp,res_path)
+                    try:
+                        with open(res_path_temp,'w') as fp:
+                            json.dump(res_doc,fp,indent=True)
+                        os.rename(res_path_temp,res_path)
+                    except Exception as ex:
+                        self.logger.exception(ex)
                     res_doc['fm_date']=tstring
                     try:self.boxInfo.updater.ec.injectSummaryJson(res_doc)
                     except:pass
@@ -540,8 +543,11 @@ class system_monitor(threading.Thread):
                             "version":self.boxInfo.boxdoc_version,
                             "boot_id":self.boot_id
                         }
-                        with open(mfile,'w+') as fp:
-                            json.dump(boxdoc,fp,indent=True)
+                        try:
+                            with open(mfile,'w+') as fp:
+                                json.dump(boxdoc,fp,indent=True)
+                        except Exception as ex:
+                            self.logger.exception(ex)
 
         except Exception as ex:
             self.logger.exception(ex)
