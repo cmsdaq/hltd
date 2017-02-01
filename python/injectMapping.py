@@ -31,9 +31,9 @@ class elasticBandInjector:
         self.hltdlogs_read="hltdlogs_"+subsys+"_read"
         self.hltdlogs_name="hltdlogs_"+subsys
         if update_run_mapping:
-            self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings,mappings.central_runindex_mapping)
+            self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
-            self.updateIndexMaybe(self.boxinfo_name,self.boxinfo_write,self.boxinfo_read,mappings.central_es_settings,mappings.central_boxinfo_mapping)
+            self.updateIndexMaybe(self.boxinfo_name,self.boxinfo_write,self.boxinfo_read,mappings.central_es_settings_boxinfo,mappings.central_boxinfo_mapping)
         if update_logs_mapping:
             self.updateIndexMaybe(self.hltdlogs_name,self.hltdlogs_write,self.hltdlogs_read,mappings.central_es_settings_hltlogs,mappings.central_hltdlogs_mapping)
         #silence
@@ -64,7 +64,7 @@ class elasticBandInjector:
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
                                 print 'inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc)
-                                requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
+                                rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
                                 if rres.status_code!=200:
                                     print rres.content
                                 break
