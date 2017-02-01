@@ -532,6 +532,7 @@ central_boxinfo_mapping = {
 
 central_hltdlogs_mapping = {
             'hltdlog' : {
+		"_all": {"enabled": "false" },
                 'properties' : {
                     'host'      : {'type' : 'string',"index":"not_analyzed"},
                     'type'      : {'type' : 'string',"index" : "not_analyzed"},
@@ -551,6 +552,7 @@ central_hltdlogs_mapping = {
             },
 
             "cmsswlog": {
+		    "_all": {"enabled": "false" },
                     "properties": {
                             "host": {
                                     "type": "string",
