@@ -893,7 +893,17 @@ class fileHandler(object):
                 self.setFieldByName('ReturnCodeMask', str(p.returncode))
                 hasError=True
             else:
+                ret_len=0
+                try:
+                    ret_len=len(p_out)
+                except:
+                    pass
                 self.logger.info('fastHadd merging of ' + str(len(inFileSizes)) + ' files took ' + str(time_delta) + ' seconds')
+                if ret_len>0:
+                    if ret_len<100:
+                        self.logger.info('fastHadd output:'+ p_out)
+                    else:
+                        self.logger.info('fastHadd output (truncated):'+ p_out[:100])
 
           for f in command_args[4:]:
               try:
