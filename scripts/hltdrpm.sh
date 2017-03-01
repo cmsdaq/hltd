@@ -63,7 +63,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: hltd
-Version: 2.0.2
+Version: 2.0.3
 Release: 0
 Summary: hlt daemon
 License: gpl
