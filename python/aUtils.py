@@ -802,9 +802,9 @@ class fileHandler(object):
                 for fid in self.inputData:
                     command_args.append(fid)
                 p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-                p.wait()
+                p_out,p_err=p.communicate()
                 if p.returncode!=0:
-                    self.logger.error('jsonMerger returned with exit code '+str(p.returncode)+' and response: ' + str(p.communicate()) + '. Merging parameters given:'+str(command_args))
+                    self.logger.error('jsonMerger returned with exit code '+str(p.returncode)+' and response: ' + str(p_out) + '. Merging parameters given:'+str(command_args))
                     return False
             except Exception as ex:
                 self.logger.exception(ex)
@@ -880,10 +880,10 @@ class fileHandler(object):
               hasError=True
           else:
             p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-            p.wait()
+            p_out,p_err = p.communicate()
             time_delta = time.time()-time_start
             if p.returncode!=0:
-                self.logger.error('fastHadd returned with exit code '+str(p.returncode)+' and response: ' + str(p.communicate()) + '. Merging parameters given:'+str(command_args) +' ,file sizes(B):'+str(inFileSizes))
+                self.logger.error('fastHadd returned with exit code '+str(p.returncode)+' and response: ' + str(p_out) + '. Merging parameters given:'+str(command_args) +' ,file sizes(B):'+str(inFileSizes))
                 #DQM more verbose debugging
                 try:
                     filesize = os.stat(fullOutputPath).st_size
