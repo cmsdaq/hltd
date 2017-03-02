@@ -883,6 +883,7 @@ class fileHandler(object):
             p_out,p_err = p.communicate()
             time_delta = time.time()-time_start
             if p.returncode!=0:
+                if len(p_out)>100: p_out = p_out[:100]
                 self.logger.error('fastHadd returned with exit code '+str(p.returncode)+' and response: ' + str(p_out) + '. Merging parameters given:'+str(command_args) +' ,file sizes(B):'+str(inFileSizes))
                 #DQM more verbose debugging
                 try:
