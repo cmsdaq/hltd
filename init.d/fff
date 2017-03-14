@@ -3,20 +3,21 @@
 #restart of fff services (hltd)
 #
 import os,sys
-sys.path.append('/opt/hltd/python')
-sys.path.append('/opt/hltd/lib')
-from hltd import hltd
+#sys.path.append('/opt/hltd/python')
+#sys.path.append('/opt/hltd/lib')
+#from hltd import hltd
 from subprocess import Popen
 from subprocess import PIPE
-from applianceumount import stopFUs
-from applianceumount import checkMode
+#from applianceumount import stopFUs
+#from applianceumount import checkMode
 import time
 import syslog
-import cx_Oracle
 import json
+import cx_Oracle
 
-def executeService(service,commands):
-   arr = [os.path.join('/etc/init.d',service)]
+#old style execute service check (sysV)
+def executeServiceScript(commands):
+   arr = ['/opt/hltd/init.d/hltd']
    arr.append(commands)
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
@@ -31,23 +32,23 @@ def executeService(service,commands):
       print 'command output:\n',output
       return proc.returncode
 
-def reconfigureScript(services=['hltd']):
+#old style execute service check (sysV)
+def executeServiceUnit(service,command):
+   arr = ['systemctl',command,service]
+   proc = Popen(arr, stdout=PIPE)
+   output = proc.communicate()[0]
+   time.sleep(.1)
 
+   isHltdStatus = service == 'hltd' and 'status' in commands
+   if proc.returncode==0:
+       print commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+       return 0
+   else:
+      print 'systemctl ' + commands[0] + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
+      print 'command output:\n',output
+      return proc.returncode
 
-  #activate services in the boot sequence
-  if 'hltd' in services:
-    proc = Popen(['/sbin/chkconfig', 'fffmeta', 'on'], stdout=PIPE, stderr=PIPE)
-    output = proc.communicate()[0]
-    proc = Popen(['/sbin/chkconfig', 'hltd', 'on'], stdout=PIPE, stderr=PIPE)
-    output = proc.communicate()[0]
-
-    proc = Popen(['/etc/init.d/hltd','status'], stdout=PIPE)
-    output = proc.communicate()[0]
-    if 'is running' in output:
-      print "Unable to reconfigure if hltd already running",' [  \033[1;31mFAILED\033[0;39m  ]'
-      return 1
-
-    #TODO:detect problems in execution of the reconfigure script
+def reconfigureScript():
 
     proc = Popen('/opt/fff/configurefff.sh', stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
@@ -56,8 +57,12 @@ def reconfigureScript(services=['hltd']):
       print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
       return 1
 
-    time.sleep(.1)
-  return 0
+    #enable self once started
+    proc = Popen(['systemctl', 'enable', 'fff'], stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0]
+    proc = Popen(['systemctl', 'enable', 'hltd'], stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0]
+    return 0
 
 def isBlacklisted():
     with open('/opt/fff/db.jsn') as dbp:
@@ -81,27 +86,26 @@ if __name__ == "__main__":
 
   if len(sys.argv) ==2:
 
+    #hltd is PartOf style dependency for start/stop
     if 'start' == sys.argv[1]:
         if reconfigureScript()==0:
-            rc2=executeService('hltd','start')
-            sys.exit(rc2)
+            sys.exit(0)
         else:
             sys.exit(1)
 
     elif 'stop' == sys.argv[1]:
-        rc1=executeService('hltd','stop')
-        sys.exit(rc1)
+        sys.exit(0)
 
-    elif sys.argv[1].startswith('restart'):
-        if sys.argv[1] == 'restartUnblacklisted':
+    #custom commands:
+    elif sys.argv[1] == 'restartUnblacklisted':
           if isBlacklisted():
             print "Machine is blacklisted. Skipping reconfigure/restart of services"
             sys.exit(1)
-
-        executeService('hltd','stop')
+    
+        executeServiceUnit('stop')
         time.sleep(.5)
         if reconfigureScript()==0:
-            rc2=executeService('hltd','restart')
+            rc2=executeServiceUnit('hltd','restart')
             sys.exit(rc2)
         else:
             sys.exit(1)
@@ -112,16 +116,15 @@ if __name__ == "__main__":
 
     elif sys.argv[1].startswith('disable'):
       if (sys.argv[1]=='disableBlacklisted' and isBlacklisted()) or True:
-        proc = Popen(['/opt/fff/disablenode.py','hltd'], stdout=PIPE, stderr=PIPE)
+        proc = Popen(['python','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
-        executeService('hltd','stop')
-        proc = Popen('chmod -x /etc/init.d/fff', stdout=PIPE, stderr=PIPE, shell=True)
+        executeServiceUnit('stop')
+        proc = Popen(['systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
-        proc = Popen(['/sbin/chkconfig', 'hltd', 'off'], stdout=PIPE, stderr=PIPE)
-        output = proc.communicate()[0]
-        proc = Popen(['/sbin/chkconfig', 'fffmeta', 'off'], stdout=PIPE, stderr=PIPE)
-        output = proc.communicate()[0]
+    #    proc = Popen(['systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
+    #    output = proc.communicate()[0]
         print "FFF services are disabled"
+
     elif 'checkBlacklist' == sys.argv[1]:
         if isBlacklisted():
           print "Host is blacklisted"
@@ -132,41 +135,6 @@ if __name__ == "__main__":
     else:
       print "Unknown command"
       sys.exit(1)
-
-  elif len(sys.argv) > 2:
-
-        if sys.argv[1]!='hltd':
-            print "Unrecognized service",sys.argv[1]
-            sys.exit(1)
-
-        if 'start' == sys.argv[2]:
-
-            if reconfigureScript([sys.argv[1]])==0:
-                rc1 = executeService(sys.argv[1],'start')
-                sys.exit(rc1)
-            else:
-                sys.exit(1)
-
-        elif 'stop' == sys.argv[2]:
-            rc1 = executeService(sys.argv[1],'stop')
-            sys.exit(rc1)
-
-        elif 'restart' == sys.argv[2]:
-            executeService(sys.argv[1],'stop')
-
-            if reconfigureScript([sys.argv[1]])==0:
-                rc1=executeService(sys.argv[1],'restart')
-                sys.exit(rc1)
-            else:
-                sys.exit(1)
-
-        elif 'status' == sys.argv[2]:
-            rc1=executeService(sys.argv[1],'status')
-            sys.exit(rc1)
-
-        else:
-            print "Unknown command"
-            sys.exit(1)
 
   else:
     print "usage: %s |hltd start|stop|restart|status" % sys.argv[0]

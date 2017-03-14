@@ -1,0 +1,11 @@
+[Unit]
+Description=HLT daemon configuration service
+Wants=network-online
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/opt/fff/init.d/fff start
+
+[Install]
+WantedBy=multi-user.target

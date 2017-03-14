@@ -1,0 +1,15 @@
+[Unit]
+Description=HLT daemon service
+After=fff.service
+PartOf=fff
+
+[Service]
+Type=forking
+PIDFile=/var/run/hltd.pid
+ExecStart=/opt/hltd/init.d/hltd start
+ExecStop=/opt/hltd/init.d/hltd stop
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

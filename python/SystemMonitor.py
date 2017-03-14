@@ -193,7 +193,7 @@ class system_monitor(threading.Thread):
 
     def buBootIdCheck(self):
        #skip duplicate check
-       if self.mm.stale_handle_remount_required or self.state.suspended: return
+       if self.mm.stale_handle_remount_required or self.state.suspended: return False
        if conf.role=='fu' and len(self.directory):
            if not self.mm.buBootId:
                self.mm.buBootId = self.buBootIdFetch(self.directory[0])
@@ -226,6 +226,7 @@ class system_monitor(threading.Thread):
             counter=0
             fu_watchdir_is_mountpoint = os.path.ismount(conf.watch_directory)
             while self.running:
+                sd_notify()
                 self.threadEvent.wait(5 if counter>0 else 1)
                 counter+=1
                 counter=counter%5
