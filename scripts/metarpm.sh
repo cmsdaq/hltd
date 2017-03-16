@@ -188,8 +188,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.1.1
-Release: 1${revsuffix}
+Version: 2.2.0
+Release: 0${revsuffix}
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -206,7 +206,7 @@ Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
 Provides:/opt/fff/init.d/fff
-cp -r $BASEDIR/scripts/fff.service $TOPDIR/usr/lib/systemd/system/fff.service
+Provides:/usr/lib/systemd/system/fff.service
 
 %description
 fffmeta configuration setup package
@@ -224,8 +224,7 @@ mkdir -p opt/fff/backup
 mkdir -p opt/fff/init.d/
 mkdir -p /usr/lib/systemd/system
 cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
-cp $BASEDIR/scripts/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
-
+cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
@@ -254,12 +253,12 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %attr( 755 ,root, root) /opt/fff/setupmachine.pyc
 %attr( 755 ,root, root) /opt/fff/setupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
-%attr( 700 ,root, root) /opt/fff/configurefff.sh
+%attr( 755 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyc
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 700 ,root, root) /opt/fff/db.jsn
-%attr( 755 ,root, root) /opt/fff/init.d/fffmeta
+%attr( 755 ,root, root) /opt/fff/init.d/fff
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
 
 %post
