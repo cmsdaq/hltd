@@ -37,7 +37,7 @@ def executeServiceUnit(service,command):
    arr = ['systemctl',command,service]
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
-   time.sleep(.1)
+   #time.sleep(.1)
 
    isHltdStatus = service == 'hltd' and 'status' in commands
    if proc.returncode==0:
@@ -57,7 +57,7 @@ def reconfigureScript():
       print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
       return 1
 
-    #enable self once started
+    #re-enable self if this is used
     proc = Popen(['systemctl', 'enable', 'fff'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
     proc = Popen(['systemctl', 'enable', 'hltd'], stdout=PIPE, stderr=PIPE)
@@ -94,11 +94,12 @@ if __name__ == "__main__":
             sys.exit(1)
 
     elif 'stop' == sys.argv[1]:
+        print "stop FFF called"
         sys.exit(0)
 
     #custom commands:
     elif sys.argv[1] == 'restartUnblacklisted':
-          if isBlacklisted():
+        if isBlacklisted():
             print "Machine is blacklisted. Skipping reconfigure/restart of services"
             sys.exit(1)
     
@@ -109,6 +110,8 @@ if __name__ == "__main__":
             sys.exit(rc2)
         else:
             sys.exit(1)
+    elif 'restart' == sys.argv[1]:
+      print "Use systemctl for this"
 
     elif 'status' == sys.argv[1]:
       rc1=executeService('hltd',sys.argv[1])
@@ -121,8 +124,8 @@ if __name__ == "__main__":
         executeServiceUnit('stop')
         proc = Popen(['systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
-    #    proc = Popen(['systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
-    #    output = proc.communicate()[0]
+        proc = Popen(['systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
+        output = proc.communicate()[0]
         print "FFF services are disabled"
 
     elif 'checkBlacklist' == sys.argv[1]:
@@ -137,7 +140,7 @@ if __name__ == "__main__":
       sys.exit(1)
 
   else:
-    print "usage: %s |hltd start|stop|restart|status" % sys.argv[0]
+    print "usage: %s fff start|stop|status|disable|restartUnblacklisted" % sys.argv[0]
     sys.exit(1)
 
 sys.exit(0)

@@ -220,17 +220,16 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/fff"
 %__install -d "%{buildroot}/etc/init.d"
 
-mkdir -p opt/fff/backup
-mkdir -p opt/fff/init.d/
-mkdir -p /usr/lib/systemd/system
+mkdir -p %{buildroot}/opt/fff/init.d
+mkdir -p %{buildroot}/usr/lib/systemd/system
 cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
 cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
+
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo
-
 echo "if [ -n \"\\\$1\" ]; then"                                     >> %{buildroot}/opt/fff/configurefff.sh
 echo "  if [ \\\$1 == \"hltd\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
@@ -270,7 +269,10 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 /sbin/service soap2file stop || true
 rm -rf /etc/hltd.instances
 
-/opt/fff/configurefff.sh
+#/opt/fff/configurefff.sh
+/opt/fff/init.d/fff configure
+
+#notify systemd of updated unit file (but don't restart)
 
 #adjust ownership of unpriviledged child process log files
 if [ -f /var/log/hltd/elastic.log ]; then
@@ -287,10 +289,12 @@ touch /opt/hltd/scratch/new-version || true
 #restart soapfile if enabled run on this host
 /sbin/service soap2file restart || true
 
+#update systemd setup
+systemctl daemon-reload
 systemctl enable hltd
 systemctl enable fff
 
-#soap2file presently is not systemd enabled
+#soap2file presently is not systemd enabled yet
 chkconfig --add soap2file
 
 %preun

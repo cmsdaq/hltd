@@ -1,7 +1,7 @@
 [Unit]
 Description=HLT daemon service
 After=fff.service
-PartOf=fff
+PartOf=fff.service
 
 [Service]
 Type=forking

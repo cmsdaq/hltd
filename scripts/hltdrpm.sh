@@ -17,49 +17,6 @@ mkdir  /tmp/hltd-build-tmp-area
 cd     /tmp/hltd-build-tmp-area
 TOPDIR=$PWD
 echo "working in $PWD"
-echo "Creating directories"
-#mkdir -p var/log/hltd
-#mkdir -p var/log/hltd/pid
-mkdir -p opt/hltd
-mkdir -p etc/logrotate.d
-mkdir -p etc/appliance/resources/idle
-mkdir -p etc/appliance/resources/online
-mkdir -p etc/appliance/resources/except
-mkdir -p etc/appliance/resources/quarantined
-mkdir -p etc/appliance/resources/cloud
-mkdir -p usr/lib/systemd/system
-mkdir -p etc/init.d
-
-echo "Creating DQM directories"
-mkdir -p etc/appliance/dqm_resources/idle
-mkdir -p etc/appliance/dqm_resources/online
-mkdir -p etc/appliance/dqm_resources/except
-mkdir -p etc/appliance/dqm_resources/quarantined
-mkdir -p etc/appliance/dqm_resources/cloud
-
-echo "Copying files to their destination"
-cp -R $BASEDIR/init.d/hltd.service  usr/lib/systemd/system/hltd.service
-cp -R $BASEDIR/python/soap2file     etc/init.d/soap2file
-cp -R $BASEDIR/*                    opt/hltd
-cp -R $BASEDIR/etc/hltd.conf        etc/
-cp -R $BASEDIR/etc/hltd.conf        etc/hltd.conf.template
-cp -R $BASEDIR/etc/logrotate.d/hltd etc/logrotate.d/
-touch opt/hltd/scratch/new-version
-
-echo "Deleting unnecessary files"
-rm -rf opt/hltd/bin
-rm -rf opt/hltd/rpm
-rm -rf opt/hltd/lib
-rm -rf opt/hltd/scripts/paramcache*
-rm -rf opt/hltd/scripts/*rpm.sh
-rm -rf opt/hltd/scripts/*.php
-rm -rf opt/hltd/init.d/*.service
-rm -rf opt/hltd/init.d/fff*
-rm -rf opt/hltd/python/soap2file
-rm -rf opt/hltd/python/setupmachine.py
-rm -rf opt/hltd/python/dbcheck.py
-rm -rf opt/hltd/TODO
-rm -rf opt/hltd/test/*.gz
 
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
@@ -95,9 +52,54 @@ rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/var/log/hltd"
 %__install -d "%{buildroot}/var/log/hltd/pid"
-tar -C $TOPDIR -c opt/hltd | tar -xC \$RPM_BUILD_ROOT
-tar -C $TOPDIR -c etc | tar -xC \$RPM_BUILD_ROOT
-tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
+
+#tar -C $TOPDIR -c opt/hltd | tar -xC \$RPM_BUILD_ROOT
+#tar -C $TOPDIR -c etc | tar -xC \$RPM_BUILD_ROOT
+#tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
+
+cd \$RPM_BUILD_ROOT
+echo "Creating directories"
+mkdir -p opt/hltd
+mkdir -p etc/logrotate.d
+mkdir -p etc/appliance/resources/idle
+mkdir -p etc/appliance/resources/online
+mkdir -p etc/appliance/resources/except
+mkdir -p etc/appliance/resources/quarantined
+mkdir -p etc/appliance/resources/cloud
+mkdir -p usr/lib/systemd/system
+mkdir -p etc/init.d
+
+echo "Creating DQM directories"
+mkdir -p etc/appliance/dqm_resources/idle
+mkdir -p etc/appliance/dqm_resources/online
+mkdir -p etc/appliance/dqm_resources/except
+mkdir -p etc/appliance/dqm_resources/quarantined
+mkdir -p etc/appliance/dqm_resources/cloud
+
+echo "Copying files to their destination"
+cp -R $BASEDIR/init.d/hltd.service  usr/lib/systemd/system/hltd.service
+cp -R $BASEDIR/python/soap2file     etc/init.d/soap2file
+cp -R $BASEDIR/*                    opt/hltd
+cp -R $BASEDIR/etc/hltd.conf        etc/
+cp -R $BASEDIR/etc/hltd.conf        etc/hltd.conf.template
+cp -R $BASEDIR/etc/logrotate.d/hltd etc/logrotate.d/
+touch opt/hltd/scratch/new-version
+
+echo "Deleting unnecessary files"
+rm -rf opt/hltd/python/{*.pyc,*.pyo}
+rm -rf opt/hltd/{bin,rpm,lib}
+#rm -rf opt/hltd/rpm
+#rm -rf opt/hltd/lib
+rm -rf opt/hltd/scripts/paramcache*
+rm -rf opt/hltd/scripts/*rpm.sh
+rm -rf opt/hltd/scripts/*.php
+rm -rf opt/hltd/init.d/*.service
+rm -rf opt/hltd/init.d/fff*
+rm -rf opt/hltd/python/soap2file
+rm -rf opt/hltd/python/setupmachine.py
+rm -rf opt/hltd/python/dbcheck.py
+rm -rf opt/hltd/TODO
+rm -rf opt/hltd/test/*.gz
 
 %post
 

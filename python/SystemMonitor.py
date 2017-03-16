@@ -226,7 +226,6 @@ class system_monitor(threading.Thread):
             counter=0
             fu_watchdir_is_mountpoint = os.path.ismount(conf.watch_directory)
             while self.running:
-                sd_notify()
                 self.threadEvent.wait(5 if counter>0 else 1)
                 counter+=1
                 counter=counter%5

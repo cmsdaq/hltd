@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 stopHLTD(daemon,instance)
 
             elif 'restart' == sys.argv[1]:
-                sys.stdout.write('Stopping hltd instance '+instance+':')
+                sys.stdout.write('Restarting hltd instance '+instance+':')
                 stopHLTD(daemon,instance)
                 startHLTD(daemon,instance)
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 sys.exit(2)
 
         else:
-            print "usage: %s start|stop|restart|status |all|main|instance" % sys.argv[0]
+            print "usage: %s start|stop|restart|status all|main|instance" % sys.argv[0]
             sys.exit(2)
 
 sys.exit(0)
