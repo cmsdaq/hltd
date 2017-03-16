@@ -422,6 +422,10 @@ if __name__ == "__main__":
         sys.exit(1)
     selection = sys.argv[argvc]
     #print selection
+    if 'getrole' == selection:
+        cluster,type = getmachinetype()
+        print type
+        sys.exit(0)
 
     if 'disable' == selection:
         print "disabling hltd"

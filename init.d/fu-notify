@@ -1,0 +1,49 @@
+#!/bin/env python
+#
+#restart of fff services (hltd)
+#
+import sys
+sys.path.append('/opt/hltd/python')
+sys.path.append('/opt/hltd/lib')
+#from hltd import hltd
+from applianceumount import stopFUs
+#from applianceumount import checkMode
+import time
+import syslog
+#import json
+#import cx_Oracle
+
+if __name__ == "__main__":
+
+  if len(sys.argv) <=1:
+      print "usage: %s fumount start|stop|status" % sys.argv[0]
+      sys.exit(1)
+
+  elif len(sys.argv) <=2 or sys.argv[2]=="all":
+      instance = "main"
+
+  else:
+      #TODO: manage instance support with systemd (if there are plans to use this feature)
+      instance = sys.argv[2]
+
+  #check 1st command parameter
+  if 'start' == sys.argv[1]:
+            sys.exit(0)
+
+  elif 'stop' == sys.argv[1]:
+      print "stop fumount called"
+
+      if stopFUs(instance)==False:
+          syslog.syslog("Unable to trigger remount on some FUs during shutdown")
+      #daemon.removeLockFile()
+
+      sys.exit(0)
+
+  elif 'status' == sys.argv[1]:
+      sys.exit(0)
+
+  else:
+    print "usage: %s fumount start|stop|status" % sys.argv[0]
+    sys.exit(1)
+
+sys.exit(0)
