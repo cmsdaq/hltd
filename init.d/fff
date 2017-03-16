@@ -16,7 +16,7 @@ import json
 import cx_Oracle
 
 #old style execute service check (sysV)
-def executeServiceScript(commands):
+def executeServiceScript(service,commands):
    arr = ['/opt/hltd/init.d/hltd']
    arr.append(commands)
    proc = Popen(arr, stdout=PIPE)
@@ -33,18 +33,18 @@ def executeServiceScript(commands):
       return proc.returncode
 
 #old style execute service check (sysV)
-def executeServiceUnit(service,command):
+def executeServiceUnit(service,command='hltd'):
    arr = ['systemctl',command,service]
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
    #time.sleep(.1)
 
-   isHltdStatus = service == 'hltd' and 'status' in commands
+   isHltdStatus = service == 'hltd' and 'status' == command
    if proc.returncode==0:
-       print commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+       print command+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
        return 0
    else:
-      print 'systemctl ' + commands[0] + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
+      print 'systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
       print 'command output:\n',output
       return proc.returncode
 
@@ -114,8 +114,14 @@ if __name__ == "__main__":
       print "Use systemctl for this"
 
     elif 'status' == sys.argv[1]:
-      rc1=executeService('hltd',sys.argv[1])
+      #old style status
+      rc1=executeServiceScript('hltd',sys.argv[1])
       sys.exit(rc1)
+
+    elif 'configure' == sys.argv[1]:
+      #only update configuration
+      rc=reconfigureScript()
+      sys.exit(rc)
 
     elif sys.argv[1].startswith('disable'):
       if (sys.argv[1]=='disableBlacklisted' and isBlacklisted()) or True:

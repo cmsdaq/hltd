@@ -1,5 +1,6 @@
 [Unit]
 Description=HLT daemon service
+Wants=network-online.target
 After=fff.service
 PartOf=fff.service
 

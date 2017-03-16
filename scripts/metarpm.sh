@@ -206,9 +206,9 @@ Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
 Provides:/opt/fff/init.d/fff
-Provides:/opt/fff/init.d/fu-notify
+#Provides:/opt/fff/init.d/fu-notify
 Provides:/usr/lib/systemd/system/fff.service
-Provides:/usr/lib/systemd/system/fu-notify.service
+#Provides:/usr/lib/systemd/system/fu-notify.service
 
 %description
 fffmeta configuration setup package
@@ -226,8 +226,8 @@ mkdir -p %{buildroot}/opt/fff/init.d
 mkdir -p %{buildroot}/usr/lib/systemd/system
 cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
 cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
-cp $BASEDIR/init.d/fu-notify %{buildroot}/opt/fff/init.d/fu-notify
-cp $BASEDIR/init.d/fu-notify.service %{buildroot}/usr/lib/systemd/system/fu-notify.service
+#cp $BASEDIR/init.d/fu-notify %{buildroot}/opt/fff/init.d/fu-notify
+#cp $BASEDIR/init.d/fu-notify.service %{buildroot}/usr/lib/systemd/system/fu-notify.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
@@ -263,8 +263,8 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %attr( 700 ,root, root) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
-%attr( 755 ,root, root) /opt/fff/init.d/fu-notify
-%attr( 755 ,root, root) /usr/lib/systemd/system/fu-notify.service
+#%attr( 755 ,root, root) /opt/fff/init.d/fu-notify
+#%attr( 755 ,root, root) /usr/lib/systemd/system/fu-notify.service
 
 %post
 #echo "post install trigger"
@@ -279,8 +279,6 @@ rm -rf /etc/hltd.instances
 /opt/fff/init.d/fff configure
 role=\`/opt/fff/setupmachine.py getrole\`
 
-#notify systemd of updated unit file (but don't restart)
-
 #adjust ownership of unpriviledged child process log files
 if [ -f /var/log/hltd/elastic.log ]; then
 chown ${lines[9]} /var/log/hltd/elastic.log
@@ -293,17 +291,17 @@ fi
 #update resource count for hltd (i.e. triggered at next service restart)
 touch /opt/hltd/scratch/new-version || true
 
-#systemd stuff
+#notify systemd of updated unit file (but don't restart)
 systemctl daemon-reload
 
-systemctl enable hltd
-systemctl enable fff
+systemctl reenable hltd
+systemctl reenable fff
 
 #BU-only service which notifies FUs to umount on shutdown or if NFS service is stopped/restarted
-if [ \${role} == "bu" ]; then
-  systemctl enable fu-notify
-  systemctl start fu-notify #needed? does nothing
-fi
+#if [ \${role} == "bu" ]; then
+#  systemctl enable fu-notify
+#  systemctl start fu-notify #needed? does nothing
+#fi
 
 #restart soapfile if enabled run on this host
 #soap2file presently is not systemd enabled
@@ -319,7 +317,7 @@ if [ \$1 == 0 ]; then
 
   systemctl stop hltd
 
-  systemctl disable fu-notify
+  #systemctl disable fu-notify
   systemctl disable hltd
   systemctl disable fff
 
