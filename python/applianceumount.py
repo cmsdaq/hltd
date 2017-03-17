@@ -98,7 +98,7 @@ def stopFUs(instance):
     #continue with notifying FUs
     boxinfodir=os.path.join(watch_directory,'appliance/boxes')
 
-    maxTimeout=120 #sec
+    maxTimeout=60 #sec
 
     myhost = os.uname()[1]
 

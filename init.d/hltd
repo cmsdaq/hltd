@@ -75,6 +75,41 @@ def stopHLTD(daemon,instance):
     daemon.stop()
     daemon.removeLockFile()
 
+
+def suspendRemoteClientsMaybe(instance):
+    #determine target (runlevel). If host is BU and machine is shutting doen, this will trigger temporary umount on FUs
+    shutdown_active=False
+    std_out=""
+    try:
+        p = Popen("/usr/bin/systemctl list-units --type=target --all", shell=True, stdout=PIPE)
+        std_out=p.communicate()[0]
+        shutdown_found=False
+        for std_out_ln in std_out.split('\n'):
+            if len(std_out_ln):
+                std_out_split = std_out_ln.split()
+                if len(std_out_split)>2 and std_out_split[0] in ["shutdown.target", "reboot.target", "halt.target"]:
+                      if std_out_split[2] == "active":
+                          shutdown_active = True
+                          shutdown_found=True
+                          break
+        if not shutdown_found:
+            print "shutdown.target not found by 'systemctl list-units --type=target --all'"
+            syslog.syslog("shutdown.target not found")
+
+    except Exception as ex:
+        print "/usr/bin/systemctl list-units --type=target --all | grep shutdown.target",std_out,"exception:",ex
+        syslog.syslog("hltd-"+str(instance)+":Exception checking if shutdown.target is active:" + str(std_out) + " exception: "+str(ex))
+
+    try:
+        if shutdown_active:
+            syslog.syslog("shutdown detected")
+            #this checks in hltd.conf that role=='bu'
+            if stopFUs(instance)==False:
+                syslog.syslog("Unable to trigger remount on some FUs during shutdown")
+    except Exception as ex:
+        print ex
+        syslog.syslog("hltd-"+str(instance)+" exception: "+str(ex))
+
 if __name__ == "__main__":
 
     if len(sys.argv) <=2 or sys.argv[2]=="all":
@@ -101,6 +136,8 @@ if __name__ == "__main__":
             elif 'stop' == sys.argv[1]:
                 sys.stdout.write('Stopping hltd instance '+instance+':')
                 stopHLTD(daemon,instance)
+                #for now systemd does not respect shutdown order for hltd/fffmeta services
+                #suspendRemoteClientsMaybe(instance)
 
             elif 'restart' == sys.argv[1]:
                 sys.stdout.write('Restarting hltd instance '+instance+':')

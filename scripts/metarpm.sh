@@ -206,9 +206,7 @@ Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
 Provides:/opt/fff/init.d/fff
-#Provides:/opt/fff/init.d/fu-notify
 Provides:/usr/lib/systemd/system/fff.service
-#Provides:/usr/lib/systemd/system/fu-notify.service
 
 %description
 fffmeta configuration setup package
@@ -226,8 +224,6 @@ mkdir -p %{buildroot}/opt/fff/init.d
 mkdir -p %{buildroot}/usr/lib/systemd/system
 cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
 cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
-#cp $BASEDIR/init.d/fu-notify %{buildroot}/opt/fff/init.d/fu-notify
-#cp $BASEDIR/init.d/fu-notify.service %{buildroot}/usr/lib/systemd/system/fu-notify.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
@@ -263,8 +259,6 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %attr( 700 ,root, root) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
-#%attr( 755 ,root, root) /opt/fff/init.d/fu-notify
-#%attr( 755 ,root, root) /usr/lib/systemd/system/fu-notify.service
 
 %post
 #echo "post install trigger"
@@ -296,12 +290,6 @@ touch /opt/hltd/scratch/new-version || true
 /usr/bin/systemctl reenable hltd
 /usr/bin/systemctl reenable fff
 
-#BU-only service which notifies FUs to umount on shutdown or if NFS service is stopped/restarted
-#if [ \${role} == "bu" ]; then
-#  systemctl enable fu-notify
-#  systemctl start fu-notify #needed? does nothing
-#fi
-
 #restart soapfile if enabled run on this host
 #soap2file presently is not systemd enabled
 /sbin/service soap2file restart || true
@@ -316,7 +304,6 @@ if [ \$1 == 0 ]; then
 
   /usr/bin/systemctl stop hltd
 
-  #systemctl disable fu-notify
   /usr/bin/systemctl disable hltd
   /usr/bin/systemctl disable fff
 

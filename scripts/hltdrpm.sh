@@ -93,7 +93,6 @@ rm -rf opt/hltd/{bin,rpm,lib}
 rm -rf opt/hltd/scripts/paramcache*
 rm -rf opt/hltd/scripts/*rpm.sh
 rm -rf opt/hltd/scripts/*.php
-rm -rf opt/hltd/init.d/fu-notify*
 rm -rf opt/hltd/init.d/*.service
 rm -rf opt/hltd/init.d/fff*
 rm -rf opt/hltd/python/soap2file
