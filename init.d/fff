@@ -34,7 +34,7 @@ def executeServiceScript(service,commands):
 
 #old style execute service check (sysV)
 def executeServiceUnit(service,command='hltd'):
-   arr = ['systemctl',command,service]
+   arr = ['/usr/bin/systemctl',command,service]
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
    #time.sleep(.1)
@@ -44,7 +44,7 @@ def executeServiceUnit(service,command='hltd'):
        print command+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
        return 0
    else:
-      print 'systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
+      print '/usr/bin/systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
       print 'command output:\n',output
       return proc.returncode
 
@@ -58,9 +58,9 @@ def reconfigureScript():
       return 1
 
     #re-enable self if this is used
-    proc = Popen(['systemctl', 'enable', 'fff'], stdout=PIPE, stderr=PIPE)
+    proc = Popen(['/usr/bin/systemctl', 'enable', 'fff'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
-    proc = Popen(['systemctl', 'enable', 'hltd'], stdout=PIPE, stderr=PIPE)
+    proc = Popen(['/usr/bin/systemctl', 'enable', 'hltd'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
     return 0
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         else:
             sys.exit(1)
     elif 'restart' == sys.argv[1]:
-      print "Use systemctl for this"
+      print "Use /usr/bin/systemctl for this"
 
     elif 'status' == sys.argv[1]:
       #old style status
@@ -128,9 +128,9 @@ if __name__ == "__main__":
         proc = Popen(['python','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
         executeServiceUnit('stop')
-        proc = Popen(['systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
+        proc = Popen(['/usr/bin/systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
-        proc = Popen(['systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
+        proc = Popen(['/usr/bin/systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
         output = proc.communicate()[0]
         print "FFF services are disabled"
 

@@ -118,8 +118,8 @@ rm -rf opt/hltd/test/*.gz
 
 %preun
 if [ \$1 == 0 ]; then
-  systemctl stop hltd || true
-  systemctl disable hltd || true
+  /usr/bin/systemctl stop hltd || true
+  /usr/bin/systemctl disable hltd || true
   /sbin/service soap2file stop || true
 fi
 EOF

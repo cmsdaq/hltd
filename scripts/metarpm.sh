@@ -291,11 +291,10 @@ fi
 #update resource count for hltd (i.e. triggered at next service restart)
 touch /opt/hltd/scratch/new-version || true
 
-#notify systemd of updated unit file (but don't restart)
-systemctl daemon-reload
-
-systemctl reenable hltd
-systemctl reenable fff
+#notify systemd of updated unit files and enable them (but don't restart)
+/usr/bin/systemctl daemon-reload
+/usr/bin/systemctl reenable hltd
+/usr/bin/systemctl reenable fff
 
 #BU-only service which notifies FUs to umount on shutdown or if NFS service is stopped/restarted
 #if [ \${role} == "bu" ]; then
@@ -315,11 +314,11 @@ if [ \$1 == 0 ]; then
   /sbin/service/soap2file stop
   /sbin/chkconfig --del soap2file
 
-  systemctl stop hltd
+  /usr/bin/systemctl stop hltd
 
   #systemctl disable fu-notify
-  systemctl disable hltd
-  systemctl disable fff
+  /usr/bin/systemctl disable hltd
+  /usr/bin/systemctl disable fff
 
 
 fi
