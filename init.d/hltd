@@ -103,7 +103,7 @@ def suspendRemoteClientsMaybe(instance,force):
                             shutdown_active = True
                             shutdown_found=True
                             break
-        if not shutdown_found:
+        if multiuser_inactive and not shutdown_found:
             print "shutdown.target not found by 'systemctl list-units --type=target --all'"
             syslog.syslog("shutdown.target not found")
 

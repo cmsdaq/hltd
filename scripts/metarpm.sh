@@ -258,7 +258,7 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 700 ,root, root) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
-%attr( 755 ,root, root) /usr/lib/systemd/system/fff.service
+%attr( 644 ,root, root) /usr/lib/systemd/system/fff.service
 
 %post
 #echo "post install trigger"
