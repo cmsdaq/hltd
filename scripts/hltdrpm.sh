@@ -37,7 +37,7 @@ Provides:/etc/hltd.conf
 Provides:/etc/hltd.conf.template
 Provides:/etc/logrotate.d/hltd
 Provides:/usr/lib/systemd/system/hltd.service
-Provides:/etc/init.d/soap2file
+Provides:/usr/lib/systemd/system/soap2file.service
 Requires:hltd-libs >= 2.1.0,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,python-dateutil,cx_Oracle
 
 %description
@@ -78,7 +78,7 @@ mkdir -p etc/appliance/dqm_resources/cloud
 
 echo "Copying files to their destination"
 cp -R $BASEDIR/init.d/hltd.service  usr/lib/systemd/system/hltd.service
-cp -R $BASEDIR/python/soap2file     etc/init.d/soap2file
+cp -R $BASEDIR/init.d/soap2file.service  usr/lib/systemd/system/soap2file.service
 cp -R $BASEDIR/*                    opt/hltd
 cp -R $BASEDIR/etc/hltd.conf        etc/
 cp -R $BASEDIR/etc/hltd.conf        etc/hltd.conf.template
@@ -95,7 +95,6 @@ rm -rf opt/hltd/scripts/*rpm.sh
 rm -rf opt/hltd/scripts/*.php
 rm -rf opt/hltd/init.d/*.service
 rm -rf opt/hltd/init.d/fff*
-rm -rf opt/hltd/python/soap2file
 rm -rf opt/hltd/python/setupmachine.py
 rm -rf opt/hltd/python/dbcheck.py
 rm -rf opt/hltd/TODO
@@ -112,14 +111,15 @@ rm -rf opt/hltd/test/*.gz
 /etc/hltd.conf.template
 /etc/logrotate.d/hltd
 /usr/lib/systemd/system/hltd.service
-/etc/init.d/soap2file
+/usr/lib/systemd/system/soap2file.service
 /etc/appliance
 
 %preun
 if [ \$1 == 0 ]; then
   /usr/bin/systemctl stop hltd || true
   /usr/bin/systemctl disable hltd || true
-  /sbin/service soap2file stop || true
+  /usr/bin/systemctl stop soap2file || true
+  /usr/bin/systemctl disable soap2file || true
 fi
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}

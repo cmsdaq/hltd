@@ -266,7 +266,10 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %triggerin -- hltd
 #echo "triggered on hltd update or install"
 
-/sbin/service soap2file stop || true
+#disable sysv style service
+/etc/init.d/soap2file stop || true
+/sbin/chkconfig --del soap2file || true
+
 rm -rf /etc/hltd.instances
 
 #hltd configuration
@@ -293,25 +296,27 @@ touch /opt/hltd/scratch/new-version || true
 /usr/bin/systemctl reenable hltd
 /usr/bin/systemctl reenable fff
 
-#restart soapfile if enabled run on this host
-#soap2file presently is not systemd enabled
-/sbin/service soap2file restart || true
-/sbin/chkconfig --add soap2file
+#restart soapfile (process will not run if disabled in configuration, but service will be active)
+/usr/bin/systemctl reenable soap2file
+/usr/bin/systemctl start soap2file
 
 %preun
 
 if [ \$1 == 0 ]; then 
 
-  /sbin/service/soap2file stop
-  /sbin/chkconfig --del soap2file
-
+  #stop services if running (sysv and systemd)
+  /etc/init.d/hltd stop || true
+  /etc/init.d/soap2file stop || true
   /usr/bin/systemctl stop hltd
+  /usr/bin/systemctl stop soap2file
 
   #unregister old sysV style scripts
-  /sbin/chkconfig --del hltd
-  /sbin/chkconfig --del fffmeta
+  /sbin/chkconfig --del hltd || true
+  /sbin/chkconfig --del fffmeta || true
+  /sbin/chkconfig --del soap2file || true
   /usr/bin/systemctl disable hltd
   /usr/bin/systemctl disable fff
+  /usr/bin/systemctl disable soap2file
 
 
 fi

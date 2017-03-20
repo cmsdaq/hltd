@@ -1,21 +1,17 @@
 #!/bin/env python
-#
-#restart of fff services (hltd)
-#
+
+#restart fff services (hltd and soap2file)
+
 import os,sys
-#sys.path.append('/opt/hltd/python')
-#sys.path.append('/opt/hltd/lib')
-#from hltd import hltd
 from subprocess import Popen
 from subprocess import PIPE
-#from applianceumount import stopFUs
-#from applianceumount import checkMode
 import time
 import syslog
 import json
 import cx_Oracle
 
-#old style execute service check (sysV)
+
+#old service command (sysV)
 def executeServiceScript(service,commands):
    arr = ['/opt/hltd/init.d/hltd']
    arr.append(commands)
@@ -32,8 +28,9 @@ def executeServiceScript(service,commands):
       print 'command output:\n',output
       return proc.returncode
 
-#old style execute service check (sysV)
-def executeServiceUnit(service,command='hltd'):
+
+#new service command (systemd units)
+def executeServiceUnit(command,service):
    arr = ['/usr/bin/systemctl',command,service]
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
@@ -48,21 +45,36 @@ def executeServiceUnit(service,command='hltd'):
       print 'command output:\n',output
       return proc.returncode
 
-def reconfigureScript():
 
+def reconfigureScript():
     proc = Popen('/opt/fff/configurefff.sh', stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
       print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
       return 1
-
-    #re-enable self if this is used
-    proc = Popen(['/usr/bin/systemctl', 'enable', 'fff'], stdout=PIPE, stderr=PIPE)
-    output = proc.communicate()[0]
-    proc = Popen(['/usr/bin/systemctl', 'enable', 'hltd'], stdout=PIPE, stderr=PIPE)
-    output = proc.communicate()[0]
     return 0
+
+
+def disableServices():
+    #disable all FFF services on this machine
+    proc = Popen(['/usr/bin/systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+    proc = Popen(['/usr/bin/systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+    proc = Popen(['/usr/bin/systemctl','disable','soap2file'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+
+
+def reenableServices():
+    #enable all FFF services on this machine
+    proc = Popen(['/usr/bin/systemctl', 'reenable', 'fff'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+    proc = Popen(['/usr/bin/systemctl', 'reenable', 'hltd'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+    proc = Popen(['/usr/bin/systemctl', 'reenable', 'soap2file'], stdout=PIPE, stderr=PIPE, shell=False)
+    output = proc.communicate()[0]
+
 
 def isBlacklisted():
     with open('/opt/fff/db.jsn') as dbp:
@@ -84,69 +96,87 @@ def isBlacklisted():
 
 if __name__ == "__main__":
 
-  if len(sys.argv) ==2:
+  if len(sys.argv) == 2:
 
-    #hltd is PartOf style dependency for start/stop
-    if 'start' == sys.argv[1]:
-        if reconfigureScript()==0:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+    cmd = sys.argv[1]
 
-    elif 'stop' == sys.argv[1]:
+    #used by systemd. If called via systemd, it will take care of subservices (however, only for "stop" and "restart")
+    if 'start' == cmd:
+        rc = reconfigureScript()
+        sys.exit(rc)
+
+    elif 'stop' == cmd:
         print "stop FFF called"
         sys.exit(0)
 
-    #custom commands:
-    elif sys.argv[1] == 'restartUnblacklisted':
+    #non-systemd commands:
+    elif 'restartUnblacklisted' == cmd:
         if isBlacklisted():
             print "Machine is blacklisted. Skipping reconfigure/restart of services"
             sys.exit(1)
-    
-        executeServiceUnit('stop')
-        time.sleep(.5)
-        if reconfigureScript()==0:
-            rc2=executeServiceUnit('hltd','restart')
-            sys.exit(rc2)
         else:
-            sys.exit(1)
-    elif 'restart' == sys.argv[1]:
-      print "Use /usr/bin/systemctl for this"
+            proc = Popen(['/usr/bin/systemctl', 'restart', 'fff'], stdout=PIPE, stderr=PIPE, shell=False)
+            output = proc.communicate()[0]
+            if proc.returncode!=0:
+                print output
+                sys.exit(proc.returncode)
 
-    elif 'status' == sys.argv[1]:
-      #old style status
-      rc1=executeServiceScript('hltd',sys.argv[1])
-      sys.exit(rc1)
+    elif 'restart' == cmd:
+        print "Use: /usr/bin/systemctl restart fff"
 
-    elif 'configure' == sys.argv[1]:
-      #only update configuration
-      rc=reconfigureScript()
-      sys.exit(rc)
+    elif 'status' == cmd:
+        #old style status (less verbose than systemctl status)
+        rc=executeServiceScript('hltd',cmd)
+        sys.exit(rc)
 
-    elif sys.argv[1].startswith('disable'):
-      if (sys.argv[1]=='disableBlacklisted' and isBlacklisted()) or True:
-        proc = Popen(['python','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
-        output = proc.communicate()[0]
-        executeServiceUnit('stop')
-        proc = Popen(['/usr/bin/systemctl','disable','hltd'], stdout=PIPE, stderr=PIPE, shell=False)
-        output = proc.communicate()[0]
-        proc = Popen(['/usr/bin/systemctl','disable','fff'], stdout=PIPE, stderr=PIPE, shell=False)
-        output = proc.communicate()[0]
-        print "FFF services are disabled"
+    elif 'configure' == cmd:
+        #only update configuration (same as start)
+        rc=reconfigureScript()
+        sys.exit(rc)
 
-    elif 'checkBlacklist' == sys.argv[1]:
+    elif 'disableBlacklisted' == cmd:
         if isBlacklisted():
-          print "Host is blacklisted"
-          sys.exit(1)
+            rc=executeServiceUnit('stop','fff')
+            disableServices()
+            #prevent from being manually started by setting disabled in hltd.conf
+            proc = Popen(['python','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
+            output = proc.communicate()[0]
+            if rc==0:
+                print "FFF services are disabled"
+            sys.exit(rc)
+
+    elif 'enableUnblacklisted' == cmd:
+        if not isBlacklisted():
+            rc=reconfigureScript()
+            if rc==0:
+                reenableServices()
+                rc=executeServiceUnit('restart','fff')
+                if rc==0:
+                    print "FFF services are disabled"
+            sys.exit(rc)
+
+    elif 'disable' == cmd:
+        disableServices()
+        print "FFF services are disabled at boot"
+
+    elif 'enable' == cmd:
+        reenableServices()
+        print "FFF services are enabled at boot"
+
+    elif 'checkBlacklist' == cmd:
+        if isBlacklisted():
+            print "Host is blacklisted"
+            sys.exit(1)
         else:
-          print "Host is not blacklisted"
-          sys.exit(0)
+            print "Host is not blacklisted"
+            sys.exit(0)
+
     else:
-      print "Unknown command"
-      sys.exit(1)
+        print "Unknown command"
+        sys.exit(1)
 
   else:
-    print "usage: %s fff start|stop|status|disable|restartUnblacklisted" % sys.argv[0]
-    sys.exit(1)
+      print "usage: %s start|stop|status|configure|enable|disable|restartUnblacklisted|disableBlacklisted|enableUnblacklisted" % sys.argv[0]
+      sys.exit(1)
 
 sys.exit(0)

@@ -6,14 +6,11 @@
 import os
 import sys
 import SOAPpy
-
+import procname
 sys.path.append('/opt/hltd/python')
 #sys.path.append('/opt/hltd/lib')
-
 import demote
 import hltdconf
-from daemon2 import Daemon2
-
 
 def writeToFile(filename,content,overwrite):
     try:
@@ -43,11 +40,9 @@ def renamePath(oldpath,newpath):
     except Exception as ex:
         return  "Failed to rename file: "+str(ex)
 
-class Soap2file(Daemon2):
+class Soap2file():
 
     def __init__(self):
-        Daemon2.__init__(self,'soap2file','main','hltd')
-        #SOAPpy.Config.debug = 1
         self._conf=hltdconf.hltdConf('/etc/hltd.conf')
         self._hostname = os.uname()[1]
 
@@ -67,7 +62,13 @@ class Soap2file(Daemon2):
 
 
 if __name__ == "__main__":
+
     daemon = Soap2file()
-    import procname
     procname.setprocname('soap2file')
-    daemon.start()
+
+    if daemon.checkEnabled():
+        daemon.run()
+    else:
+        print "Soap2file service is disabled"
+        sys.exit(0)
+
