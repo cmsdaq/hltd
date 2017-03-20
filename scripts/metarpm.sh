@@ -286,6 +286,9 @@ fi
 touch /opt/hltd/scratch/new-version || true
 
 #notify systemd of updated unit files and enable them (but don't restart)
+#unregister old sysV style scripts
+/sbin/chkconfig --del hltd
+/sbin/chkconfig --del fffmeta
 /usr/bin/systemctl daemon-reload
 /usr/bin/systemctl reenable hltd
 /usr/bin/systemctl reenable fff
@@ -304,6 +307,9 @@ if [ \$1 == 0 ]; then
 
   /usr/bin/systemctl stop hltd
 
+  #unregister old sysV style scripts
+  /sbin/chkconfig --del hltd
+  /sbin/chkconfig --del fffmeta
   /usr/bin/systemctl disable hltd
   /usr/bin/systemctl disable fff
 
