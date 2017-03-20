@@ -76,32 +76,43 @@ def stopHLTD(daemon,instance):
     daemon.removeLockFile()
 
 
-def suspendRemoteClientsMaybe(instance):
+def suspendRemoteClientsMaybe(instance,force):
     #determine target (runlevel). If host is BU and machine is shutting doen, this will trigger temporary umount on FUs
     shutdown_active=False
     std_out=""
     try:
         p = Popen("/usr/bin/systemctl list-units --type=target --all", shell=True, stdout=PIPE)
         std_out=p.communicate()[0]
+        std_out_lns = std_out.split('\n')
+        multiuser_inactive=False
         shutdown_found=False
-        for std_out_ln in std_out.split('\n'):
+        for std_out_ln in std_out_lns:
             if len(std_out_ln):
                 std_out_split = std_out_ln.split()
-                if len(std_out_split)>2 and std_out_split[0] in ["shutdown.target", "reboot.target", "halt.target"]:
-                      if std_out_split[2] == "active":
-                          shutdown_active = True
-                          shutdown_found=True
+                if len(std_out_split)>2 and std_out_split[0] in ["multi-user.target"]:
+                      if std_out_split[2] == "inactive":
+                          multiuser_inactive=True
                           break
+
+        if multiuser_inactive:
+            for std_out_ln in std_out_lns:
+                if len(std_out_ln):
+                    std_out_split = std_out_ln.split()
+                    if len(std_out_split)>4 and std_out_split[0] in ["shutdown.target", "reboot.target", "halt.target"]:
+                        if std_out_split[4] == "start":
+                            shutdown_active = True
+                            shutdown_found=True
+                            break
         if not shutdown_found:
             print "shutdown.target not found by 'systemctl list-units --type=target --all'"
             syslog.syslog("shutdown.target not found")
 
     except Exception as ex:
-        print "/usr/bin/systemctl list-units --type=target --all | grep shutdown.target",std_out,"exception:",ex
+        print "/usr/bin/systemctl list-units --type=target --all",std_out,"exception:",ex
         syslog.syslog("hltd-"+str(instance)+":Exception checking if shutdown.target is active:" + str(std_out) + " exception: "+str(ex))
 
     try:
-        if shutdown_active:
+        if shutdown_active or force:
             syslog.syslog("shutdown detected")
             #this checks in hltd.conf that role=='bu'
             if stopFUs(instance)==False:
@@ -136,8 +147,18 @@ if __name__ == "__main__":
             elif 'stop' == sys.argv[1]:
                 sys.stdout.write('Stopping hltd instance '+instance+':')
                 stopHLTD(daemon,instance)
-                #for now systemd does not respect shutdown order for hltd/fffmeta services
-                #suspendRemoteClientsMaybe(instance)
+
+            elif 'post-stop' == sys.argv[1]:
+                #TODO: command should probably be handled using a special service which "fff" and "hltd" are part of
+                sys.stdout.write('Post-stopping hltd instance '+instance+'\n')
+                suspendRemoteClientsMaybe(instance,False)
+
+            elif 'stop-appliance' == sys.argv[1]:
+                if daemon.status():
+                  sys.stdout.write('HLTd must be stopped before running this command on BU\n')
+                else:
+                  sys.stdout.write('Suspending mount points for appliance ' + instance+"\n")
+                  suspendRemoteClientsMaybe(instance,True)
 
             elif 'restart' == sys.argv[1]:
                 sys.stdout.write('Restarting hltd instance '+instance+':')
