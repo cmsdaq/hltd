@@ -60,6 +60,16 @@ class Soap2file():
         server.registerFunction(renamePath)
         server.serve_forever()
 
+    def stop(self,do_umount):
+        #only used to stop the old sysV based service PID in the same way it was started
+        class OldSoap2File():
+            def __init__(self):
+                Daemon2.__init__(self,'soap2file','main','hltd')
+                self._conf=hltdconf.hltdConf('/etc/hltd.conf')
+                self._hostname = os.uname()[1]
+        oldSoap = OldSoap2File()
+        oldSoap.stop(do_umount)
+
 
 if __name__ == "__main__":
 
