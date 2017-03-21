@@ -267,7 +267,8 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 #echo "triggered on hltd update or install"
 
 #disable sysv style service
-/etc/init.d/soap2file stop || true
+#killall soap2file || true
+/opt/hltd/python/soap2file.py stop || true
 /sbin/chkconfig --del soap2file || true
 
 rm -rf /etc/hltd.instances
@@ -305,8 +306,9 @@ touch /opt/hltd/scratch/new-version || true
 if [ \$1 == 0 ]; then 
 
   #stop services if running (sysv and systemd)
+  #killall soap2file || true
   /etc/init.d/hltd stop || true
-  /etc/init.d/soap2file stop || true
+  /opt/hltd/python/soap2file.py stop || true
   /usr/bin/systemctl stop hltd
   /usr/bin/systemctl stop soap2file
 
