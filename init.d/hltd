@@ -11,7 +11,7 @@ from applianceumount import checkMode
 import time
 import syslog
 
-def startHLTD(daemon,srvInstance):
+def startHLTD(daemon,srvInstance,retry_on_pid_found):
     if os.getuid() != 0:
       print "Must be root user to do that",':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
       sys.exit(1)
@@ -24,8 +24,9 @@ def startHLTD(daemon,srvInstance):
     check_call(['cp','-R', '/opt/hltd/cgi','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/scripts','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/json','/opt/hltd/scratch/'])
+    #remove lock file which is no longer used
+    daemon.removeLockFile()
     #start the service
-    daemon.touchLockFile()
     proc = Popen(["/opt/hltd/scratch/python/hltd.py",srvInstance], stdout=PIPE)
     output = proc.communicate()[0]
     tries=3
@@ -33,10 +34,15 @@ def startHLTD(daemon,srvInstance):
         time.sleep(.1)
         if daemon.silentStatus() and proc.returncode==0:
             print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
-            daemon.touchLockFile()
+            #daemon.touchLockFile()
             return
         else:
-            if proc.returncode==3:sys.exit(0)
+            if proc.returncode==3:
+                if retry_on_pid_found:
+                    #old sysV version still running, make a restart to start a new version with systemd
+                    stopHLTD(daemon,srvInstance)
+                    startHLTD(daemon,srvInstance,False)
+                sys.exit(0)
             tries-=1
             if tries>0:continue
             print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
@@ -142,7 +148,7 @@ if __name__ == "__main__":
 
         if len(sys.argv) >= 2:
             if 'start' == sys.argv[1]:
-                startHLTD(daemon,instance)
+                startHLTD(daemon,instance,True)
 
             elif 'stop' == sys.argv[1]:
                 sys.stdout.write('Stopping hltd instance '+instance+':')
@@ -163,7 +169,7 @@ if __name__ == "__main__":
             elif 'restart' == sys.argv[1]:
                 sys.stdout.write('Restarting hltd instance '+instance+':')
                 stopHLTD(daemon,instance)
-                startHLTD(daemon,instance)
+                startHLTD(daemon,instance,False)
 
             elif 'status' == sys.argv[1]:
                 daemon.status()
