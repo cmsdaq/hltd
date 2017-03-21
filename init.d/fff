@@ -145,21 +145,21 @@ if __name__ == "__main__":
                 print "FFF services are disabled"
             sys.exit(rc)
 
-    elif 'enableUnblacklisted' == cmd:
+    elif 'restoreUnblacklisted' == cmd:
         if not isBlacklisted():
             rc=reconfigureScript()
             if rc==0:
                 reenableServices()
                 rc=executeServiceUnit('restart','fff')
                 if rc==0:
-                    print "FFF services are disabled"
+                    print "FFF services are restored"
             sys.exit(rc)
 
-    elif 'disable' == cmd:
+    elif 'disableBoot' == cmd:
         disableServices()
         print "FFF services are disabled at boot"
 
-    elif 'enable' == cmd:
+    elif 'enableBoot' == cmd:
         reenableServices()
         print "FFF services are enabled at boot"
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
   else:
-      print "usage: %s start|stop|status|configure|enable|disable|restartUnblacklisted|disableBlacklisted|enableUnblacklisted" % sys.argv[0]
+      print "usage: %s start|stop|status|configure|enableBoot|disableBoot|restartUnblacklisted|disableBlacklisted|restoreUnblacklisted" % sys.argv[0]
       sys.exit(1)
 
 sys.exit(0)
