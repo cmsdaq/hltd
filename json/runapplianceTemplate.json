@@ -176,27 +176,24 @@
           "doc_values":false
         },
         "streamn": {
-          "type": "string",
-          "index": "not_analyzed",
+          "type": "keyword",
           "store": false,
-          "doc_values":false
+          "doc_values":true
         },
         "pidn": {
           "type": "integer",
           "store": false,
-          "doc_values":false
+          "doc_values":true
         },
         "hostn": {
-          "type": "string",
-          "index": "not_analyzed",
+          "type": "keyword",
           "store": false,
-          "doc_values":false
+          "doc_values":true
         },
         "appn": {
-          "type": "string",
-          "index": "not_analyzed",
+          "type": "keyword",
           "store": false,
-          "doc_values":false
+          "doc_values":true
         }
       }
     },
