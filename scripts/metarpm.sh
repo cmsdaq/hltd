@@ -266,16 +266,11 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %triggerin -- hltd
 #echo "triggered on hltd update or install"
 
-#disable sysv style service
-#killall soap2file || true
-/opt/hltd/python/soap2file.py stop || true
-/sbin/chkconfig --del soap2file || true
-
 rm -rf /etc/hltd.instances
 
 #hltd configuration
 /opt/fff/init.d/fff configure
-role=\`/opt/fff/setupmachine.py getrole\`
+#role=\`/opt/fff/setupmachine.py getrole\`
 
 #adjust ownership of unpriviledged child process log files
 if [ -f /var/log/hltd/elastic.log ]; then
@@ -289,33 +284,36 @@ fi
 #update resource count for hltd (i.e. triggered at next service restart)
 touch /opt/hltd/scratch/new-version || true
 
-#notify systemd of updated unit files and enable them (but don't restart)
-#unregister old sysV style scripts
-/sbin/chkconfig --del hltd
-/sbin/chkconfig --del fffmeta
+#unregister old sysV style scripts. only soap2file is terminated at this point
+/opt/hltd/python/soap2file.py stop || true
+/sbin/chkconfig --del hltd >& /dev/null || true
+/sbin/chkconfig --del fffmeta >& /dev/null || true
+/sbin/chkconfig --del soap2file >& /dev/null || true
+
+#notify systemd of updated unit files and enable them (but don't restart except soap2file)
 /usr/bin/systemctl daemon-reload
+
 /usr/bin/systemctl reenable hltd
 /usr/bin/systemctl reenable fff
 
 #restart soapfile (process will not run if disabled in configuration, but service will be active)
 /usr/bin/systemctl reenable soap2file
-/usr/bin/systemctl start soap2file
+/usr/bin/systemctl restart soap2file
 
 %preun
 
 if [ \$1 == 0 ]; then 
 
   #stop services if running (sysv and systemd)
-  #killall soap2file || true
   /etc/init.d/hltd stop || true
   /opt/hltd/python/soap2file.py stop || true
   /usr/bin/systemctl stop hltd
   /usr/bin/systemctl stop soap2file
 
   #unregister old sysV style scripts
-  /sbin/chkconfig --del hltd || true
-  /sbin/chkconfig --del fffmeta || true
-  /sbin/chkconfig --del soap2file || true
+  /sbin/chkconfig --del hltd >& /dev/null || true
+  /sbin/chkconfig --del fffmeta >& /dev/null || true
+  /sbin/chkconfig --del soap2file >& /dev/null || true
   /usr/bin/systemctl disable hltd
   /usr/bin/systemctl disable fff
   /usr/bin/systemctl disable soap2file
