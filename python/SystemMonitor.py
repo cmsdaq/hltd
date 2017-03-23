@@ -193,7 +193,7 @@ class system_monitor(threading.Thread):
 
     def buBootIdCheck(self):
        #skip duplicate check
-       if self.mm.stale_handle_remount_required or self.state.suspended: return
+       if self.mm.stale_handle_remount_required or self.state.suspended: return False
        if conf.role=='fu' and len(self.directory):
            if not self.mm.buBootId:
                self.mm.buBootId = self.buBootIdFetch(self.directory[0])

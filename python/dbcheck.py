@@ -9,9 +9,12 @@ dbhost__='null'
 #dbpwd__='password'
 #tag__='daq2'
 
-dblogin__ = sys.argv[1]
-dbpwd__ = sys.argv[2]
-dbsid__ = sys.argv[3]
+with open('/opt/fff/db.jsn','r') as fi:
+    cred = json.load(fi)
+
+dbsid__=cred['sid']
+dblogin__=cred['login']
+dbpwd__=cred['password']
 
 host__=os.uname()[1]+'.cms'
 if host__.startswith('dv'):

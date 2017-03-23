@@ -127,23 +127,28 @@ if [ ${#readin} != "0" ]; then
 lines[13]=$readin
 fi
 
-
 params=""
+
 for (( i=0; i < ${NLINES}; i++ ))
 do
-  params="$params ${lines[i]}"
+  if (( i!=4 && i!=5 && i!=6 )); then
+    params="$params ${lines[i]}"
+  fi
 done
+
+#database rpm build parameters
 dbsid=${lines[4]}
 dblogin=${lines[5]}
 dbpwd=${lines[6]}
 
+#special RPM revision suffix, if defined
 revsuffix=""
 if [ ${lines[1]} != "null" ];
 then
     revsuffix=${lines[1]}
 fi
 
-#write cache
+#update cache file
 if [ -f $SCRIPTDIR/$PARAMCACHE ];
 then
     rm -rf -f $SCRIPTDIR/$PARAMCACHE
@@ -153,9 +158,10 @@ do
   echo ${lines[$i]} >> $SCRIPTDIR/$PARAMCACHE
 done
 
+#contains secrets
 chmod 500 $SCRIPTDIR/$PARAMCACHE
-# create a build area
 
+#determine VM or PROD RPM build
 if [ ${lines[0]} == "prod" ]; then
   PACKAGENAME="fffmeta"
 elif [ ${lines[0]} == "vm" ]; then
@@ -165,6 +171,7 @@ else
   exit 1
 fi
 
+# create a build area
 echo "removing old build area"
 rm -rf /tmp/$PACKAGENAME-build-tmp
 echo "creating new build area"
@@ -181,8 +188,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.1.1
-Release: 1${revsuffix}
+Version: 2.2.0
+Release: 0${revsuffix}
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -191,19 +198,15 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires: hltd >= 2.1.0, cx_Oracle
+Requires: hltd >= 2.1.0
 
 Provides:/opt/fff/configurefff.sh
-Provides:/opt/fff/dbcheck.sh
 Provides:/opt/fff/setupmachine.py
-Provides:/opt/fff/disablenode.py
 Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
-Provides:/etc/init.d/fffmeta
-Provides:/etc/init.d/fff
-
-#Provides:/opt/fff/backup/hltd.conf
+Provides:/opt/fff/init.d/fff
+Provides:/usr/lib/systemd/system/fff.service
 
 %description
 fffmeta configuration setup package
@@ -215,18 +218,18 @@ fffmeta configuration setup package
 rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/fff"
-%__install -d "%{buildroot}/opt/fff/backup"
 %__install -d "%{buildroot}/etc/init.d"
 
-mkdir -p opt/fff/backup
-mkdir -p etc/init.d/
+mkdir -p %{buildroot}/opt/fff/init.d
+mkdir -p %{buildroot}/usr/lib/systemd/system
+cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
+cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
-cp $BASEDIR/python/disablenode.py %{buildroot}/opt/fff/disablenode.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
+
 echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
 echo
-
 echo "if [ -n \"\\\$1\" ]; then"                                     >> %{buildroot}/opt/fff/configurefff.sh
 echo "  if [ \\\$1 == \"hltd\" ]; then"                              >> %{buildroot}/opt/fff/configurefff.sh
 echo "    python2 /opt/hltd/python/fillresources.py"                 >> %{buildroot}/opt/fff/configurefff.sh
@@ -240,34 +243,7 @@ echo "  python2 /opt/hltd/python/fillresources.py"                   >> %{buildr
 echo "  python2 /opt/fff/setupmachine.py configure $params"          >> %{buildroot}/opt/fff/configurefff.sh
 echo "fi"                                                            >> %{buildroot}/opt/fff/configurefff.sh
 
-echo "#!/bin/bash" > %{buildroot}/opt/fff/dbcheck.sh
-echo "if [ -n \"\\\$1\" ]; then "                                   >> %{buildroot}/opt/fff/dbcheck.sh
-echo "  python2 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid $1"    >> %{buildroot}/opt/fff/dbcheck.sh
-echo "else" >> %{buildroot}/opt/fff/dbcheck.sh                      >> %{buildroot}/opt/fff/dbcheck.sh
-echo "  python2 /opt/fff/dbcheck.py $dblogin $dbpwd $dbsid"       >> %{buildroot}/opt/fff/dbcheck.sh
-echo "fi"                                                           >> %{buildroot}/opt/fff/dbcheck.sh
-
 echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsid}\" }"    >> %{buildroot}/opt/fff/db.jsn
-
-cp $BASEDIR/scripts/fff %{buildroot}/etc/init.d/fff
-
-echo "#!/bin/bash"                       >> %{buildroot}/etc/init.d/fffmeta
-echo "#"                                 >> %{buildroot}/etc/init.d/fffmeta
-echo "# chkconfig:   2345 79 22"         >> %{buildroot}/etc/init.d/fffmeta
-echo "#"                                 >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"start\" ]; then"   >> %{buildroot}/etc/init.d/fffmeta
-echo "  /opt/fff/configurefff.sh init"   >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"restart\" ]; then" >> %{buildroot}/etc/init.d/fffmeta
-echo "/opt/fff/configurefff.sh init"     >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-echo "if [ \\\$1 == \"status\" ]; then"  >> %{buildroot}/etc/init.d/fffmeta
-echo "echo fffmeta does not have status" >> %{buildroot}/etc/init.d/fffmeta
-echo "  exit 0"                          >> %{buildroot}/etc/init.d/fffmeta
-echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
-
 
 %files
 %defattr(-, root, root, -)
@@ -275,37 +251,28 @@ echo "fi"                                >> %{buildroot}/etc/init.d/fffmeta
 %attr( 755 ,root, root) /opt/fff/setupmachine.py
 %attr( 755 ,root, root) /opt/fff/setupmachine.pyc
 %attr( 755 ,root, root) /opt/fff/setupmachine.pyo
-%attr( 755 ,root, root) /opt/fff/disablenode.py
-%attr( 755 ,root, root) /opt/fff/disablenode.pyc
-%attr( 755 ,root, root) /opt/fff/disablenode.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
-%attr( 700 ,root, root) /opt/fff/configurefff.sh
-%attr( 700 ,root, root) /opt/fff/dbcheck.sh
+%attr( 755 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyc
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 700 ,root, root) /opt/fff/db.jsn
-%attr( 755 ,root, root) /etc/init.d/fffmeta
-%attr( 755 ,root, root) /etc/init.d/fff
+%attr( 755 ,root, root) /opt/fff/init.d/fff
+%attr( 644 ,root, root) /usr/lib/systemd/system/fff.service
 
 %post
 #echo "post install trigger"
-chkconfig --del fffmeta
-chkconfig --add fffmeta
-#disabled, can be run manually for now
 
 %triggerin -- hltd
 #echo "triggered on hltd update or install"
 
-#/sbin/service hltd stop || true
-/sbin/service soap2file stop || true
 rm -rf /etc/hltd.instances
 
-python2 /opt/fff/setupmachine.py restore
-python2 /opt/fff/setupmachine.py configure $params
+#hltd configuration
+/opt/fff/init.d/fff configure
+#role=\`/opt/fff/setupmachine.py getrole\`
 
 #adjust ownership of unpriviledged child process log files
-
 if [ -f /var/log/hltd/elastic.log ]; then
 chown ${lines[9]} /var/log/hltd/elastic.log
 fi
@@ -314,35 +281,46 @@ if [ -f /var/log/hltd/anelastic.log ]; then
 chown ${lines[9]} /var/log/hltd/anelastic.log
 fi
 
-#set up resources for hltd (triggered at next service restart)
+#update resource count for hltd (i.e. triggered at next service restart)
 touch /opt/hltd/scratch/new-version || true
-#/opt/hltd/python/fillresources.py
 
-#/sbin/service hltd restart || true
-/sbin/service soap2file restart || true
+#unregister old sysV style scripts. only soap2file is terminated at this point
+/opt/hltd/python/soap2file.py stop || true
+/sbin/chkconfig --del hltd >& /dev/null || true
+/sbin/chkconfig --del fffmeta >& /dev/null || true
+/sbin/chkconfig --del soap2file >& /dev/null || true
 
-chkconfig --del hltd
-chkconfig --del soap2file
+#notify systemd of updated unit files and enable them (but don't restart except soap2file)
+/usr/bin/systemctl daemon-reload
 
-chkconfig --add hltd
-chkconfig --add soap2file
+/usr/bin/systemctl reenable hltd
+/usr/bin/systemctl reenable fff
+
+#restart soapfile (process will not run if disabled in configuration, but service will be active)
+/usr/bin/systemctl reenable soap2file
+/usr/bin/systemctl restart soap2file
 
 %preun
 
 if [ \$1 == 0 ]; then 
 
-  chkconfig --del fffmeta
-  chkconfig --del elasticsearch
-  chkconfig --del hltd
-  chkconfig --del soap2file
+  #stop services if running (sysv and systemd)
+  /etc/init.d/hltd stop || true
+  /opt/hltd/python/soap2file.py stop || true
+  /usr/bin/systemctl stop hltd
+  /usr/bin/systemctl stop soap2file
 
-  /sbin/service hltd stop || true
+  #unregister old sysV style scripts
+  /sbin/chkconfig --del hltd >& /dev/null || true
+  /sbin/chkconfig --del fffmeta >& /dev/null || true
+  /sbin/chkconfig --del soap2file >& /dev/null || true
+  /usr/bin/systemctl disable hltd
+  /usr/bin/systemctl disable fff
+  /usr/bin/systemctl disable soap2file
 
-  python2 /opt/fff/setupmachine.py restore
 
 fi
 
-#TODO:
 #%verifyscript
 
 EOF
