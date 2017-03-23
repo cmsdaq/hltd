@@ -1,0 +1,184 @@
+#!/bin/env python
+import os,sys
+sys.path.append('/opt/hltd/python')
+sys.path.append('/opt/hltd/lib')
+from daemon2 import Daemon2
+from hltdconf import initConf
+from subprocess import Popen,check_call
+from subprocess import PIPE
+from applianceumount import stopFUs
+from applianceumount import checkMode
+import time
+import syslog
+
+def startHLTD(daemon,srvInstance,retry_on_pid_found):
+    if os.getuid() != 0:
+      print "Must be root user to do that",':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
+      sys.exit(1)
+    #if new version, resource accounting needs to run
+    if os.path.exists('/opt/hltd/scratch/new-version'):
+      os.remove('/opt/hltd/scratch/new-version')
+      proc = check_call(['/opt/hltd/python/fillresources.py'])
+    check_call(['rm','-rf','/opt/hltd/scratch/*'])
+    check_call(['cp','-R','/opt/hltd/python','/opt/hltd/scratch/'])
+    check_call(['cp','-R', '/opt/hltd/cgi','/opt/hltd/scratch/'])
+    check_call(['cp','-R','/opt/hltd/scripts','/opt/hltd/scratch/'])
+    check_call(['cp','-R','/opt/hltd/json','/opt/hltd/scratch/'])
+    #remove lock file which is no longer used
+    daemon.removeLockFile()
+    #start the service
+    proc = Popen(["/opt/hltd/scratch/python/hltd.py",srvInstance], stdout=PIPE)
+    output = proc.communicate()[0]
+    tries=3
+    while True:
+        time.sleep(.1)
+        if daemon.silentStatus() and proc.returncode==0:
+            print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+            #daemon.touchLockFile()
+            return
+        else:
+            if proc.returncode==3:
+                if retry_on_pid_found:
+                    #old sysV version still running, make a restart to start a new version with systemd
+                    stopHLTD(daemon,srvInstance)
+                    startHLTD(daemon,srvInstance,False)
+                sys.exit(0)
+            tries-=1
+            if tries>0:continue
+            print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
+            print output
+            sys.exit(1)
+
+def stopHLTD(daemon,instance):
+    #read configuration file to find location to write stop file
+    confFound=False
+    try:
+        conf = initConf(instance)
+        confFound=True
+    except Exception as ex:
+        print " CONFIGURATION error:",str(ex),"(check configuration file) [  \033[1;31mFAILED\033[0;39m  ]"
+        #sys.exit(4)
+
+    if daemon.silentStatus() and confFound:
+        try:
+            if os.path.exists(conf.watch_directory+'/populationcontrol'):
+                os.remove(conf.watch_directory+'/populationcontrol')
+            with  open(conf.watch_directory+'/populationcontrol','w+') as fp: pass
+            count = 10
+            while count:
+                os.stat(conf.watch_directory+'/populationcontrol')
+                if count==10:
+                    sys.stdout.write(' o.o')
+                else:
+                    sys.stdout.write('o.o')
+                sys.stdout.flush()
+                time.sleep(.5)
+                count-=1
+        except OSError, err:
+            time.sleep(.1)
+        except IOError, err:
+            time.sleep(.1)
+    daemon.stop()
+    daemon.removeLockFile()
+
+
+def suspendRemoteClientsMaybe(instance,force):
+    #determine target (runlevel). If host is BU and machine is shutting doen, this will trigger temporary umount on FUs
+    shutdown_active=False
+    std_out=""
+    try:
+        p = Popen("/usr/bin/systemctl list-units --type=target --all", shell=True, stdout=PIPE)
+        std_out=p.communicate()[0]
+        std_out_lns = std_out.split('\n')
+        multiuser_inactive=False
+        shutdown_found=False
+        for std_out_ln in std_out_lns:
+            if len(std_out_ln):
+                std_out_split = std_out_ln.split()
+                if len(std_out_split)>2 and std_out_split[0] in ["multi-user.target"]:
+                      if std_out_split[2] == "inactive":
+                          multiuser_inactive=True
+                          break
+
+        if multiuser_inactive:
+            for std_out_ln in std_out_lns:
+                if len(std_out_ln):
+                    std_out_split = std_out_ln.split()
+                    if len(std_out_split)>4 and std_out_split[0] in ["shutdown.target", "reboot.target", "halt.target"]:
+                        if std_out_split[4] == "start":
+                            shutdown_active = True
+                            shutdown_found=True
+                            break
+        if multiuser_inactive and not shutdown_found:
+            print "shutdown.target not found by 'systemctl list-units --type=target --all'"
+            syslog.syslog("shutdown.target not found")
+
+    except Exception as ex:
+        print "/usr/bin/systemctl list-units --type=target --all",std_out,"exception:",ex
+        syslog.syslog("hltd-"+str(instance)+":Exception checking if shutdown.target is active:" + str(std_out) + " exception: "+str(ex))
+
+    try:
+        if shutdown_active or force:
+            syslog.syslog("shutdown detected")
+            #this checks in hltd.conf that role=='bu'
+            if stopFUs(instance)==False:
+                syslog.syslog("Unable to trigger remount on some FUs during shutdown")
+    except Exception as ex:
+        print ex
+        syslog.syslog("hltd-"+str(instance)+" exception: "+str(ex))
+
+if __name__ == "__main__":
+
+    if len(sys.argv) <=2 or sys.argv[2]=="all":
+        try:
+            instances=[]
+            with open('/etc/hltd.instances','r') as fi:
+                for line in fi.readlines():
+                    lnstrip = line.strip(' \n')
+                    if len(lnstrip)>0 and lnstrip.startswith("#")==False:
+                        instances.append(lnstrip)
+        except:
+            instances = ["main"]
+    else:
+        #TODO: manage instance support with systemd (if there are plans to use this feature)
+        instances = [sys.argv[2]]
+
+    for instance in instances:
+        daemon = Daemon2('hltd',instance)
+
+        if len(sys.argv) >= 2:
+            if 'start' == sys.argv[1]:
+                startHLTD(daemon,instance,True)
+
+            elif 'stop' == sys.argv[1]:
+                sys.stdout.write('Stopping hltd instance '+instance+':')
+                stopHLTD(daemon,instance)
+
+            elif 'post-stop' == sys.argv[1]:
+                #TODO: command should probably be handled using a special service which "fff" and "hltd" are part of
+                sys.stdout.write('Post-stopping hltd instance '+instance+'\n')
+                suspendRemoteClientsMaybe(instance,False)
+
+            elif 'stop-appliance' == sys.argv[1]:
+                if daemon.status():
+                  sys.stdout.write('HLTd must be stopped before running this command on BU\n')
+                else:
+                  sys.stdout.write('Suspending mount points for appliance ' + instance+"\n")
+                  suspendRemoteClientsMaybe(instance,True)
+
+            elif 'restart' == sys.argv[1]:
+                sys.stdout.write('Restarting hltd instance '+instance+':')
+                stopHLTD(daemon,instance)
+                startHLTD(daemon,instance,False)
+
+            elif 'status' == sys.argv[1]:
+                daemon.status()
+            else:
+                print "Unknown command"
+                sys.exit(2)
+
+        else:
+            print "usage: %s start|stop|restart|status all|main|instance" % sys.argv[0]
+            sys.exit(2)
+
+sys.exit(0)

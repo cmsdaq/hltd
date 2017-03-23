@@ -1,0 +1,16 @@
+[Unit]
+Description=HLT daemon service
+Wants=network-online.target
+After=fff.service network.service nfs.service rsyslog.service
+PartOf=fff.service
+
+[Service]
+Type=simple
+#PIDFile=/var/run/soap2file.pid
+ExecStart=/opt/hltd/python/soap2file.py --no-forking
+Restart=on-failure
+RestartSec=20
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

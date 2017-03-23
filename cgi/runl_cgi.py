@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python2
 import cgi
 import os
 print "Content-Type: text/html"     # HTML is following

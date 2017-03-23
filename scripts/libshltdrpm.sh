@@ -1,6 +1,9 @@
 #!/bin/bash -e
 
-alias python=python2.6
+alias python=`readlink /usr/bin/python2`
+python_dir=`readlink /usr/bin/python2`
+python_version=${python_dir:6}
+
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 BUILD_ARCH=x86_64
@@ -21,10 +24,10 @@ mkdir -p $TOPDIR/opt/hltd
 cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 
 echo "Moving files to their destination"
-mkdir -p usr/lib64/python2.6/site-packages
-mkdir -p usr/lib64/python2.6/site-packages/pyelasticsearch
-mkdir -p usr/lib64/python2.6/site-packages/elasticsearch
-mkdir -p usr/lib64/python2.6/site-packages/urllib3_hltd
+mkdir -p usr/lib64/$python_dir/site-packages
+mkdir -p usr/lib64/$python_dir/site-packages/pyelasticsearch
+mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch_hltd
+mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
 cd $TOPDIR
 #urllib3 1.10 (renamed urllib3_hltd)
@@ -38,7 +41,7 @@ python -O - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/urllib3_hltd",quiet=True)
 EOF
-cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/python2.6/site-packages/urllib3_hltd/
+cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urllib3_hltd/
 
 cd $TOPDIR
 #pyelasticsearch
@@ -52,8 +55,8 @@ python -O - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
 EOF
-cp -R build/lib/pyelasticsearch/* $TOPDIR/usr/lib64/python2.6/site-packages/pyelasticsearch/
-cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/python2.6/site-packages/pyelasticsearch/
+cp -R build/lib/pyelasticsearch/* $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
+cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
 
 
 cd $TOPDIR
@@ -62,13 +65,13 @@ cd opt/hltd/lib/elasticsearch-py-1.4/
 python ./setup.py -q build
 python - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch_hltd",quiet=True)
 EOF
 python -O - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch_hltd",quiet=True)
 EOF
-cp -R build/lib/elasticsearch/* $TOPDIR/usr/lib64/python2.6/site-packages/elasticsearch/
+cp -R build/lib/elasticsearch_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/elasticsearch_hltd/
 
 
 cd $TOPDIR
@@ -76,26 +79,27 @@ cd $TOPDIR
 cd opt/hltd/lib/python-zlib-extras-0.1/
 rm -rf build
 python ./setup.py -q build
-cp -R build/lib.linux-x86_64-2.6/_zlibextras.so $TOPDIR/usr/lib64/python2.6/site-packages/
+cp -R build/lib.linux-x86_64-${python_version}/_zlibextras.so $TOPDIR/usr/lib64/$python_dir/site-packages/
 
 
 cd $TOPDIR
 #python-prctl
 cd opt/hltd/lib/python-prctl/
 ./setup.py -q build
-python - <<'EOF'
+#python - <<'EOF'
+python - <<EOF
 import py_compile
-py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-python -O - <<'EOF'
+python -O - <<EOF
 import py_compile
-py_compile.compile("build/lib.linux-x86_64-2.6/prctl.py")
+py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-cp build/lib.linux-x86_64-2.6/prctl.pyo $TOPDIR/usr/lib64/python2.6/site-packages
-cp build/lib.linux-x86_64-2.6/prctl.py $TOPDIR/usr/lib64/python2.6/site-packages
-cp build/lib.linux-x86_64-2.6/prctl.pyc $TOPDIR/usr/lib64/python2.6/site-packages
-cp build/lib.linux-x86_64-2.6/_prctl.so $TOPDIR/usr/lib64/python2.6/site-packages
-cat > $TOPDIR/usr/lib64/python2.6/site-packages/python_prctl-1.5.0-py2.6.egg-info <<EOF
+cp build/lib.linux-x86_64-${python_version}/prctl.pyo $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/prctl.py $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/prctl.pyc $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/_prctl.so $TOPDIR/usr/lib64/$python_dir/site-packages
+cat > $TOPDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py$python_version.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-prctl
 Version: 1.5.0
@@ -118,14 +122,14 @@ EOF
 cd $TOPDIR
 cd opt/hltd/lib/python-inotify-0.5/
 ./setup.py -q build
-cp build/lib.linux-x86_64-2.6/inotify/_inotify.so $TOPDIR/usr/lib64/python2.6/site-packages
-cp build/lib.linux-x86_64-2.6/inotify/watcher.py $TOPDIR/usr/lib64/python2.6/site-packages
-python - <<'EOF'
+cp build/lib.linux-x86_64-${python_version}/inotify/_inotify.so $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/inotify/watcher.py $TOPDIR/usr/lib64/$python_dir/site-packages
+python - <<EOF
 import py_compile
-py_compile.compile("build/lib.linux-x86_64-2.6/inotify/watcher.py")
+py_compile.compile("build/lib.linux-x86_64-${python_version}/inotify/watcher.py")
 EOF
-cp build/lib.linux-x86_64-2.6/inotify/watcher.pyc $TOPDIR/usr/lib64/python2.6/site-packages/
-cat > $TOPDIR/usr/lib64/python2.6/site-packages/python_inotify-0.5.egg-info <<EOF
+cp build/lib.linux-x86_64-${python_version}/inotify/watcher.pyc $TOPDIR/usr/lib64/$python_dir/site-packages/
+cat > $TOPDIR/usr/lib64/$python_dir/site-packages/python_inotify-0.5.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-inotify
 Version: 0.5
@@ -155,7 +159,7 @@ EOF
 cd $TOPDIR
 cd opt/hltd/lib/python-procname/
 ./setup.py -q build
-cp build/lib.linux-x86_64-2.6/procname.so $TOPDIR/usr/lib64/python2.6/site-packages
+cp build/lib.linux-x86_64-${python_version}/procname.so $TOPDIR/usr/lib64/$python_dir/site-packages
 
 cd $TOPDIR
 rm -rf opt
@@ -163,7 +167,7 @@ rm -rf opt
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
 Name: hltd-libs
-Version: 1.9.6
+Version: 2.1.0
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -174,8 +178,8 @@ Source: none
 BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-#Provides:/usr/lib64/python2.6/site-packages/prctl.pyc
-Requires:python,libcap,python-six >= 1.4 ,python-requests
+#Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
+Requires:python,libcap,python-six >= 1.9 ,python-requests,python-elasticsearch
 
 %description
 fff hlt daemon libraries
@@ -190,15 +194,15 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 %post
 %files
 %defattr(-, root, root, -)
-/usr/lib64/python2.6/site-packages/*prctl*
-/usr/lib64/python2.6/site-packages/*watcher*
-/usr/lib64/python2.6/site-packages/*_inotify.so*
-/usr/lib64/python2.6/site-packages/*python_inotify*
-/usr/lib64/python2.6/site-packages/*_zlibextras.so
-/usr/lib64/python2.6/site-packages/pyelasticsearch
-/usr/lib64/python2.6/site-packages/elasticsearch
-/usr/lib64/python2.6/site-packages/urllib3_hltd
-/usr/lib64/python2.6/site-packages/procname.so
+/usr/lib64/$python_dir/site-packages/*prctl*
+/usr/lib64/$python_dir/site-packages/*watcher*
+/usr/lib64/$python_dir/site-packages/*_inotify.so*
+/usr/lib64/$python_dir/site-packages/*python_inotify*
+/usr/lib64/$python_dir/site-packages/*_zlibextras.so
+/usr/lib64/$python_dir/site-packages/pyelasticsearch
+/usr/lib64/$python_dir/site-packages/elasticsearch_hltd
+/usr/lib64/$python_dir/site-packages/urllib3_hltd
+/usr/lib64/$python_dir/site-packages/procname.so
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
 rpmbuild --define "_topdir `pwd`/RPMBUILD" -bb hltd-libs.spec

@@ -26,6 +26,7 @@ try:
     os.makedirs(backup_dir)
 except:pass
 
+hltdconftemplate = '/etc/hltd.conf.template'
 hltdconf = '/etc/hltd.conf'
 busconfig = '/etc/appliance/bus.config'
 
@@ -54,12 +55,16 @@ except:myhost_domain=''
 
 #testing dual mount point
 vm_override_buHNs = {
-                     "fu-vm-01-01.cern.ch":["bu-vm-03-01","bu-vm-03-01"],
-                     "fu-vm-01-02.cern.ch":["bu-vm-03-01"],
-                     "fu-vm-02-01.cern.ch":["bu-vm-03-01","bu-vm-03-01"],
-                     "fu-vm-02-02.cern.ch":["bu-vm-03-01"]
+                     "fu-vm-01-01.cern.ch":["bu-vm-01-01","bu-vm-01-01"],
+                     "fu-vm-01-02.cern.ch":["bu-vm-01-01"],
+                     "fu-vm-02-01.cern.ch":["bu-vm-01-01","bu-vm-01-01"],
+                     "fu-vm-02-02.cern.ch":["bu-vm-01-01"],
+                     "fu-vm-03-01.cern.ch":["bu-vm-03-01"],
+                     "fu-vm-03-02.cern.ch":["bu-vm-03-01"],
+                     "fu-vm-03-03.cern.ch":["bu-vm-03-01"],
+                     "fu-vm-03-04.cern.ch":["bu-vm-03-01"]
                      }
-vm_bu_override = ['bu-vm-03-01.cern.ch']
+#vm_bu_override = ['bu-vm-01-01.cern.ch']
 
 
 def getmachinetype():
@@ -417,13 +422,23 @@ if __name__ == "__main__":
         sys.exit(1)
     selection = sys.argv[argvc]
     #print selection
+    if 'getrole' == selection:
+        cluster,type = getmachinetype()
+        print type
+        sys.exit(0)
 
-    if 'restore' == selection:
-        restoreFileMaybe(hltdconf)
+    if 'disable' == selection:
+        print "disabling hltd"
+        hltdcfg = FileManager(hltdconf,'=',True,' ',' ')
+        hltdcfg.reg('enabled','False','[General]')
+        hltdcfg.commit()
         sys.exit(0)
     elif 'configure' != selection:
         print "Unknown command. Known commands are: configure, restore"
         sys.exit(1)
+
+    with open('/opt/fff/db.jsn','r') as fi:
+        cred = json.load(fi)
 
     argvc += 1
     if not sys.argv[argvc]:
@@ -448,23 +463,9 @@ if __name__ == "__main__":
     elastic_host_local = sys.argv[argvc]
     elastic_host_local_url = 'http://'+sys.argv[argvc]+':9200'
 
-    argvc += 1
-    if not sys.argv[argvc]:
-        print "DB connection SID missing"
-        sys.exit(1)
-    dbsid = sys.argv[argvc]
-
-    argvc += 1
-    if not sys.argv[argvc]:
-        print "DB connection login missing"
-        sys.exit(1)
-    dblogin = sys.argv[argvc]
-
-    argvc += 1
-    if not sys.argv[argvc]:
-        print "DB connection password missing"
-        sys.exit(1)
-    dbpwd = sys.argv[argvc]
+    dbsid=cred['sid']
+    dblogin=cred['login']
+    dbpwd=cred['password']
 
     argvc += 1
     if not sys.argv[argvc]:
@@ -526,7 +527,7 @@ if __name__ == "__main__":
         cnhostname = os.uname()[1]+'.'+myhost_domain
 
     use_elasticsearch = 'True'
-    cmssw_version = 'CMSSW_7_1_4_patch1'
+    cmssw_version = 'CMSSW_7_1_4_patch1' #stub
     dqmmachine = 'False'
     execdir = '/opt/hltd'
     auto_clear_quarantined = 'False'

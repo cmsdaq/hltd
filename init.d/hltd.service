@@ -1,0 +1,17 @@
+[Unit]
+Description=HLT daemon service
+Wants=network-online.target
+After=fff.service network.service nfs.service rsyslog.service
+PartOf=fff.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/hltd.pid
+ExecStart=/opt/hltd/init.d/hltd start
+ExecStop=/opt/hltd/init.d/hltd stop
+ExecStopPost=/opt/hltd/init.d/hltd post-stop
+Restart=always
+RestartSec=20
+
+[Install]
+WantedBy=multi-user.target
