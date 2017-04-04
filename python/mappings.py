@@ -451,13 +451,13 @@ central_boxinfo_mapping = {
               'host'          :{'type':'string',"index":"not_analyzed"},
               'appliance'     :{'type':'string',"index":"not_analyzed"},
               'instance'      :{'type':'string',"index":"not_analyzed"},
-              'broken'        :{'type':'integer'},
-              'broken_activeRun':{'type':'integer'},
-              'used'          :{'type':'integer'},
-              'used_activeRun'  :{'type':'integer'},
-              'idles'         :{'type':'integer'},
-              'quarantined'   :{'type':'integer'},
-              'cloud'         :{'type':'integer'},
+              'broken'        :{'type':'short'},
+              'broken_activeRun':{'type':'short'},
+              'used'          :{'type':'short'},
+              'used_activeRun'  :{'type':'short'},
+              'idles'         :{'type':'short'},
+              'quarantined'   :{'type':'short'},
+              'cloud'         :{'type':'short'},
               'usedDataDir'   :{'type':'integer'},
               'totalDataDir'  :{'type':'integer'},
               'usedRamdisk'   :{'type':'integer'},
@@ -469,8 +469,8 @@ central_boxinfo_mapping = {
               'activeRunNumQueuedLS':{'type':'integer'},
               'activeRunCMSSWMaxLS':{'type':'integer'},
               "activeRunMaxLSOut":{'type':'integer'},
-              "outputBandwidthMB":{'type':'integer'},
-              "activeRunOutputMB":{'type':'integer'},
+              "outputBandwidthMB":{'type':'float'},
+              "activeRunOutputMB":{'type':'float'},
               "activeRunLSBWMB":{'type':'float'},
               "sysCPUFrac":{'type':'float'},
               "cpu_MHz_avg_real":{'type':'integer'},
@@ -495,39 +495,38 @@ central_boxinfo_mapping = {
           'resource_summary' : {
             '_all': {'enabled': "false" },
             'properties' : {
-              'fm_date'       :{'type':'date'
-              },
-              'appliance' : {'type':'string',"index":"not_analyzed"},
-              "activeFURun" : {"type" : "integer"},
-              "activeRunCMSSWMaxLS" : {"type" : "integer"},
+              "fm_date"       :              {"type":"date"},
+              "appliance" :                  {"type":"string","index":"not_analyzed"},
+              "activeFURun" :                {"type" : "integer"},
+              "activeRunCMSSWMaxLS" :        {"type" : "integer"},
               "activeRunNumQueuedLS" :       { "type" : "integer" },
               "activeRunLSWithOutput":       { "type" : "integer" },
-              "outputBandwidthMB":           { "type" : "integer"   },
-              "activeRunOutputMB":           { "type" : "integer"   },
+              "outputBandwidthMB":           { "type" : "float"   },
+              "activeRunOutputMB":           { "type" : "float"   },
               "activeRunLSBWMB":             { "type" : "float"   },
-              "active_resources" :           { "type" : "integer" },
-              "active_resources_activeRun" : { "type" : "integer" },
-              "broken" :                     { "type" : "integer" },
-              "quarantined" :                { "type" : "integer" },
-              "cloud" :                      { "type" : "integer" },
-              "fu_workdir_used_quota" :      { "type" : "float" },
-              "idle" :                       { "type" : "integer" },
-              "pending_resources" :          { "type" : "integer" },
+              "active_resources" :           { "type" : "short" },
+              "active_resources_activeRun" : { "type" : "short" },
+              "idle" :                       { "type" : "short" },
+              "used" :                       { "type" : "short" },
+              "broken" :                     { "type" : "short" },
+              "quarantined" :                { "type" : "short" },
+              "cloud" :                      { "type" : "short" },
+              "pending_resources" :          { "type" : "short" },
+              "stale_resources" :            { "type" : "short" },
               "ramdisk_occupancy" :          { "type" : "float" },
-              "stale_resources" :            { "type" : "integer" },
-              "used" :                       { "type" : "integer" },
+              "fu_workdir_used_quota" :      { "type" : "float" },
+              "fuDiskspaceAlarm" :           { "type" : "boolean" },
               "bu_stop_requests_flag":       { "type" : "boolean" },
               "fuSysCPUFrac":                {'type':'float'},
-              "fuSysCPUMHz":                {'type':'integer'},
-              "fuDataNetIn":                {"type":"float"},
-              "resPerFU":                   {"type":"byte"}
-              },
+              "fuSysCPUMHz":                 {'type':'short'},
+              "fuDataNetIn":                 {"type":"float"},
+              "resPerFU":                    {"type":"byte"}
+              }
           },
           "fu-box-status" : {
             "_all": {"enabled": "false" },
             "properties": {
               "date":{"type":"date"},
-
               "cpu_name":{"type":"string","index":"not_analyzed"},
               "cpu_MHz_nominal":{"type":"integer"},
               "cpu_MHz_avg":{"type":"integer"},
@@ -559,7 +558,8 @@ central_hltdlogs_mapping = {
 		"_all": {"enabled": "false" },
                 'properties' : {
                     'host'      : {'type' : 'string',"index":"not_analyzed"},
-                    'type'      : {'type' : 'string',"index" : "not_analyzed"},
+                    'type'      : {'type' : 'integer'},
+                    'doctype'   : {'type' : 'string',"index":"not_analyzed"},
                     'severity'  : {'type' : 'string',"index" : "not_analyzed"},
                     'severityVal'  : {'type' : 'integer'},
                     'message'   : {'type' : 'string',"index" : "analyzed"},
@@ -586,8 +586,11 @@ central_hltdlogs_mapping = {
                                     "type": "integer"
                             },
                             "type": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "integer"
+                            },
+                            "doctype": {
+                                    "type" : "string",
+                                    "index":"not_analyzed"
                             },
                             "severity": {
                                     "type": "string",
@@ -644,7 +647,7 @@ central_hltdlogs_mapping = {
                             },
                             "date": {
                                       "type":"date"
-                            },
+                            }
 
                     }
             }
