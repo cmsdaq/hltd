@@ -408,37 +408,66 @@ central_runindex_mapping = {
                                     }
 
 			    }
-	    }
-#           ,
-#           "transfer" : {
-#             "_all" : {
-#              "enabled" : False
-#             },
-#             "properties" : {
-#               "fm_date" : {
-#                 "type" : "date",
-#               },
-#               "id" : {
-#                 "type" : "string","index" : "not_analyzed"
-#               },
-#               "runNumber" : {
-#                 "type": "integer"
-#               },
-#               "ls" : {
-#                 "type":"integer"
-#               },
-#               "stream": {
-#                 "type":"string",
-#                 "index":"not_analyzed"
-#               },
-#               "host":{
-#                 "type":"string",
-#                 "index":"not_analyzed"
-#               },
-#               #tier0 stream flag (TODO)
-#
-#             }
-#           }
+	    },
+
+      "transfer" : {
+		      "_all" : {
+			      "enabled" : False
+			      },
+		      "properties" : {
+			      "accepted" : {
+				      "type" : "integer"
+				      },
+			      "appliance" : {
+				      "type" : "keyword"
+				      },
+			      "endTime" : {
+				      "type" : "date"
+				      },
+			      "eolField1" : {
+				      "type" : "integer"
+				      },
+			      "eolField2" : {
+				      "type" : "integer"
+				      },
+			      "errorEvents" : {
+				      "type" : "integer"
+				      },
+			      "fm_date" : {
+				      "type" : "date"
+				      },
+			      "fname" : {
+				      "type" : "keyword"
+				      },
+			      "host" : {
+				      "type" : "keyword"
+				      },
+			      "ls" : {
+				      "type" : "integer"
+				      },
+			      "processed" : {
+				      "type" : "integer"
+				      },
+			      "runNumber" : {
+				      "type" : "integer"
+				      },
+			      "size" : {
+				      "type" : "long"
+				      },
+			      "startTime" : {
+				      "type" : "date"
+				      },
+			      "status" : {
+				      "type" : "integer"
+				      },
+			      "stream" : {
+				      "type" : "keyword"
+				      },
+			      "type" : {
+				      "type" : "keyword"
+				      }
+			      }
+    }
 }
 
 
@@ -495,7 +524,7 @@ central_boxinfo_mapping = {
           'resource_summary' : {
             '_all': {'enabled': "false" },
             'properties' : {
-              "fm_date"       :              {"type":"date"},
+              "fm_date" :                    {"type":"date"},
               "appliance" :                  {"type":"string","index":"not_analyzed"},
               "activeFURun" :                {"type" : "integer"},
               "activeRunCMSSWMaxLS" :        {"type" : "integer"},
