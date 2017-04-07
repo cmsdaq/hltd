@@ -437,9 +437,6 @@ class hltd(Daemon2,object):
         if conf.role == 'fu':
             """
             recheck mount points
-            this is done at start and whenever the file /etc/appliance/bus.config is modified
-            mount points depend on configuration which may be updated (by runcontrol)
-            (notice that hltd does not NEED to be restarted since it is watching the file all the time)
             """
             #switch to cloud mode if active, but hltd did not have cores in cloud directory in the last session
             if not res_in_cloud and state.cloud_script_available():
