@@ -727,13 +727,13 @@ class CMSSWLogCollector(object):
     def deleteOldLogs(self,maxAgeHours=0):
 
         existing_cmsswlogs = os.listdir(self.dir)
-        current_dt = datetime.datetime.now()
+        current_dt = time.time()
         for file in existing_cmsswlogs:
             if file.startswith('old_'):
                 try:
                     if maxAgeHours>0:
-                        file_dt = os.path.getmtime(file)
-                        if (current_dt - file_dt).totalHours > maxAgeHours:
+                        file_dt = os.path.getmtime(os.path.join(self.dir,file))
+                        if (current_dt - file_dt)/3600. > maxAgeHours:
                             #delete file
                             os.remove(os.path.join(self.dir,file))
                     else:
@@ -745,8 +745,8 @@ class CMSSWLogCollector(object):
             elif file.startswith('HltConfig'):
                 try:
                     if maxAgeHours>0:
-                        file_dt = os.path.getmtime(file)
-                        if (current_dt - file_dt).totalHours > maxAgeHours*4:
+                        file_dt = os.path.getmtime(os.path.join(self.dir,file))
+                        if (current_dt - file_dt)/3600. > maxAgeHours*4:
                             #delete file
                             os.remove(os.path.join(self.dir,file))
                     else:
