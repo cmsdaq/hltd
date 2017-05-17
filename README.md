@@ -14,13 +14,17 @@ https://twiki.cern.ch/twiki/bin/view/CMS/FFFConfigurationPlan
 
 Building:
 
+On a (CC7) build machine prerequisite packages need to be installed:
+```
+yum install -y python-devel libcap-devel rpm-build
+```
 
 building hltd library RPM:
 ```
 scripts/libhltdrpm.sh
 ```
 
-building hltd executable RPM
+building hltd executable RPM:
 ```
 scripts/hltdrpm.sh
 ```
