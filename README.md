@@ -14,6 +14,8 @@ https://twiki.cern.ch/twiki/bin/view/CMS/FFFConfigurationPlan
 
 Building:
 
+required libraries:
+yum install -y python-devel libcap-devel rpm-build
 
 building hltd library RPM:
 ```

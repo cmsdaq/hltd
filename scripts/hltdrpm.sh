@@ -97,7 +97,7 @@ tar -C $TOPDIR -c etc | tar -xC \$RPM_BUILD_ROOT
 rm \$RPM_BUILD_ROOT/opt/hltd/python/setupmachine.py
 rm \$RPM_BUILD_ROOT/opt/hltd/python/disablenode.py
 rm \$RPM_BUILD_ROOT/opt/hltd/python/dbcheck.py
-rm \$RPM_BUILD_ROOT/opt/hltd/TODO
+rm \$RPM_BUILD_ROOT/opt/hltd/TODO || true
 %post
 %files
 %dir %attr(777, -, -) /var/log/hltd
