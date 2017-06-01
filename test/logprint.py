@@ -1,18 +1,20 @@
 #!/bin/env python
 
 import requests
-import simplejson as json
+try:
+    import simplejson as json
+except:
+    import json
 import sys
 import datetime
 import time
-
-
 
 
 logThreshold=2 #WARNING
 repeatsMax=100
 termWhite=True
 quit=True
+default=True
 printHelp=True
 light=False
 
@@ -23,6 +25,7 @@ if len(sys.argv)>1:
             light=True
 
         elif arg=="--help":
+            default=False
             quit=True
             printHelp=True
 
@@ -42,6 +45,7 @@ if len(sys.argv)>1:
         elif arg=='--black':
             termWhite=False
         elif arg.startswith('--mode'):
+            default=False
             quit=False
             dmode = arg[arg.find('=')+1:].strip()
             if dmode=='cdaq':
@@ -58,13 +62,20 @@ if len(sys.argv)>1:
                 connurl='http://es-vm-local.cern.ch:9200'
 
 if printHelp==True:
-    print "Usage: . logprint.py -c=%URL -l=%[DEBUG,INFO,WARNING,ERROR,FATAL] -r=%[-1,0,...] --black --light"
-    print " --mode:cdaq,daq2val,minidaq,vm2. discovery of runs the central index (MANDATORY)"
+    print "Description: displays live HLT CMSSW logs injected in es-local cluster"
+    print "Usage: . logprint.py --mode=%SYS [-c=%URL -l=%[DEBUG,INFO,WARNING,ERROR,FATAL] -r=%[-1,0,...] --black --light]"
+    print " --mode=cdaq,daq2val,minidaq,vm2. discovery of runs the central index (MANDATORY)"
     print " -l: log level threshold (default: INFO)"
     print " -r: DEBUG/INFO repeat suppression threshold (default: 100, disable: -1)"
     print " --black: color scheme for black background terminal (default: disabled)"
     print " --light: your terminal background color (default: white)"
     print " --help: print this info and quit"
+
+if default:
+    quit=False
+    dmode="cdaq"
+    runDiscoveryUrl='http://es-cdaq.cms:9200/runindex_cdaq_read/run/_search?size=2'
+    connurl='http://es-local.cms:9200'
 
 if quit:
     sys.exit(0)
@@ -87,18 +98,19 @@ repeatsMax=100
 suppressionMap = {}
 alreadySuppressed = {}
 
-filter1 =  { "range": {
-       "date": {
-         "from": "",
-         "to": ""
-       }
-#               ,"severityVal" : { "gte" :  str(logThreshold+1)}
-     }
-   }
+filter1 =  [
+       { 
+         "range": {
+           "date": {
+             "from": "",
+             "to": ""
+           }
+         }
+       }]
  
 
 
-filter2 =  { "and" : [
+filter2 =  [
        {"range": {
          "date": {
            "from": "",
@@ -109,38 +121,26 @@ filter2 =  { "and" : [
          "severityVal" : { "gte" :  str(logThreshold)}
        }}
      ]
-   }
        #,{"or": [{"term":{"severity":"INFO"}},{"term":{"severity":"WARNINIG"}},{"term":{"severity":"ERROR"}},{"term":{"severity":"FATAL"}}] }
        #,{"not":{"term":{"severity":"DEBUG"}}}
 
 
 
 qdoc = { 
-"fields":["date", "_source"], 
+#"fields":["date", "_source"], 
 "size":100, 
 "query": { 
-"filtered": {"query": {"match_all": {}}
-#      "filter": {
-#        "range": {
-#          "date": {
-#            "from": "",
-#            "to": ""
-#          }
-#        }
-#      }
-}
+"bool": {"must": []}
 },
 "sort": { "date": { "order": "asc" }}
 }
 
 if logThreshold==0:
-    useFilters2=False
-    qdoc['query']['filtered']['filter'] = filter1
+    qdoc['query']['bool']['must']=filter1
 else:
-    useFilters2=True
-    qdoc['query']['filtered']['filter'] = filter2
+    qdoc['query']['bool']['must']=filter2
 
-runindex_query = '{  "query": { "filtered": {"query": {"match_all": {}}}}, "sort": { "startTime": { "order": "desc" }}}'
+runindex_query = '{  "query": { "bool": {"must": []}}, "sort": { "startTime": { "order": "desc" }}}'
 
 
 sleept = 0.5
@@ -177,6 +177,7 @@ while True:
 
         runs_string = ''
         chits = json.loads(cdaqr.content)['hits']['hits']
+
 	for i,c in enumerate(chits):
 	    if i==0:
 	        runs_string+='run' + str(c['_source']['runNumber']+'*')
@@ -200,12 +201,8 @@ while True:
 
     #hack
     #tbefore2 =  datetime.datetime.fromtimestamp(t_now-tzdeltaSec-3600).isoformat()
-    if useFilters2:
-        qdoc['query']['filtered']['filter']['and'][0]['range']['date']['from']=tbefore
-        qdoc['query']['filtered']['filter']['and'][0]['range']['date']['to']=tnow
-    else:
-        qdoc['query']['filtered']['filter']['range']['date']['from']=tbefore
-        qdoc['query']['filtered']['filter']['range']['date']['to']=tnow
+    qdoc['query']['bool']['must'][0]['range']['date']['from']=tbefore
+    qdoc['query']['bool']['must'][0]['range']['date']['to']=tnow
     q = json.dumps(qdoc)
 
     resp = requests.post(urlcustom, q)
