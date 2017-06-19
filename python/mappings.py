@@ -93,10 +93,10 @@ central_runindex_mapping = {
                         'type':'boolean'
                     },
                     'CMSSW_version':{
-	              'type':'string','index':'not_analyzed'
+	              'type':'keyword'
                     },
                     'CMSSW_arch':{
-	              'type':'string','index':'not_analyzed'
+	              'type':'keyword'
                     }
                 }
             },
@@ -104,13 +104,12 @@ central_runindex_mapping = {
 		'_all': {'enabled': "false" },
                 '_parent':{'type':'run'},
                 'properties' : {
-	            'id':{'type':'string','index':'not_analyzed'},
+	            'id':{'type':'keyword'},
                     'names':{
-                        'type':'string',
-                        "index":"not_analyzed"
+                        'type':'keyword'
                         },
                     'stateNames':{
-                        'type':'string','index':'no'
+                        'type':'keyword','index':'no'
                         },
                     'reserved':{
                         'type':'integer'
@@ -130,13 +129,12 @@ central_runindex_mapping = {
 		'_all': {'enabled': "false" },
                 '_parent':{'type':'run'},
                 'properties' : {
-	            'id':{'type':'string','index':'not_analyzed'},
+	            'id':{'type':'keyword'},
                     'names':{
-                        'type':'string',
-                        "index":"not_analyzed"
+                        'type':'keyword'
                         },
                     'stateNames':{
-                        'type':'string','index':'no'
+                        'type':'keyword','index':'no'
                         },
                     'reserved':{
                         'type':'integer'
@@ -151,7 +149,7 @@ central_runindex_mapping = {
                 '_parent':{'type':'run'},
                 'properties' : {
                     'stateNames':{
-                        'type':'string','index':'no'
+                        'type':'keyword','index':'no'
                         },
                     'fm_date':{
                         'type':'date'
@@ -163,13 +161,12 @@ central_runindex_mapping = {
                 '_parent':{'type':'run'},
                 'properties' : {
                     'stream':{
-                        'type':'string',
-                        'index':'not_analyzed'
+                        'type':'keyword'
                         },
                     'fm_date':{
                         'type':'date'
                         },
-                    'id'            :{'type':'string','index':'not_analyzed'}
+                    'id'            :{'type':'keyword'}
                     }
                 },
             'eols' : {
@@ -178,14 +175,14 @@ central_runindex_mapping = {
                 'properties' : {
                     'fm_date'       :{'type':'date'
                     },
-                    'id'            :{'type':'string','index':'not_analyzed'},
+                    'id'            :{'type':'keyword'},
                     'ls'            :{'type':'integer'},
                     'NEvents'       :{'type':'integer'},
                     'NFiles'        :{'type':'integer'},
                     'TotalEvents'   :{'type':'integer'},
                     'NLostEvents'   :{'type':'integer'},
                     'NBytes'        :{'type':'long'},
-                    'appliance'     :{'type':'string','index' : 'not_analyzed'}
+                    'appliance'     :{'type':'keyword'}
                     }
                 },
             'minimerge' : {
@@ -193,10 +190,10 @@ central_runindex_mapping = {
                 'properties' : {
                     'fm_date'       :{'type':'date'
                     },
-                    'id'            :{'type':'string','index':'not_analyzed'}, #run + appliance + stream + ls
-                    'appliance'     :{'type':'string','index':'not_analyzed'}, #wrong mapping:not analyzed
-                    'host'          :{'type':'string','index' : 'not_analyzed'},
-                    'stream'        :{'type':'string','index' : 'not_analyzed'},
+                    'id'            :{'type':'keyword'}, #run + appliance + stream + ls
+                    'appliance'     :{'type':'keyword'}, #wrong mapping:not analyzed
+                    'host'          :{'type':'keyword'},
+                    'stream'        :{'type':'keyword'},
                     'ls'            :{'type':'integer'},
                     'processed'     :{'type':'integer'},
                     'accepted'      :{'type':'integer'},
@@ -204,7 +201,7 @@ central_runindex_mapping = {
                     'size'          :{'type':'long'},
 		    'eolField1'     :{'type':'integer'},
 		    'eolField2'     :{'type':'integer'},
-		    'fname'         :{'type':'string','index':'not_analyzed'},
+		    'fname'         :{'type':'keyword'},
 		    'adler32'       :{'type':'long'},
                     'runNumber'     :{'type':'integer'}
                     }
@@ -214,10 +211,10 @@ central_runindex_mapping = {
                 'properties' : {
                     'fm_date'       :{'type':'date'
                     },
-                    'id'            :{'type':'string','index':'not_analyzed'}, #run + appliance + stream + ls
-                    'appliance'     :{'type':'string','index':'not_analyzed'},
-                    'host'          :{'type':'string','index' : 'not_analyzed'},
-                    'stream'        :{'type':'string','index' : 'not_analyzed'},
+                    'id'            :{'type':'keyword'}, #run + appliance + stream + ls
+                    'appliance'     :{'type':'keyword'},
+                    'host'          :{'type':'keyword'},
+                    'stream'        :{'type':'keyword'},
                     'ls'            :{'type':'integer'},
                     'processed'     :{'type':'integer'},
                     'accepted'      :{'type':'integer'},
@@ -225,7 +222,7 @@ central_runindex_mapping = {
                     'size'          :{'type':'long'},
 		    'eolField1'     :{'type':'integer'},
 		    'eolField2'     :{'type':'integer'},
-		    'fname'         :{'type':'string','index':'not_analyzed'},
+		    'fname'         :{'type':'keyword'},
                     'runNumber'     :{'type':'integer'}
                     }
                 },
@@ -238,8 +235,7 @@ central_runindex_mapping = {
                     },
                     "properties": {
                             "stream": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "ls": {
                                     "type": "integer"
@@ -476,10 +472,10 @@ central_boxinfo_mapping = {
             'properties' : {
               'fm_date'       :{'type':'date'
               },
-              'id'            :{'type':'string','index':'not_analyzed'},
-              'host'          :{'type':'string',"index":"not_analyzed"},
-              'appliance'     :{'type':'string',"index":"not_analyzed"},
-              'instance'      :{'type':'string',"index":"not_analyzed"},
+              'id'            :{'type':'keyword'},
+              'host'          :{'type':'keyword'},
+              'appliance'     :{'type':'keyword'},
+              'instance'      :{'type':'keyword'},
               'broken'        :{'type':'short'},
               'broken_activeRun':{'type':'short'},
               'used'          :{'type':'short'},
@@ -493,7 +489,7 @@ central_boxinfo_mapping = {
               'totalRamdisk'  :{'type':'integer'},
               'usedOutput'    :{'type':'integer'},
               'totalOutput'   :{'type':'integer'},
-              'activeRuns'    :{'type':'string','index':'not_analyzed'},
+              'activeRuns'    :{'type':'keyword'},
               'activeRunList'    :{'type':'integer'},
               'activeRunNumQueuedLS':{'type':'integer'},
               'activeRunCMSSWMaxLS':{'type':'integer'},
@@ -515,17 +511,18 @@ central_boxinfo_mapping = {
                       'errors':   {'type': 'integer'}
                       }
                   },
-              'cloudState'    :{'type':'string',"index":"not_analyzed"},
+              'cloudState'    :{'type':'keyword'},
               'detectedStaleHandle':{'type':'boolean'},
-              'blacklist' : {'type':'string',"index":"not_analyzed"}
-              #'activeRunsErrors':{'type':'string',"index":"not_analyzed"},#deprecated
+              'blacklist' : {'type':'keyword'},
+              'cpuName' : {'type':'keyword'}
+              #'activeRunsErrors':{'type':'keyword'},#deprecated
               }
           },
           'resource_summary' : {
             '_all': {'enabled': "false" },
             'properties' : {
               "fm_date" :                    {"type":"date"},
-              "appliance" :                  {"type":"string","index":"not_analyzed"},
+              "appliance" :                  {"type":"keyword"},
               "activeFURun" :                {"type" : "integer"},
               "activeRunCMSSWMaxLS" :        {"type" : "integer"},
               "activeRunNumQueuedLS" :       { "type" : "integer" },
@@ -549,23 +546,25 @@ central_boxinfo_mapping = {
               "fuSysCPUFrac":                {'type':'float'},
               "fuSysCPUMHz":                 {'type':'short'},
               "fuDataNetIn":                 {"type":"float"},
-              "resPerFU":                    {"type":"byte"}
+              "resPerFU":                    {"type":"byte"},
+              "fuCPUName":                   {"type":"keyword"},
+              "buCPUName":                   {"type":"keyword"}
               }
           },
           "fu-box-status" : {
             "_all": {"enabled": "false" },
             "properties": {
               "date":{"type":"date"},
-              "cpu_name":{"type":"string","index":"not_analyzed"},
+              "cpu_name":{"type":"keyword"},
               "cpu_MHz_nominal":{"type":"integer"},
               "cpu_MHz_avg":{"type":"integer"},
               "cpu_MHz_avg_real":{"type":"integer"},
               "cpu_phys_cores":{"type":"integer"},
               "cpu_hyperthreads":{"type":"integer"},
               "cpu_usage_frac":{"type":"float"},
-              "appliance":{"type":"string","index":"not_analyzed"},
-              "host":{"type":"string","index":"not_analyzed"},
-              "cloudState":{"type":"string","index":"not_analyzed"},
+              "appliance":{"type":"keyword"},
+              "host":{"type":"keyword"},
+              "cloudState":{"type":"keyword"},
               "activeRunList":{"type":"integer"},
               "usedDisk":{"type":"integer"},
               "totalDisk":{"type":"integer"},
@@ -586,13 +585,13 @@ central_hltdlogs_mapping = {
             'hltdlog' : {
 		"_all": {"enabled": "false" },
                 'properties' : {
-                    'host'      : {'type' : 'string',"index":"not_analyzed"},
+                    'host'      : {'type' : 'keyword'},
                     'type'      : {'type' : 'integer'},
-                    'doctype'   : {'type' : 'string',"index":"not_analyzed"},
-                    'severity'  : {'type' : 'string',"index" : "not_analyzed"},
+                    'doctype'   : {'type' : 'keyword'},
+                    'severity'  : {'type' : 'keyword'},
                     'severityVal'  : {'type' : 'integer'},
-                    'message'   : {'type' : 'string',"index" : "analyzed"},
-                    'lexicalId' : {'type' : 'string',"index" : "not_analyzed"},
+                    'message'   : {'type' : 'text'},
+                    'lexicalId' : {'type' : 'keyword'},
                     "run"       : {'type':'integer'},
                     'msgtime' : {
                             'type' : 'date',
@@ -608,8 +607,7 @@ central_hltdlogs_mapping = {
 		    "_all": {"enabled": "false" },
                     "properties": {
                             "host": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "pid": {
                                     "type": "integer"
@@ -618,36 +616,29 @@ central_hltdlogs_mapping = {
                                     "type": "integer"
                             },
                             "doctype": {
-                                    "type" : "string",
-                                    "index":"not_analyzed"
+                                    "type" : "keyword"
                             },
                             "severity": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "severityVal": {
                                     "type": "integer"
                             },
                             "category": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "fwkState": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
 
                             "module": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "moduleInstance": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "moduleCall": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "run" : {
                                     "type":"integer"
@@ -659,20 +650,17 @@ central_hltdlogs_mapping = {
                                     "type": "long"
                             },
                             "message": {
-                                    "type": "string",
-                                    "index": "analyzed"
+                                    "type": "text"
                             },
                             "lexicalId": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "msgtime": {
                                     "type": "date",
                                     "format": "YYYY-mm-dd HH:mm:ss||dd-MM-YYYY HH:mm:ss"
                             },
                             "msgtimezone": {
-                                    "type": "string",
-                                    "index": "not_analyzed"
+                                    "type": "keyword"
                             },
                             "date": {
                                       "type":"date"

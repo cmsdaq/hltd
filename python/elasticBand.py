@@ -30,6 +30,21 @@ def getURLwithIP(url):
 
     return prefix+str(ip)+suffix
 
+def getCPUInfoIntel():
+    cpu_name = ""
+    try:
+        with open('/proc/cpuinfo','r') as fi:
+            for line in fi.readlines():
+                if line.startswith("model name") and not cpu_name:
+                    for word in line[line.find(':')+1:].split():
+                        if word=='' or '(R)' in word  or '(TM)' in word or 'CPU' in word or '@' in word :continue
+                        if 'GHz' in word: pass
+                        else:
+                            if cpu_name: cpu_name = cpu_name+" "+word
+                            else: cpu_name=word
+    finally:
+        return cpu_name
+
 
 class elasticBand():
 
@@ -74,6 +89,8 @@ class elasticBand():
         self.hostname = os.uname()[1]
         self.sourceid = self.hostname + '_' + str(os.getpid())
         #construct id string (num total (logical) cores and num_utilized cores
+        cpu_name = getCPUInfoIntel() 
+        if cpu_name: nprocid = nprocid+"_"+cpu_name
         self.nprocid = nprocid
         self.bu_name = bu_name
 

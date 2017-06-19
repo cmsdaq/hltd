@@ -48,7 +48,8 @@ class system_monitor(threading.Thread):
         self.buffered_resource_notification = None
         global conf
         conf = confClass
-
+        #cpu timing information
+        self.cpu_name,self.cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
         #start direct injection into central index (fu role)
         if conf.use_elasticsearch == True:
             self.found_data_interfaces=False
@@ -283,6 +284,7 @@ class system_monitor(threading.Thread):
                     reporting_fus = 0
                     reporting_fus_rescount = 0
                     reporting_fus_cloud = 0
+                    fu_cpu_name="N/A"
 
                     try:
                         current_runnumber = self.runList.getLastRun().runnumber
@@ -303,6 +305,17 @@ class system_monitor(threading.Thread):
                                 self.logger.warning('box file version for '+str(key)+' not found')
                                 continue
 
+                            #find FU CPU name
+                            try:
+                              if fu_cpu_name=="N/A":
+                                fu_cpu_name = edata['cpuName']
+                              elif fu_cpu_name != edata['cpuName']:
+                                fu_cpu_name == "Unknown"
+                            except:
+                              #ignore if not found in fu box document
+                              pass
+
+                            else:fu_cpu_name="Undefined"
                             #pick value from FU which is max. behind (and initialized)
                             maxlsout = edata['activeRunMaxLSOut']
                             if maxlsout!=-1:
@@ -412,7 +425,9 @@ class system_monitor(threading.Thread):
                                 "fuSysCPUFrac":cpufrac_vector,
                                 "fuSysCPUMHz":cpufreq_vector,
                                 "fuDataNetIn":fu_data_net_in,
-                                "resPerFU":int(round(res_per_fu))
+                                "resPerFU":int(round(res_per_fu)),
+                                "fuCPUName":fu_cpu_name,
+                                "buCPUName":self.cpu_name
                               }
                     try:
                         with open(res_path_temp,'w') as fp:
@@ -511,7 +526,8 @@ class system_monitor(threading.Thread):
                                 'activeRunLSBWMB':lumiBW*0.000001,
                                 "sysCPUFrac":psutil.cpu_percent()*0.01,
                                 "cpu_MHz_avg_real":self.cpu_freq_avg_real,
-                                "dataNetIn":self.data_in_MB
+                                "dataNetIn":self.data_in_MB,
+                                "cpuName":self.cpu_name
                             }
                             with open(mfile,'w+') as fp:
                                 json.dump(boxdoc,fp,indent=True)
@@ -541,7 +557,8 @@ class system_monitor(threading.Thread):
                             'totalOutput':(outdir.f_blocks*outdir.f_bsize)>>20,
                             'activeRuns':self.runList.getActiveRunNumbers(),
                             "version":self.boxInfo.boxdoc_version,
-                            "boot_id":self.boot_id
+                            "boot_id":self.boot_id,
+                            "cpuName":self.cpu_name
                         }
                         try:
                             with open(mfile,'w+') as fp:
