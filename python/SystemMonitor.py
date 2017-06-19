@@ -315,7 +315,6 @@ class system_monitor(threading.Thread):
                               #ignore if not found in fu box document
                               pass
 
-                            else:fu_cpu_name="Undefined"
                             #pick value from FU which is max. behind (and initialized)
                             maxlsout = edata['activeRunMaxLSOut']
                             if maxlsout!=-1:
