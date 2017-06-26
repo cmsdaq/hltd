@@ -53,8 +53,8 @@ logThreshold = 1 #(INFO)
 contextLogThreshold = 0 #(DEBUG)
 STRMAX=80
 line_limit=1000
-#maxlogsize=4194304 #4GB in kbytes
-maxlogsize=2097152 #2GB in kbytes
+maxlogsize=4194304 #4GB in kbytes
+#maxlogsize=2097152 #2GB in kbytes
 #maxlogsize=33554432 #32GB in kbytes
 
 #cmssw date and time: "30-Apr-2014 16:50:32 CEST"
@@ -686,7 +686,7 @@ class CMSSWLogCollector(object):
                 self.indices[rn].start()
 
                 #clean old log files if size is excessive
-                if self.getDirSize(event.fullpath[:event.fullpath.rfind('/')])>maxlogsize: #4GB ; 33554432 = 32G in kbytes
+                if self.getDirSize(event.fullpath[:event.fullpath.rfind('/')])>maxlogsize/2: #4GB ; 33554432 = 32G in kbytes
                     self.deleteOldLogs(168)#delete files older than 1 week
                     #if not sufficient, delete more recent files
                     if self.getDirSize(event.fullpath[:event.fullpath.rfind('/')])>maxlogsize:
