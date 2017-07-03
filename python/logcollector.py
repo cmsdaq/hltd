@@ -530,7 +530,7 @@ class CMSSWLogESWriter(threading.Thread):
         #else:
         self.index_runstring = 'run'+str(self.rn).zfill(conf.run_number_padding)
         self.index_suffix = conf.elastic_cluster
-        self.eb = elasticBand('http://'+conf.es_local+':9200',self.index_runstring,self.index_suffix,0,conf.force_replicas,conf.force_shards,0)
+        self.eb = elasticBand('http://'+conf.es_local+':9200',self.index_runstring,self.index_suffix,0,0,conf.force_replicas,conf.force_shards)
         self.contextualCounter = ContextualCounter()
         self.initialized=True
 

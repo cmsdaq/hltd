@@ -90,7 +90,7 @@ class elasticBand():
         self.sourceid = self.hostname + '_' + str(os.getpid())
         #construct id string (num total (logical) cores and num_utilized cores
         cpu_name = getCPUInfoIntel() 
-        if cpu_name: nprocid = nprocid+"_"+cpu_name
+        if cpu_name and nprocid: nprocid = nprocid+"_"+cpu_name
         self.nprocid = nprocid
         self.bu_name = bu_name
 
