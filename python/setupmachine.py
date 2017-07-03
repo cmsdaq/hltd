@@ -216,6 +216,9 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
     for res in cur:
         retval.append(res)
     cur.close()
+    if len(retval)==0:
+        print 'warning: query did not find anu BU for this FU'
+        syslog.syslog('warning: query did not find anu BU for this FU')
     #print retval
     return retval
 
@@ -598,6 +601,7 @@ if __name__ == "__main__":
                 #if none are pingable, first one is picked
                 if buName == None or len(buDataAddr)==0:
                     print "no BU found for this FU in the dabatase"
+                    syslog.syslog("no BU found for this FU in the database")
                     sys.exit(-1)
         elif cluster == 'hilton':
             pass
