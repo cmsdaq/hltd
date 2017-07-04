@@ -47,65 +47,51 @@ def updateIdles(idledir,newcount):
           return -totDel
 
 
-conf=hltdconf.hltdConf('/etc/hltd.conf')
+if __name__ == "__main__":
 
-role=None
+    conf=hltdconf.hltdConf('/etc/hltd.conf')
 
-if conf.role==None:
-    if 'bu' in os.uname()[1]: role='bu'
-    elif 'fu' in os.uname()[1]: role='fu'
-else: role = conf.role
+    if conf.role==None and (os.uname()[1].startswith('fu-') or os.uname()[1].startswith('dvrubu-')): role='fu'
+    else: role = conf.role
 
-if role=='fu' and not conf.dqm_machine:
+    if role=='fu' and not conf.dqm_machine:
 
-    clearDir(conf.resource_base+'/idle')
-    clearDir(conf.resource_base+'/online')
-    clearDir(conf.resource_base+'/except')
-    clearDir(conf.resource_base+'/quarantined')
+        #by default do not touch cloud settings
+        resetCloud=False
+        force=False
+        if len(sys.argv)>1:
+            if sys.argv[1]=='force':
+                resetCloud=True
+                force=True
 
-    ignoreCloud=False
-    if len(sys.argv)>1:
-        if sys.argv[1]=='ignorecloud':
-            ignoreCloud=True
+        #no action on FU if using dynamic resource setting (default)
+        if not conf.dynamic_resources or force:
 
-    foundInCloud=len(os.listdir(conf.resource_base+'/cloud'))>0
-    clearDir(conf.resource_base+'/cloud')
+            clearDir(conf.resource_base+'/idle')
+            clearDir(conf.resource_base+'/online')
+            clearDir(conf.resource_base+'/except')
+            clearDir(conf.resource_base+'/quarantined')
 
-    resource_count = 0
-    def fillCores():
-        global resource_count
-        with open('/proc/cpuinfo','r') as fp:
-            for line in fp:
-                if line.startswith('processor'):
-                    if foundInCloud and ignoreCloud:
-                        open(conf.resource_base+'/cloud/core'+str(resource_count),'a').close()
-                    else:
-                        open(conf.resource_base+'/quarantined/core'+str(resource_count),'a').close()
-                    resource_count+=1
+            #if any resources found in cloud, machine assumed to be running cloud
+            foundInCloud=len(os.listdir(conf.resource_base+'/cloud'))>0
+            clearDir(conf.resource_base+'/cloud')
 
-    fillCores()
-    #fill with more cores for VM environment
-    if os.uname()[1].startswith('fu-vm-'):
-        fillCores()
-        fillCores()
-        fillCores()
+            resource_count = 0
+            def fillCores():
+                global resource_count
+                with open('/proc/cpuinfo','r') as fp:
+                    for line in fp:
+                        if line.startswith('processor'):
+                            if foundInCloud and not resetCloud:
+                                open(conf.resource_base+'/cloud/core'+str(resource_count),'a').close()
+                            else:
+                                open(conf.resource_base+'/quarantined/core'+str(resource_count),'a').close()
+                            resource_count+=1
 
-    try:
-        os.umask(0)
-        os.makedirs(conf.watch_directory)
-    except OSError:
-        try:
-            os.chmod(conf.watch_directory,0777)
-        except:
-            pass
+            fillCores()
+            #fill with more cores for VM environment
+            if os.uname()[1].startswith('fu-vm-'):
+                fillCores()
+                fillCores()
+                fillCores()
 
-elif role=='bu':
-
-    try:
-        os.umask(0)
-        os.makedirs(conf.watch_directory+'/appliance')
-    except OSError:
-        try:
-            os.chmod(conf.watch_directory+'/appliance',0777)
-        except:
-            pass

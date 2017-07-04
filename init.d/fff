@@ -56,6 +56,16 @@ def reconfigureScript():
       return 1
     return 0
 
+def reconfigureScriptForce():
+    proc = Popen(['/opt/fff/configurefff.sh','force'], stdout=PIPE, stderr=PIPE)
+    output = proc.communicate()[0]
+
+    if proc.returncode!=0:
+      print 'Failed to run reconfigure script (force): ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
+      syslog.syslog('Failed to run reconfigure script (force): ' + str(output))
+      return 1
+    return 0
+
 
 def disableServices():
     #disable all FFF services on this machine
@@ -133,6 +143,11 @@ if __name__ == "__main__":
     elif 'configure' == cmd:
         #only update configuration (same as start)
         rc=reconfigureScript()
+        sys.exit(rc)
+
+    elif 'forceConfigure' == cmd:
+        #only update configuration (same as start) but also reset all resources (including cloud)
+        rc=reconfigureScriptForce()
         sys.exit(rc)
 
     elif 'disableBlacklisted' == cmd:

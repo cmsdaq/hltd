@@ -128,6 +128,28 @@ def name_identifier():
     except:
         return 0
 
+def setupDirs(role):
+    #prepare and set permissions for the watch directory on FU
+    if role=='fu':
+        try:
+            os.umask(0)
+            os.makedirs(conf.watch_directory)
+        except OSError:
+            try:
+                os.chmod(conf.watch_directory,0777)
+            except:
+                pass
+
+    elif role=='bu':
+        #ramdisk should already be present, but create subdirectory where hltd will write resource file
+        try:
+            os.umask(0)
+            os.makedirs(conf.watch_directory+'/appliance')
+        except OSError:
+            try:
+                os.chmod(conf.watch_directory+'/appliance',0777)
+            except:
+                pass
 
 
 def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=True):
@@ -426,8 +448,8 @@ if __name__ == "__main__":
     selection = sys.argv[argvc]
     #print selection
     if 'getrole' == selection:
-        cluster,type = getmachinetype()
-        print type
+        cluster,mtype = getmachinetype()
+        print mtype
         sys.exit(0)
 
     if 'disable' == selection:
@@ -521,7 +543,8 @@ if __name__ == "__main__":
 
     #end of parameter parsing ----
 
-    cluster,type = getmachinetype()
+    cluster,mtype = getmachinetype()
+    setDirs(mtype)
     #override for daq2val!
     #if cluster == 'daq2val': cmsswloglevel =  'INFO'
     if env == "vm":
@@ -565,7 +588,7 @@ if __name__ == "__main__":
             resource_cmsswstreams = 1
             cmssw_version = ''
             auto_clear_quarantined = 'True'
-            if type == 'fu':
+            if mtype == 'fu':
                 cmsswloglevel = 'ERROR'
                 cmssw_base = '/home/dqmprolocal'
                 execdir = '/home/dqmprolocal/output' ##not yet
@@ -573,7 +596,7 @@ if __name__ == "__main__":
             auto_clear_quarantined = 'False'
             runindex_name = 'dqmtest'
             username = 'dqmdev'
-            if type == 'fu':
+            if mtype == 'fu':
                 cmsswloglevel = 'ERROR'
                 cmssw_base = '/home/dqmdevlocal'
                 execdir = '/home/dqmdevlocal/output' ##not yet
@@ -586,10 +609,12 @@ if __name__ == "__main__":
         use_elasticsearch = 'False'
         elastic_host_url = 'http://localhost:9200'
 
+    setupDirs(mtype)
+
     buName = None
     buDataAddr=[]
 
-    if type == 'fu':
+    if mtype == 'fu':
         if cluster == 'daq2val' or cluster == 'daq2' or cluster == 'daq2_904':
             for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dbhost,dblogin,dbpwd,dbsid):
                 if buName==None:
@@ -609,13 +634,13 @@ if __name__ == "__main__":
             print "FU configuration in cluster",cluster,"not supported yet !!"
             sys.exit(-2)
 
-    elif type == 'bu':
+    elif mtype == 'bu':
         if env == "vm":
             buName = os.uname()[1].split(".")[0]
         else:
             buName = os.uname()[1]
 
-    print "running configuration for machine",cnhostname,"of type",type,"in cluster",cluster,"; appliance bu is:",buName
+    print "running configuration for machine",cnhostname,"of type",mtype,"in cluster",cluster,"; appliance bu is:",buName
     if buName==None: buName=""
 
     clusterName='appliance_'+buName
@@ -626,7 +651,7 @@ if __name__ == "__main__":
     if "configure" in selection:
 
         #first prepare bus.config file
-        if type == 'fu':
+        if mtype == 'fu':
 
         #permissive:try to remove old bus.config
             try:os.remove(os.path.join(backup_dir,os.path.basename(busconfig)))
@@ -669,7 +694,7 @@ if __name__ == "__main__":
         if hltdEdited == False:
             shutil.copy(hltdconf,os.path.join(backup_dir,os.path.basename(hltdconf)))
 
-        if type=='bu':
+        if mtype=='bu':
             try:os.remove('/etc/hltd.instances')
             except:pass
 
@@ -759,7 +784,7 @@ if __name__ == "__main__":
                 with open('/etc/hltd.instances',"w") as fi:
                     for instance in instances: fi.write(instance+"\n")
 
-        if type=='fu':
+        if mtype=='fu':
             hltdcfg = FileManager(hltdconf,'=',hltdEdited,' ',' ')
 
             hltdcfg.reg('enabled','True','[General]')
