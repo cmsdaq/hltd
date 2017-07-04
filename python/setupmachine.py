@@ -9,7 +9,6 @@ import syslog
 import time
 
 sys.path.append('/opt/hltd/python')
-#from fillresources import *
 
 #for testing enviroment
 try:
@@ -342,10 +341,10 @@ def getInstances(hostname):
 
 
 class FileManager:
-    def __init__(self,file,sep,edited,os1='',os2='',recreate=False):
+    def __init__(self,file,templatefile,sep,edited,os1='',os2='',recreate=False):
         self.name = file
         if recreate==False:
-            f = open(file,'r')
+            f = open(file if not templatefile else templatefile,'r')
             self.lines = f.readlines()
             f.close()
         else:
@@ -441,105 +440,92 @@ def restoreFileMaybe(file):
 
 #main function
 if __name__ == "__main__":
-    argvc = 1
-    if not sys.argv[argvc]:
-        print "selection of packages to set up (hltd and/or elastic) missing"
+    if not len(sys.argv)>1 or sys.argv[1] not in ['configure','forceConfigure','disable','getrole']:
+        print "Command parameter is missing or not among [configure,disable,getrole]"
         sys.exit(1)
-    selection = sys.argv[argvc]
+
+    selection = sys.argv[1]
     #print selection
     if 'getrole' == selection:
         cluster,mtype = getmachinetype()
         print mtype
         sys.exit(0)
 
-    if 'disable' == selection:
+    elif 'disable' == selection:
         print "disabling hltd"
-        hltdcfg = FileManager(hltdconf,'=',True,' ',' ')
+        hltdcfg = FileManager(hltdconf,hltdconftemplate,'=',True,' ',' ')
         hltdcfg.reg('enabled','False','[General]')
         hltdcfg.commit()
         sys.exit(0)
-    elif 'configure' != selection:
-        print "Unknown command. Known commands are: configure, restore"
-        sys.exit(1)
+
+    #else: configure or forceConfigure
 
     with open('/opt/fff/db.jsn','r') as fi:
         cred = json.load(fi)
 
-    argvc += 1
-    if not sys.argv[argvc]:
+    if 'env' not in cred:
         print "Enviroment parameter missing"
         sys.exit(1)
-    env = sys.argv[argvc]
+    env = cred['env']
 
-    #skipping rpm revision suffix
-    argvc += 1
-
-    argvc += 1
-    if not sys.argv[argvc]:
+    if 'centrales' not in cred:
         print "elasticsearch central host/alias missing"
         sys.exit(1)
-    elastic_host = sys.argv[argvc]
-    elastic_host_url = 'http://'+sys.argv[argvc]+':9200'
+    elastic_host = cred['centrales']
+    elastic_host_url = 'http://'+elastic_host+':9200'
 
-    argvc += 1
-    if not sys.argv[argvc]:
+    if 'locales' not in cred:
         print "elasticsearch local host/alias missing"
         sys.exit(1)
-    elastic_host_local = sys.argv[argvc]
-    elastic_host_local_url = 'http://'+sys.argv[argvc]+':9200'
+    elastic_host_local = cred['locales']
+    elastic_host_local_url = 'http://'+elastic_host_local+':9200'
 
     dbsid=cred['sid']
     dblogin=cred['login']
     dbpwd=cred['password']
 
-    argvc += 1
-    if not sys.argv[argvc]:
+    if 'eqset' not in cred:
         print "equipment set name missing"
         sys.exit(1)
-    if sys.argv[argvc].strip() != '':
-        equipmentSet = sys.argv[argvc].strip()
+    eqset_tmp = cred['eqset'].strip() 
+    if eqset_tmp != '':
+        equipmentSet = eqset_tmp
 
-    argvc += 1
-    if not sys.argv[argvc]:
-        print "CMSSW base missing"
+    if 'cmsswbase' not in cred:
+        print "CMSSW base dist path missing"
         sys.exit(1)
-    cmssw_base = sys.argv[argvc]
+    cmssw_base = cred['cmsswbase']
 
-    argvc += 1
-    if not sys.argv[argvc]:
+    if 'user' not in cred:
         print "CMSSW job username parameter is missing"
         sys.exit(1)
-    username = sys.argv[argvc]
+    username = cred['user']
 
-    argvc+=1
-    if not sys.argv[argvc]:
+    if 'nthreads' not in cred:
         print "CMSSW number of threads/process is missing"
         sys.exit(1)
-    nthreads = sys.argv[argvc]
+    nthreads = cred['nthreads']
     #@SM: override
     #nthreads = 4
     resource_cmsswthreads = nthreads
 
-    argvc+=1
-    if not sys.argv[argvc]:
+    if 'nfwkstreams' not in cred:
         print "CMSSW number of framework streams/process is missing"
         sys.exit(1)
-    nfwkstreams = sys.argv[argvc]
+    nfwkstreams = cred['nfwkstreams']
      #@SM: override
     #nfwkstreams = 4
     resource_cmsswstreams = nfwkstreams
 
-    argvc+=1
-    if not sys.argv[argvc]:
+    if 'cmsswloglevel' not in cred:
         print "CMSSW log collection level is missing"
         sys.exit(1)
-    cmsswloglevel =  sys.argv[argvc]
+    cmsswloglevel = cred['cmsswloglevel']
 
-    argvc+=1
-    if not sys.argv[argvc]:
+    if 'hltdloglevel'not in cred:
         print "hltd log collection level is missing"
         sys.exit(1)
-    hltdloglevel =  sys.argv[argvc]
+    hltdloglevel =  cred['hltdloglevel']
 
     #end of parameter parsing ----
 
@@ -648,7 +634,7 @@ if __name__ == "__main__":
     if cluster=='hilton':
         clusterName='appliance_hilton'
 
-    if "configure" in selection:
+    if True:
 
         #first prepare bus.config file
         if mtype == 'fu':
@@ -741,7 +727,7 @@ if __name__ == "__main__":
                 if myhost in dqm_list or myhost in dqmtest_list or myhost in detdqm_list or cluster == 'daq2val' or env=='vm':
                     soap2file_port='8010'
 
-                hltdcfg = FileManager(cfile,'=',hltdEdited,' ',' ')
+                hltdcfg = FileManager(cfile,hltdconftemplate,'=',hltdEdited,' ',' ')
 
                 hltdcfg.reg('enabled','True','[General]')
                 hltdcfg.reg('role','bu','[General]')
@@ -785,7 +771,7 @@ if __name__ == "__main__":
                     for instance in instances: fi.write(instance+"\n")
 
         if mtype=='fu':
-            hltdcfg = FileManager(hltdconf,'=',hltdEdited,' ',' ')
+            hltdcfg = FileManager(hltdconf,hltdconftemplate,'=',hltdEdited,' ',' ')
 
             hltdcfg.reg('enabled','True','[General]')
             hltdcfg.reg('role','fu','[General]')
@@ -826,4 +812,8 @@ if __name__ == "__main__":
             #else:
             #    hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
             hltdcfg.commit()
+
+    if 'forceConfigure' == selection:
+        from fillresources import runFillResources
+        runFillResources(force=True)
 

@@ -6,6 +6,7 @@ import hltdconf
 import time
 import sys
 
+
 def clearDir(dir):
     try:
         files = os.listdir(dir)
@@ -47,7 +48,9 @@ def updateIdles(idledir,newcount):
           return -totDel
 
 
-if __name__ == "__main__":
+resource_count = 0
+
+def runFillResources(force):
 
     conf=hltdconf.hltdConf('/etc/hltd.conf')
 
@@ -55,14 +58,6 @@ if __name__ == "__main__":
     else: role = conf.role
 
     if role=='fu' and not conf.dqm_machine:
-
-        #by default do not touch cloud settings
-        resetCloud=False
-        force=False
-        if len(sys.argv)>1:
-            if sys.argv[1]=='force':
-                resetCloud=True
-                force=True
 
         #no action on FU if using dynamic resource setting (default)
         if not conf.dynamic_resources or force:
@@ -76,13 +71,13 @@ if __name__ == "__main__":
             foundInCloud=len(os.listdir(conf.resource_base+'/cloud'))>0
             clearDir(conf.resource_base+'/cloud')
 
-            resource_count = 0
             def fillCores():
                 global resource_count
                 with open('/proc/cpuinfo','r') as fp:
                     for line in fp:
                         if line.startswith('processor'):
-                            if foundInCloud and not resetCloud:
+                            #by default do not touch cloud settings,unless force
+                            if foundInCloud and not force:
                                 open(conf.resource_base+'/cloud/core'+str(resource_count),'a').close()
                             else:
                                 open(conf.resource_base+'/quarantined/core'+str(resource_count),'a').close()
@@ -95,3 +90,9 @@ if __name__ == "__main__":
                 fillCores()
                 fillCores()
 
+if __name__ == "__main__":
+
+    force_param=False
+    if len(sys.argv)>1 and sys.argv[1]=='force':
+        force_param=True
+    runFillResources(force_param)

@@ -11,6 +11,7 @@ import threading
 import CGIHTTPServer
 import BaseHTTPServer
 import cgitb
+import pwd
 #import socket
 #import random
 
@@ -355,6 +356,16 @@ def setFromConf(myinstance,resInfo):
                     format='%(levelname)s:%(asctime)s - %(funcName)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger(os.path.basename(__file__))
+
+    #ensure to setup properly permissions for log files written to by unpriviledged child processes
+    pw_record = pwd.getpwnam(conf.user)
+    try:os.chown(os.path.join(conf.log_dir,"anelastic.log"), pw_record.pw_uid, pw_record.pw_gid)
+    except:pass
+    try:os.chown(os.path.join(conf.log_dir,"elastic.log"), pw_record.pw_uid, pw_record.pw_gid)
+    except:pass
+    try:os.chown(os.path.join(conf.log_dir,"elasticbu.log"), pw_record.pw_uid, pw_record.pw_gid)
+    except:pass
+
     conf.dump()
 
 #main class

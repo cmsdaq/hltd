@@ -84,7 +84,7 @@ if [ ${#readin} != "0" ]; then
 lines[7]=$readin
 fi
 
-echo "CMSSW base (press enter for \"${lines[8]}\"):"
+echo "CMSSW dist base (press enter for \"${lines[8]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -127,15 +127,6 @@ if [ ${#readin} != "0" ]; then
 lines[13]=$readin
 fi
 
-params=""
-
-for (( i=0; i < ${NLINES}; i++ ))
-do
-  if (( i!=4 && i!=5 && i!=6 )); then
-    params="$params ${lines[i]}"
-  fi
-done
-
 #database rpm build parameters
 dbsid=${lines[4]}
 dblogin=${lines[5]}
@@ -147,6 +138,38 @@ if [ ${lines[1]} != "null" ];
 then
     revsuffix=${lines[1]}
 fi
+
+#other parameters
+env=${lines[0]}
+centrales=${lines[2]}
+locales=${lines[3]}
+eqset=${lines[7]}
+cmsswbase=${lines[8]}
+user=${lines[9]}
+nthreads=${lines[10]}
+nfwkstreams=${lines[11]}
+cmsswloglevel=${lines[12]}
+hltdloglevel=${lines[13]}
+
+#write down parameters in db.jsn
+cat > $SCRIPTDIR/temp_db.jsn <<EOF
+{
+  "env":"${env}",
+  "revsuffix":"${revsuffix}",
+  "centrales":"${centrales}",
+  "locales":"${locales}",
+  "eqset":"${eqset}",
+  "cmsswbase":"${cmsswbase}",
+  "user":"${user}",
+  "nthreads":"${nthreads}",
+  "nfwkstreams":"${nfwkstreams}",
+  "cmsswloglevel":"${cmsswloglevel}",
+  "hltdloglevel":"${hltdloglevel}",
+  "login":"${dblogin}",
+  "password":"${dbpwd}",
+  "sid":"${dbsid}"
+}
+EOF
 
 #update cache file
 if [ -f $SCRIPTDIR/$PARAMCACHE ];
@@ -206,6 +229,7 @@ Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
 Provides:/opt/fff/init.d/fff
+Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
 %description
@@ -227,15 +251,9 @@ cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
-
-#generate configurefff.sh script (sets up configuration)
-echo "#!/bin/bash" > %{buildroot}/opt/fff/configurefff.sh
-echo "python2 /opt/fff/setupmachine.py configure $params"          >> %{buildroot}/opt/fff/configurefff.sh
-echo "if [[ -n \"\\\$1\" && \\\$1 == \"init\" ]]; then"           >> %{buildroot}/opt/fff/configurefff.sh
-echo "  python2 /opt/hltd/python/fillresources.py force "           >> %{buildroot}/opt/fff/configurefff.sh
-echo "fi  "                                                        >> %{buildroot}/opt/fff/configurefff.sh
-
-echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsid}\" }"    >> %{buildroot}/opt/fff/db.jsn
+cp $BASEDIR/scripts/postinstall.sh %{buildroot}/opt/fff/postinstall.sh
+cp $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
+cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 %files
 %defattr(-, root, root, -)
@@ -245,6 +263,7 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 %attr( 755 ,root, root) /opt/fff/setupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
 %attr( 755 ,root, root) /opt/fff/configurefff.sh
+%attr( 755 ,root, root) /opt/fff/postinstall.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyc
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyo
@@ -256,41 +275,8 @@ echo " { \"login\":\"${dblogin}\" , \"password\":\"${dbpwd}\" , \"sid\":\"${dbsi
 #echo "post install trigger"
 
 %triggerin -- hltd
-#echo "triggered on hltd update or install"
-
-rm -rf /etc/hltd.instances
-
-#hltd configuration
-/opt/fff/init.d/fff configure
-#role=\`/opt/fff/setupmachine.py getrole\`
-
-#adjust ownership of unpriviledged child process log files
-if [ -f /var/log/hltd/elastic.log ]; then
-chown ${lines[9]} /var/log/hltd/elastic.log
-fi
-
-if [ -f /var/log/hltd/anelastic.log ]; then
-chown ${lines[9]} /var/log/hltd/anelastic.log
-fi
-
-#update resource count for hltd (i.e. triggered at next service restart)
-touch /opt/hltd/scratch/new-version || true
-
-#unregister old sysV style scripts. only soap2file is terminated at this point
-/opt/hltd/python/soap2file.py stop || true
-/sbin/chkconfig --del hltd >& /dev/null || true
-/sbin/chkconfig --del fffmeta >& /dev/null || true
-/sbin/chkconfig --del soap2file >& /dev/null || true
-
-#notify systemd of updated unit files and enable them (but don't restart except soap2file)
-/usr/bin/systemctl daemon-reload
-
-/usr/bin/systemctl reenable hltd
-/usr/bin/systemctl reenable fff
-
-#restart soapfile (process will not run if disabled in configuration, but service will be active)
-/usr/bin/systemctl reenable soap2file
-/usr/bin/systemctl restart soap2file
+#echo "triggered on hltd update or install. Running fffmeta postinstall script..."
+/opt/fff/postinstall.sh
 
 %preun
 
@@ -310,7 +296,6 @@ if [ \$1 == 0 ]; then
   /usr/bin/systemctl disable fff
   /usr/bin/systemctl disable soap2file
 
-
 fi
 
 #%verifyscript
@@ -318,4 +303,3 @@ fi
 EOF
 
 rpmbuild --target noarch --define "_topdir `pwd`/RPMBUILD" -bb fffmeta.spec
-

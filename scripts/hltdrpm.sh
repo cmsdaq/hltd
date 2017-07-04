@@ -92,6 +92,7 @@ rm -rf opt/hltd/{bin,rpm,lib}
 #rm -rf opt/hltd/lib
 rm -rf opt/hltd/scripts/paramcache*
 rm -rf opt/hltd/scripts/*rpm.sh
+rm -rf opt/hltd/scripts/postinstall.sh
 rm -rf opt/hltd/scripts/*.php
 rm -rf opt/hltd/init.d/*.service
 rm -rf opt/hltd/init.d/fff*
