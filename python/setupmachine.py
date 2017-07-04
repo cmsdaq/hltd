@@ -127,15 +127,15 @@ def name_identifier():
     except:
         return 0
 
-def setupDirs(role):
+def setupDirs(role,fu_dir,bu_dir):
     #prepare and set permissions for the watch directory on FU
     if role=='fu':
         try:
             os.umask(0)
-            os.makedirs(conf.watch_directory)
+            os.makedirs(fu_dir)
         except OSError:
             try:
-                os.chmod(conf.watch_directory,0777)
+                os.chmod(fu_dir,0777)
             except:
                 pass
 
@@ -143,10 +143,10 @@ def setupDirs(role):
         #ramdisk should already be present, but create subdirectory where hltd will write resource file
         try:
             os.umask(0)
-            os.makedirs(conf.watch_directory+'/appliance')
+            os.makedirs(bu_dir+'/appliance')
         except OSError:
             try:
-                os.chmod(conf.watch_directory+'/appliance',0777)
+                os.chmod(bu_dir+'/appliance',0777)
             except:
                 pass
 
@@ -530,7 +530,6 @@ if __name__ == "__main__":
     #end of parameter parsing ----
 
     cluster,mtype = getmachinetype()
-    setDirs(mtype)
     #override for daq2val!
     #if cluster == 'daq2val': cmsswloglevel =  'INFO'
     if env == "vm":
@@ -594,8 +593,6 @@ if __name__ == "__main__":
         runindex_name = 'dv'
         use_elasticsearch = 'False'
         elastic_host_url = 'http://localhost:9200'
-
-    setupDirs(mtype)
 
     buName = None
     buDataAddr=[]
@@ -813,6 +810,7 @@ if __name__ == "__main__":
             #    hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
             hltdcfg.commit()
 
+    setupDirs(mtype, '/fff/data',watch_dir_bu)
     if 'forceConfigure' == selection:
         from fillresources import runFillResources
         runFillResources(force=True)
