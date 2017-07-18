@@ -310,12 +310,12 @@ class elasticBand():
         document = {}
         document['host']=self.hostname
         document['fm_date']=timestamp
-        self.tryBulkIndex('fu-complete',[document],attempts=3)
+        self.tryBulkIndex('fu-complete',[document],attempts=5)
 
     def flushMonBuffer(self):
         if self.istateBuffer:
             self.logger.info("flushing fast monitor buffer (len: %r) " %len(self.istateBuffer))
-            self.tryBulkIndex('prc-i-state',self.istateBuffer,attempts=2)
+            self.tryBulkIndex('prc-i-state',self.istateBuffer,attempts=2,logErr=False)
             self.istateBuffer = []
 
     def flushLS(self,ls):
@@ -327,7 +327,7 @@ class elasticBand():
         if prcinDocs: self.tryBulkIndex('prc-in',prcinDocs,attempts=5)
         if prcoutDocs: self.tryBulkIndex('prc-out',prcoutDocs,attempts=5)
         if fuoutDocs: self.tryBulkIndex('fu-out',fuoutDocs,attempts=10)
-        if prcsstateDocs: self.tryBulkIndex('prc-s-state',prcsstateDocs,attempts=5)
+        if prcsstateDocs: self.tryBulkIndex('prc-s-state',prcsstateDocs,attempts=5,logErr=False)
 
     def flushAllLS(self):
         lslist = list(  set(self.prcinBuffer.keys()) |
@@ -358,9 +358,9 @@ class elasticBand():
                 self.logger.exception(ex)
             time.sleep(.1)
 
-    def tryBulkIndex(self,docname,documents,attempts=1):
+    def tryBulkIndex(self,docname,documents,attempts=5,logErr=True):
         tried_ip_rotate = False
-        while attempts>0:
+        while attempts>0 and len(documents):
             attempts-=1
             try:
                 reply = self.es.bulk_index(self.indexName,docname,documents)
@@ -369,39 +369,50 @@ class elasticBand():
                         retry_doc = []
                         errors = []
                         unknown_errors=False
-                        sleep_time=0.1
+                        sleep_time=0.1 if attempts>0 else 0.2
                         for idx,item in enumerate(reply['items']):
-                          bk_reply = item['create']
+                          bk_reply = item['index']
                           bk_status = bk_reply['status']
                           if bk_status==201 or bk_status==200:
                             continue
-                          elif bk_status==409: #conflict, skip injection but log warning
+                          elif bk_status==409: #conflict, skip injection but log the warning
                             pass
                           elif bk_status==429:#rejected execution,retry
-                            sleep_time=.2 #extend sleep time for this kind of error
+                            #give more sleep time when queue is getting full and running out of attempts
+                            if attempts<2:
+                              sleep_time=(attempts+1)*0.5
+                            else:
+                              sleep_time=0.2
                             retry_doc.append(documents[idx])
                           else:
                             unknown_errors=True
                             retry_doc.append(documents[idx])
+
                           errors.append([bk_reply['error']['type'],bk_reply['error']['reason']])
 
                         if len(errors):
-                          if unknown_errors or attempts==0:
-                            self.logger.error("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts))
+                          if (unknown_errors or attempts==0) and logErr==True:
+                            self.logger.error("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts+1))
                           else:
-                            self.logger.warning("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors)+ ', left retries:'+str(attempts))
+                            self.logger.warning("Error reply on bulk-index request, type "+str(docname)+", failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors)+ ', left retries:'+str(attempts+1))
                         documents = retry_doc
-                        if attempts==0:sleep_time*=2
+
+                        #sleep in case of error
                         time.sleep(sleep_time)
-                        if len(documents):continue
-                        else:break #no docs left to inject
+                    else:
+                        documents = []
+                        break
 
                 except Exception as ex:
-                    self.logger.error("unable to parse error reply from elasticsearch: "+str(reply)+" documents:"+str(len(documents)))
-                    continue
-                break
+                    #failed to parse json reply from the server
+                    try:
+                      js_reply = json.dumps(reply)
+                    except Exception as exc:
+                      js_reply = str(exc)
+                    self.logger.error("unable to parse error reply from elasticsearch: " + js_reply + " documents:"+str(len(documents)))
+
             except (ConnectionError,Timeout) as ex:
-                self.logger.warning("Elasticsearch connection error:"+str(ex))
+                self.logger.warning("Elasticsearch connection error:"+str(ex)+ " attempts left:"+str(attempts+1) + " tried IP rotate:"+str(tried_ip_rotate))
                 if attempts==0:
                     if not tried_ip_rotate:
                         #try another host before giving up
@@ -412,13 +423,15 @@ class elasticBand():
 
                     self.indexFailures+=1
                     if self.indexFailures<2:
-                        self.logger.exception(ex)
+                        if logErr:
+                            self.logger.exception(ex)
                     #    self.logger.warning("Elasticsearch connection error.")
                 time.sleep(2)
             except ElasticHttpError as ex:
-                self.logger.warning("Elasticsearch http error:"+str(ex))
+                self.logger.warning("Elasticsearch http error:"+str(ex) + " attempts left:"+str(attempts+1))
                 if attempts==0:
                     self.indexFailures+=1
                     if self.indexFailures<2:
-                        self.logger.exception(ex)
+                        if logErr:
+                            self.logger.exception(ex)
                 time.sleep(.1)
