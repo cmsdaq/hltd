@@ -377,12 +377,8 @@ class elasticBand():
                             continue
                           elif bk_status==409: #conflict, skip injection but log the warning
                             pass
-                          elif bk_status==429:#rejected execution,retry
-                            #give more sleep time when queue is getting full and running out of attempts
-                            if attempts<2:
-                              sleep_time=(attempts+1)*0.5
-                            else:
-                              sleep_time=0.2
+                          elif bk_status==429:#rejected execution,retry with bigger sleep time
+                            sleep_time=(2-attempts)*0.5 if attempts<2 else 0.2
                             retry_doc.append(documents[idx])
                           else:
                             unknown_errors=True
@@ -392,9 +388,9 @@ class elasticBand():
 
                         if len(errors):
                           if (unknown_errors or attempts==0) and logErr==True:
-                            self.logger.error("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts+1))
+                            self.logger.error("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts))
                           else:
-                            self.logger.warning("Error reply on bulk-index request, type "+str(docname)+", failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors)+ ', left retries:'+str(attempts+1))
+                            self.logger.warning("Error reply on bulk-index request, type "+str(docname)+", failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors)+ ', left retries:'+str(attempts))
                         documents = retry_doc
 
                         #sleep in case of error
@@ -412,7 +408,7 @@ class elasticBand():
                     self.logger.error("unable to parse error reply from elasticsearch: " + js_reply + " documents:"+str(len(documents)))
 
             except (ConnectionError,Timeout) as ex:
-                self.logger.warning("Elasticsearch connection error:"+str(ex)+ " attempts left:"+str(attempts+1) + " tried IP rotate:"+str(tried_ip_rotate))
+                self.logger.warning("Elasticsearch connection error:"+str(ex)+ " attempts left:"+str(attempts) + " tried IP rotate:"+str(tried_ip_rotate))
                 if attempts==0:
                     if not tried_ip_rotate:
                         #try another host before giving up
@@ -425,13 +421,13 @@ class elasticBand():
                     if self.indexFailures<2:
                         if logErr:
                             self.logger.exception(ex)
-                    #    self.logger.warning("Elasticsearch connection error.")
                 time.sleep(2)
             except ElasticHttpError as ex:
-                self.logger.warning("Elasticsearch http error:"+str(ex) + " attempts left:"+str(attempts+1))
+                self.logger.warning("Elasticsearch http error:"+str(ex) + " attempts left:"+str(attempts))
                 if attempts==0:
                     self.indexFailures+=1
                     if self.indexFailures<2:
                         if logErr:
                             self.logger.exception(ex)
                 time.sleep(.1)
+
