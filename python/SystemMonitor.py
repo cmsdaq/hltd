@@ -285,6 +285,8 @@ class system_monitor(threading.Thread):
                     reporting_fus_rescount = 0
                     reporting_fus_cloud = 0
                     fu_cpu_name="N/A"
+                    fu_phys_cores=0
+                    fu_ht_cores=0
 
                     try:
                         current_runnumber = self.runList.getLastRun().runnumber
@@ -362,6 +364,11 @@ class system_monitor(threading.Thread):
                                     cpufrac_vector.append(edata['sysCPUFrac'])
                                     cpufreq_vector.append(edata['cpu_MHz_avg_real'])
                                     fu_data_net_in+=edata['dataNetIn']
+                                    #new:
+                                    try:
+                                      fu_phys_cores+=edata["cpu_phys_cores"]
+                                      fu_ht_cores+=edata["cpu_hyperthreads"]
+                                    except:pass
                                 else:
                                     reporting_fus_cloud+=1
 
@@ -426,7 +433,9 @@ class system_monitor(threading.Thread):
                                 "fuDataNetIn":fu_data_net_in,
                                 "resPerFU":int(round(res_per_fu)),
                                 "fuCPUName":fu_cpu_name,
-                                "buCPUName":self.cpu_name
+                                "buCPUName":self.cpu_name,
+                                "activePhysCores":fu_phys_cores,
+                                "activeHTCores":fu_ht_cores
                               }
                     try:
                         with open(res_path_temp,'w') as fp:
@@ -526,7 +535,10 @@ class system_monitor(threading.Thread):
                                 "sysCPUFrac":psutil.cpu_percent()*0.01,
                                 "cpu_MHz_avg_real":self.cpu_freq_avg_real,
                                 "dataNetIn":self.data_in_MB,
-                                "cpuName":self.cpu_name
+                                "cpuName":self.cpu_name,
+                                "cpu_phys_cores":self.cpu_cores,
+                                "cpu_hyperthreads":self.cpu_siblings
+
                             }
                             with open(mfile,'w+') as fp:
                                 json.dump(boxdoc,fp,indent=True)
@@ -760,7 +772,7 @@ class system_monitor(threading.Thread):
                     bu_name=line.split('.')[0]
                     break
         except:pass
-        cpu_name,cpu_freq,cpu_cores,cpu_siblings = self.getCPUInfo()
+        cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
 
         def refreshCPURange():
            num_cpus_new = self.testCPURange() 
@@ -840,8 +852,8 @@ class system_monitor(threading.Thread):
                     "appliance":bu_name,
                     "cpu_name":cpu_name,
                     "cpu_MHz_nominal":int(cpu_freq*1000),
-                    "cpu_phys_cores":cpu_cores,
-                    "cpu_hyperthreads":cpu_siblings,
+                    "cpu_phys_cores":self.cpu_cores,
+                    "cpu_hyperthreads":self.cpu_siblings,
                     "cpu_usage_frac":psutil.cpu_percent()*0.01,
                     "cloudState":self.getCloudState(),
                     "activeRunList":self.runList.getActiveRunNumbers(),

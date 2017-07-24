@@ -514,7 +514,10 @@ central_boxinfo_mapping = {
               'cloudState'    :{'type':'keyword'},
               'detectedStaleHandle':{'type':'boolean'},
               'blacklist' : {'type':'keyword'},
-              'cpuName' : {'type':'keyword'}
+              'cpuName' : {'type':'keyword'},
+              "cpu_phys_cores":{"type":"integer"},
+              "cpu_hyperthreads":{"type":"integer"}
+
               #'activeRunsErrors':{'type':'keyword'},#deprecated
               }
           },
@@ -548,7 +551,9 @@ central_boxinfo_mapping = {
               "fuDataNetIn":                 {"type":"float"},
               "resPerFU":                    {"type":"byte"},
               "fuCPUName":                   {"type":"keyword"},
-              "buCPUName":                   {"type":"keyword"}
+              "buCPUName":                   {"type":"keyword"},
+              "activePhysCores":             {"type":"short"},
+              "activeHTCores":               {"type":"short"}
               }
           },
           "fu-box-status" : {
