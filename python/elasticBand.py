@@ -384,13 +384,14 @@ class elasticBand():
                             unknown_errors=True
                             retry_doc.append(documents[idx])
 
-                          errors.append([bk_reply['error']['type'],bk_reply['error']['reason']])
+                          errors.append([bk_reply['error']['type'],bk_reply['error']['reason'],bk_status])
 
                         if len(errors):
+                          msg_err = "Error reply on bulk-index request, type "+str(docname)+", failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts)
                           if (unknown_errors or attempts==0) and logErr==True:
-                            self.logger.error("Error reply on bulk-index request, failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors) + ', left retries:'+str(attempts))
+                            self.logger.error(msg_err)
                           else:
-                            self.logger.warning("Error reply on bulk-index request, type "+str(docname)+", failed docs:"+str(len(errors))+'/'+str(len(documents))+ ': ' +str(errors)+ ', left retries:'+str(attempts))
+                            self.logger.warning(msg_err)
                         documents = retry_doc
 
                         #sleep in case of error

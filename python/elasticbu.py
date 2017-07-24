@@ -350,8 +350,8 @@ class elasticBandBU:
 
         if bu_doc==False:
             try:
-                if self.boxdoc_version<infile.data['version']:
-                    self.logger.info('skipping '+basename+' box file version '+str(infile.data['version'])+' which is newer than '+str(self.boxdoc_version))
+                if self.boxdoc_version!=infile.data['version']:
+                    self.logger.info('skipping '+basename+' box file version '+str(infile.data['version'])+' which is different from '+str(self.boxdoc_version))
                     return;
             except:
                 self.logger.warning("didn't find version field in box file "+basename)
