@@ -841,6 +841,13 @@ class system_monitor(threading.Thread):
                   self.cpu_freq_avg_real = int((1.* (tsc_new-tsc_old))/self.num_cpus / 1000000 * (aperf_new-aperf_old) / (mperf_new-mperf_old) /(ts_new-ts_old))
                 else:
                   self.cpu_freq_avg_real = 0
+                #detect counter wrap
+                if self.cpu_freq_avg_real > 100000:
+                        try:
+                          self.logger.warning('intel cpu perf wrap [tsc,aperf]: ' + str(tsc_new)   + ' ' + str(tsc_old)   + ' ' + str(aperf_new) + str(aperf_old))
+                          self.logger.warning('intel cpu perf wrap [mperf,ts]: '  + str(mperf_new) + ' ' + str(mperf_old) + ' ' + str(ts_new) + ' ' + str(ts_old))
+                        except:pass
+                        self.cpu_freq_avg_real=0
                 ts_old=ts_new
                 tsc_old=tsc_new
                 aperf_old=aperf_new
