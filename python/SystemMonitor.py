@@ -46,6 +46,7 @@ class system_monitor(threading.Thread):
         self.num_cpus = num_cpus_initial 
         self.allow_resource_notifications = False
         self.buffered_resource_notification = None
+        self.mem_frac = 0.
         global conf
         conf = confClass
         #cpu timing information
@@ -287,6 +288,8 @@ class system_monitor(threading.Thread):
                     fu_cpu_name="N/A"
                     fu_phys_cores=0
                     fu_ht_cores=0
+                    mem_frac_avg=0.
+                    mem_frac_norm=0
 
                     try:
                         current_runnumber = self.runList.getLastRun().runnumber
@@ -364,11 +367,14 @@ class system_monitor(threading.Thread):
                                     cpufrac_vector.append(edata['sysCPUFrac'])
                                     cpufreq_vector.append(edata['cpu_MHz_avg_real'])
                                     fu_data_net_in+=edata['dataNetIn']
-                                    #new:
                                     try:
                                       fu_phys_cores+=edata["cpu_phys_cores"]
                                       fu_ht_cores+=edata["cpu_hyperthreads"]
                                     except:pass
+                                    #new:
+                                    try:
+                                      mem_frac_avg+=edata["mem_frac"]
+                                      mem_frac_norm+=1
                                 else:
                                     reporting_fus_cloud+=1
 
@@ -404,6 +410,8 @@ class system_monitor(threading.Thread):
                                     maxcmsswls = int(edata['activeRunCMSSWMaxLS'])
                                     if maxcmsswls>activeRunCMSSWMaxLumi:activeRunCMSSWMaxLumi=maxcmsswls
                             except:pass
+                    if mem_frac_norm:
+                        mem_frac_avg=mem_frac_avg/mem_frac_norm
                     #signal BU to stop requesting if all FUs switch to cloud. This will coincide with active_resources being reported as 0
                     #flag is disabled if there are no non-stale FUs
                     bu_stop_requests_flag=True if reporting_fus>0 and reporting_fus_cloud==reporting_fus else False
@@ -435,7 +443,8 @@ class system_monitor(threading.Thread):
                                 "fuCPUName":fu_cpu_name,
                                 "buCPUName":self.cpu_name,
                                 "activePhysCores":fu_phys_cores,
-                                "activeHTCores":fu_ht_cores
+                                "activeHTCores":fu_ht_cores,
+                                "fuMemFrac":mem_frac_avg
                               }
                     try:
                         with open(res_path_temp,'w') as fp:
@@ -537,7 +546,8 @@ class system_monitor(threading.Thread):
                                 "dataNetIn":self.data_in_MB,
                                 "cpuName":self.cpu_name,
                                 "cpu_phys_cores":self.cpu_cores,
-                                "cpu_hyperthreads":self.cpu_siblings
+                                "cpu_hyperthreads":self.cpu_siblings,
+                                "mem_frac":self.mem_frac
 
                             }
                             with open(mfile,'w+') as fp:
@@ -815,6 +825,10 @@ class system_monitor(threading.Thread):
                     self.findMountInterfaces()
                   except:
                     pass
+
+                #refresh CPU information (e.g. if HT setting changed)
+                cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
+
                 dirstat = os.statvfs('/')
                 d_used = ((dirstat.f_blocks - dirstat.f_bavail)*dirstat.f_bsize)>>20
                 d_total =  (dirstat.f_blocks*dirstat.f_bsize)>>20
@@ -825,6 +839,7 @@ class system_monitor(threading.Thread):
                 #convert to MB
                 memtotal = meminfo['MemTotal'] >> 10
                 memused = memtotal - ((meminfo['MemFree']+meminfo['Buffers']+meminfo['Cached']+meminfo['SReclaimable']) >> 10)
+                self.mem_frac = float(memused)/memtotal
                 netrates = self.getRatesMBs()
                 self.data_in_MB = netrates[0]
                 cpu_freq_avg = self.getCPUFreqInfo()
@@ -872,7 +887,7 @@ class system_monitor(threading.Thread):
                     "diskVarOccupancy":d_used_var/(1.*d_total_var) if d_total_var>0 else 0.,
                     "memTotal":memtotal,
                     "memUsed":memused,
-                    "memUsedFrac":float(memused)/memtotal,
+                    "memUsedFrac":self.mem_frac,
                     "dataNetIn":netrates[0],
                     "dataNetOut":netrates[1],
                     "cpu_MHz_avg":cpu_freq_avg,

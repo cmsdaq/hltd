@@ -553,7 +553,8 @@ central_boxinfo_mapping = {
               "fuCPUName":                   {"type":"keyword"},
               "buCPUName":                   {"type":"keyword"},
               "activePhysCores":             {"type":"short"},
-              "activeHTCores":               {"type":"short"}
+              "activeHTCores":               {"type":"short"},
+              "fuMemFrac":                   {"type":"float"}
               }
           },
           "fu-box-status" : {
