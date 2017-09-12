@@ -60,12 +60,10 @@
           "type": "date"
         },
         "source": {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         },
         "mclass" : {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         }
       }
     },
@@ -135,12 +133,10 @@
           "type": "date"
         },
         "source" : {
-          "type":"string",
-          "index":"not_analyzed"
+          "type":"keyword"
         },
         "host": {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         },
         "pid": {
           "type": "integer"
@@ -149,25 +145,21 @@
           "type": "integer"
         },
         "mclass" : {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         }
       }
     },
     "prc-out": {
       "_all": {"enabled": "false" },
-      "_source": {"enabled": false },
       "properties": {
         "din": {
           "type": "integer",
           "index":"no",
-          "store":true,
           "doc_values":true
         },
         "dout": {
           "type": "integer",
           "index":"no",
-          "store":true,
           "doc_values":true
         },
         "lsn": {
@@ -194,6 +186,24 @@
           "type": "keyword",
           "store": false,
           "doc_values":true
+        },
+        "ls": {
+          "type": "integer"
+        },
+        "streamn": {
+          "type": "keyword"
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "host": {
+          "type": "keyword"
+        },
+        "appliance": {
+          "type": "keyword"
+        },
+        "fm_date": {
+          "type": "date"
         }
       }
     },
@@ -221,12 +231,10 @@
           "type": "integer"
         },
         "host": {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         },
         "appliance": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "fm_date": {
           "type": "date"
@@ -251,8 +259,7 @@
               "type": "integer"
             },
             "returnCodeMask": {
-              "type": "string",
-              "index": "not_analyzed"
+              "type": "keyword"
             },
             "fileSize": {
               "type": "long"
@@ -261,16 +268,13 @@
               "type": "long"
             },
             "TransferDestination": {
-              "type": "string",
-              "index": "not_analyzed"
+              "type": "keyword"
             },
             "MergeType": {
-              "type": "string",
-              "index": "not_analyzed"
+              "type": "keyword"
             },
             "InputFiles": {
-              "type": "string",
-              "index": "not_analyzed"
+              "type": "keyword"
             }
           }
         },
@@ -279,16 +283,13 @@
           "store": true
         },
         "stream": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "host": {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         },
         "appliance": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "fm_date": {
           "type": "date"
@@ -305,8 +306,7 @@
       "_all": {"enabled": "false" },
       "properties": {
         "host": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "fm_date": {
           "type": "date"
@@ -338,8 +338,7 @@
           "type": "date"
         },
         "host": {
-          "type": "string",
-          "index":"not_analyzed"
+          "type": "keyword"
         }
       }
     },
@@ -347,42 +346,34 @@
       "_all": {"enabled": "false" },
       "properties": {
         "host": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "pid": {
           "type": "integer"
         },
         "doctype": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "severity": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "severityVal": {
           "type": "integer"
         },
         "category": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "fwkState": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "module": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "moduleInstance": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "moduleCall": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "run": {
           "type": "integer"
@@ -398,16 +389,14 @@
           "index": "analyzed"
         },
         "lexicalId": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "msgtime": {
           "type": "date",
           "format": "YYYY-mm-dd HH:mm:ss"
         },
         "msgtimezone": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "date" : {
           "type": "date"

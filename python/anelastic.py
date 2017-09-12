@@ -781,6 +781,7 @@ class LumiSectionHandler():
                 if localPidDataPath:
                     os.remove(localPidDataPath)
                 os.remove(infile.filepath)
+            #skip esCopy for no processed events
             return False
 
         self.logger.info(self.infile.basename)
@@ -803,6 +804,8 @@ class LumiSectionHandler():
                 self.logger.info("ls,stream: %r,%r - events %r / %r " %(ls,stream,processed,self.totalEvent))
                 infile.esCopy()
                 infile.deleteFile(silent=True)
+        else:
+            self.logger.warning("no infile.data found or could not be parsed")
         return True
 
     def processIndexFile(self):
