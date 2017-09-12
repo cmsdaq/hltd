@@ -151,6 +151,7 @@
     },
     "prc-out": {
       "_all": {"enabled": "false" },
+      "_source": {"enabled": "false" },
       "properties": {
         "din": {
           "type": "integer",
@@ -186,6 +187,12 @@
           "type": "keyword",
           "store": false,
           "doc_values":true
+        },
+        "fm_d": {
+          "type": "date",
+          "store":false,
+          "doc_values":true,
+          "format":"epoch_millis"
         },
         "ls": {
           "type": "integer",

@@ -252,6 +252,7 @@ class fileHandler(object):
             elif name in ["host"]: self.host = THISHOST;
         if name in ["ctime"]: self.ctime = self.getTime('c')
         if name in ["mtime"]: self.mtime = self.getTime('m')
+        if name in ["mtimems"]: self.mtimems = self.getTimeEms('m')
         return self.__dict__[name]
 
     def __init__(self,filepath,filetype=None):
@@ -269,8 +270,17 @@ class fileHandler(object):
                 dt=os.path.getctime(self.filepath)
             elif t == 'm':
                 dt=os.path.getmtime(self.filepath)
-            time = datetime.datetime.utcfromtimestamp(dt).isoformat()
-            return time
+            time_fmt = datetime.datetime.utcfromtimestamp(dt).isoformat()
+            return time_fmt
+        return None
+
+    def getTimeEms(self,t):
+        if self.exists():
+            if t == 'c':
+                timestamp=os.path.getctime(self.filepath)
+            elif t == 'm':
+                timestamp=os.path.getmtime(self.filepath)
+            return timestamp*1000
         return None
 
     def getFileInfo(self):

@@ -227,18 +227,19 @@ class elasticBand():
           self.logger.warning(str(ex))
         try:document.pop('data')
         except:pass
-        #document['lsn']=int(ls[2:])
-        #document['streamn']=stream
-        #document['pidn']=int(infile.pid[3:])
-        #document['hostn']=self.hostname
-        #document['appn']=self.bu_name
+        document['lsn']=int(ls[2:])
+        document['streamn']=stream
+        document['pidn']=int(infile.pid[3:])
+        document['hostn']=self.hostname
+        document['appn']=self.bu_name
+        document['fm_d']=int(infile.mtimems)
 
-        document['ls']=int(ls[2:])
-        document['stream']=stream
-        document['pid']=int(infile.pid[3:])
-        document['host']=self.hostname
-        document['appliance']=self.bu_name
-        document['fm_date']=str(infile.mtime)
+        #document['ls']=int(ls[2:])
+        #document['stream']=stream
+        #document['pid']=int(infile.pid[3:])
+        #document['host']=self.hostname
+        #document['appliance']=self.bu_name
+        #document['fm_date']=str(infile.mtime)
 
         try:document.pop('definition')
         except:pass
