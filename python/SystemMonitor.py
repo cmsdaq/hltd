@@ -375,6 +375,7 @@ class system_monitor(threading.Thread):
                                     try:
                                       mem_frac_avg+=edata["mem_frac"]
                                       mem_frac_norm+=1
+                                    except:pass
                                 else:
                                     reporting_fus_cloud+=1
 
