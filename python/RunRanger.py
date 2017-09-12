@@ -222,18 +222,30 @@ class RunRanger:
             if dirname.startswith('herod'): nlen=len('herod')
             if dirname.startswith('tsunami'): nlen=len('tsunami')
             if dirname.startswith('brutus'): nlen=len('brutus')
+            rn = 0
+            skip_action=False
             try:
-              rn=0
-              if nlen!=len(dirname):
+              if nlen>len(dirname):
                 if dirname[nlen:].isdigit():
                   rn = int(dirname[nlen:])
-                else: self.logger.error("can not read run number suffix from "+dirname+ ". Aborting command")
-            except:
+                else:
+                  self.logger.error("can not parse run number suffix from "+dirname+ ". Aborting command")
+                  skip_action=True
+            except Exception as exp:
+                self.logger.error("Exception parsing run number suffix from " +dirname+ str(exp) + ". Aborting command")
+                skip_action=True
+
+            kill_all_runs = True if nlen==len(dirname) else False
+
+            if skip_action:
                 pass
-            if conf.role == 'fu':
+            elif conf.role == 'fu':
                 self.logger.info("killing all CMSSW child processes")
+                #clear ongoing flags to avoid latest run picking up released resources (only if not killing a specific run)
+                if kill_all_runs:
+                  self.runList.clearOngoingRunFlags()
                 for run in self.runList.getActiveRuns():
-                  if nlen==len(dirname) or rn==0 or run.runnumber==rn or run.checkQuarantinedLimit():
+                  if nlen==len(dirname) or run.runnumber==rn or run.checkQuarantinedLimit():
                     if dirname.startswith('brutus'):
                         run.Shutdown(True,False)
                     else:
@@ -250,7 +262,7 @@ class RunRanger:
 
             elif conf.role == 'bu':
                 for run in self.runList.getActiveRuns():
-                    if rn==0 or run.runnumber==rn:
+                    if kill_all_runs or run.runnumber==rn:
                       run.createEmptyEoRMaybe()
                       run.ShutdownBU()
 
@@ -358,6 +370,7 @@ class RunRanger:
                     self.logger.error('Could not parse '+dirname)
 
         elif dirname.startswith('populationcontrol'):
+            self.runList.clearOngoingRunFlags()
             if len(self.runList.runs)>0:
                 self.logger.info("terminating all ongoing runs via cgi interface (populationcontrol): "+str(self.runList.getActiveRunNumbers()))
                 for run in self.runList.getActiveRuns():
@@ -409,6 +422,7 @@ class RunRanger:
             replyport = int(dirname[7:]) if dirname[7:].isdigit()==True else conf.cgi_port
 
             #terminate all ongoing runs
+            self.runList.clearOngoingRunFlags()
             for run in self.runList.getActiveRuns():
                 run.Shutdown(True,True)
 
@@ -503,11 +517,14 @@ class RunRanger:
         elif dirname.startswith('stop') and conf.role == 'fu':
             self.logger.fatal("Stopping all runs..")
             self.state.masked_resources=True
+
             #make sure to not run inotify acquire while we are here
             self.resource_lock.acquire()
             self.state.disabled_resource_allocation=True
             self.resource_lock.release()
 
+            #this disables any already started run to pick up released resources
+            self.runList.clearOngoingRunFlags()
             #shut down any quarantined runs
             try:
                 for run in self.runList.getQuarantinedRuns():

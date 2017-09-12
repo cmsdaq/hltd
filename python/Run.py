@@ -84,6 +84,10 @@ class RunList:
             docArray.append({'run':runObj.runnumber,'totalRes':runObj.n_used,'qRes':runObj.n_quarantined,'ongoing':runObj.is_ongoing_run,'errors':runObj.num_errors})
         return docArray
 
+    def clearOngoingRunFlags(self):
+        for runObj in self.runs:
+            runObj.is_ongoing_run=False
+
 
 class Run:
 
