@@ -188,7 +188,8 @@
           "doc_values":true
         },
         "ls": {
-          "type": "integer"
+          "type": "integer",
+          "store": true
         },
         "streamn": {
           "type": "keyword"
