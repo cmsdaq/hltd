@@ -71,19 +71,30 @@ class ResourceRanger:
                         return checkRes
             return None
 
-        def waitResource(resource):
+        def waitResource(resource,is_locked):
+
+            def resJoin(join_timeout):
+               if is_locked:self.resource_lock.release()
+               resource.watchdog.join(join_timeout)
+               if is_locked:self.resource_lock.acquire()
+
             if resource:
               try:
-                resource.watchdog.join(120)
+                resJoin(120)
                 if resource.isAlive():
                   self.logger.info('terminating ' + resource.process.pid)
                   resource.process.terminate()
-                  resource.watchdog.join(30)
+                  resJoin(30)
+                  if is_locked:self.resource_lock.acquire()
                   if resource.isAlive():
                     self.logger.info('killing ' + resource.process.pid)
                     resource.process.kill()
-                    resource.watchdog.join(10)
-              except:pass
+                    resJoin(10)
+              except:
+                if is_locked:
+                  #make sure to return it locked
+                  try:self.resource_lock.acquire()
+                  except:pass
             return
 
         if basename.startswith('resource_summary'):return
@@ -123,7 +134,7 @@ class ResourceRanger:
                     #@@EM implement threaded acquisition of resources here
                     """
                 if os.path.exists(event.fullpath):
-                  waitResource(stopResourceMaybe(resourcename,run,False))
+                  waitResource(stopResourceMaybe(resourcename,run,False),is_locked=True)
 
                 if run is not None:
 
@@ -220,7 +231,7 @@ class ResourceRanger:
             elif resourcestate=="quarantined":
                 #quarantined check
                 if os.path.exists(event.fullpath):
-                  waitResource(stopResourceMaybe(resourcename,self.runList.getLastOngoingRun(),True))
+                  waitResource(stopResourceMaybe(resourcename,self.runList.getLastOngoingRun(),True),is_locked=True)
  
         except Exception as ex:
             self.logger.error("exception in ResourceRanger")

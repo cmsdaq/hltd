@@ -624,6 +624,7 @@ class Run:
                     self.logger.info("anelastic.py for run " + str(self.runnumber) + " is not running")
             except Exception as ex:
                 self.logger.exception(ex)
+            self.logger.info("anelastic script has been terminated/finished")
             if conf.use_elasticsearch == True:
                 try:
                     if self.elastic_monitor:
@@ -646,6 +647,7 @@ class Run:
                     self.logger.exception(ex)
             if self.waitForEndThread is not None:
                 self.waitForEndThread.join()
+            self.logger.info("elastic script has been terminated/finished")
         except Exception as ex:
             self.logger.info("exception encountered in shutting down resources")
             self.logger.exception(ex)
@@ -657,6 +659,7 @@ class Run:
             self.logger.exception(ex)
         self.resource_lock.release()
 
+        self.logger.info("removing remaining files...")
         try:
             if conf.delete_run_dir is not None and conf.delete_run_dir:
                 shutil.rmtree(conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding))
