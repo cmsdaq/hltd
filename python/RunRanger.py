@@ -238,12 +238,36 @@ class RunRanger:
             kill_all_runs = True if nlen==len(dirname) else False
 
             if skip_action:
-                pass
+                try:os.remove(fullpath)
+                except:pass
+
             elif conf.role == 'fu':
+                try:os.remove(fullpath)
+                except:pass
                 self.logger.info("killing all CMSSW child processes")
                 #clear ongoing flags to avoid latest run picking up released resources (only if not killing a specific run)
                 if kill_all_runs:
                   self.runList.clearOngoingRunFlags()
+
+                #wait 5 seconds for BU to finish with the command (until ramdisk marker is deleted), otherwise do cleanup
+                timeLeft=5
+                while timeLeft>0:
+                  try:
+                    bu_files = os.listdir(os.path.join('/',conf.bu_base_dir+'0','ramdisk'))
+                  except Exception as ex:
+                    self.logger.exception(ex)
+                    break
+                  found_marker=False
+                  for bu_file in bu_files:
+                    if bu_file.startswith('herod') or bu_file.startswith('tsunami') or bu_file.startswith('brutus'):
+                      found_marker=True
+                  if not found_marker:
+                    self.logger.info('no BU markers left, proceeding with termination')
+                    break
+                  self.logger.info('waiting for BU to finish run termination')
+                  timeLeft-=1
+                  time.sleep(1)
+
                 for run in self.runList.getActiveRuns():
                   if nlen==len(dirname) or run.runnumber==rn or run.checkQuarantinedLimit():
                     if dirname.startswith('brutus'):
@@ -261,19 +285,6 @@ class RunRanger:
                 self.resInfo.q_list=[]
 
             elif conf.role == 'bu':
-                for run in self.runList.getActiveRuns():
-                    if kill_all_runs or run.runnumber==rn:
-                      run.createEmptyEoRMaybe()
-                      run.ShutdownBU()
-
-                #delete input and output BU directories
-                if dirname.startswith('tsunami'):
-                    self.logger.info('tsunami approaching: cleaning all ramdisk and output run data')
-                    if rn:
-                        self.mm.cleanup_bu_disks(rn,True,True)
-                    else:
-                        self.mm.cleanup_bu_disks(None,True,True)
-
                 #contact any FU that appears alive
                 boxdir = conf.resource_base +'/boxes/'
                 try:
@@ -287,6 +298,7 @@ class RunRanger:
                         self.logger.info('found box '+name+' with keepalive age '+str(age))
                         if age < 300:
                             self.logger.info('contacting '+str(name))
+
                             def notifyHerod(hname):
 
                                 host_short = hname.split('.')[0]
@@ -312,18 +324,6 @@ class RunRanger:
                                         self.logger.error("exception encountered in contacting resource "+str(hostip))
                                         self.logger.exception(ex)
                                         time.sleep(.3)
- 
-                            #try:
-                            #    connection = httplib.HTTPConnection(name, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
-                            #    time.sleep(0.1)
-                            #    connection.request("GET",'cgi-bin/herod_cgi.py?command='+str(dirname))
-                            #    time.sleep(0.15)
-                            #    response = connection.getresponse()
-                            #except Exception as ex:
-                            #    self.logger.error("exception encountered in contacting resource "+str(name))
-                            #    self.logger.exception(ex)
-                            #self.logger.info("sent "+ dirname +" to child FUs")
-
                             try:
                                 herodThread = threading.Thread(target=notifyHerod,args=[name])
                                 herodThread.start()
@@ -338,6 +338,27 @@ class RunRanger:
                 except Exception as ex:
                     self.logger.error("exception encountered in contacting resources")
                     self.logger.info(ex)
+
+                #cleanup after contacting FUs. FUs will however still wait a few seconds for tsunami/herod/brutus file to be deleted
+                time.sleep(.5)
+                for run in self.runList.getActiveRuns():
+                    if kill_all_runs or run.runnumber==rn:
+                      run.createEmptyEoRMaybe()
+                      run.ShutdownBU()
+                time.sleep(.5)
+
+                #FUs can proceed with cleanup, remove marker
+                try:os.remove(fullpath)
+                except:pass
+
+                #delete input and output BU directories
+                if dirname.startswith('tsunami'):
+                    self.logger.info('tsunami approaching: cleaning all ramdisk and output run data')
+                    if rn:
+                        self.mm.cleanup_bu_disks(rn,True,True)
+                    else:
+                        self.mm.cleanup_bu_disks(None,True,True)
+
 
         elif dirname.startswith('cleanoutput'):
             try:os.remove(fullpath)
