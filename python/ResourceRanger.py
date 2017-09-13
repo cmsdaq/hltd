@@ -66,8 +66,10 @@ class ResourceRanger:
                     if resourcename in checkRes.cpu and checkRes.processstate==100:
                         self.logger.info('found matching resource for '+resourcename)
                         time.sleep(.1)
-                        #TODO: check if this is last remaining resource, then EoR action could be taken
-                        checkRes.Stop(move_q=quarantining)#stop and release all resources
+                        #allow EoR procedure (no process restarts for that run) in resource is from a previous run
+                        #TODO: check if this is last remaining resource of current run, then EoR action could be taken
+                        eor_allow = current_run.runnumber != checkRun.runnumber and not quarantining
+                        checkRes.Stop(end_run_allow=eor_allow,move_q=quarantining)#stop and release all resources
                         return checkRes
             return None
 
@@ -133,6 +135,8 @@ class ResourceRanger:
                     """grab resources that become available
                     #@@EM implement threaded acquisition of resources here
                     """
+
+                #make sure owner of the process ends or is terminated (in case file was moved by action other than process exit)
                 if os.path.exists(event.fullpath):
                   waitResource(stopResourceMaybe(resourcename,run,False),is_locked=True)
 
@@ -229,7 +233,7 @@ class ResourceRanger:
                         pass
                     time.sleep(1)
             elif resourcestate=="quarantined":
-                #quarantined check
+                #quarantined check, terminate owner if needed
                 if os.path.exists(event.fullpath):
                   waitResource(stopResourceMaybe(resourcename,self.runList.getLastOngoingRun(),True),is_locked=True)
  

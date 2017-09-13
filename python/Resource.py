@@ -298,10 +298,10 @@ class OnlineResource:
               self.logger.warning("This resource has been removed from the system. Resource files will be deleted")
               self.deleteUsed()
             elif self.move_q:
-              self.logger.info('move all back to quarantined...')
+              self.logger.info('move all back to quarantined:'+str(self.cpu))
               self.moveUsedToQuarantined(False,True)
             else:
-              self.logger.info('move all back to idle...')
+              self.logger.info('move all back to idle: '+str(self.cpu))
               self.moveUsedToIdles(False)
             #remove from online list (object will not be deleted yet)
             self.parent.ReleaseResource(self)
