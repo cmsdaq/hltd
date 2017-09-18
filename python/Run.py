@@ -533,7 +533,7 @@ class Run:
             ls_delay=3
             if not stop_now:
                 if len(bu_lumis):
-                    self.logger.info('last closed lumisection in ramdisk is '+str(bu_lumis[-1])+', requesting to close at LS '+ str(bu_lumis[-1]+ls_delay))
+                    self.logger.info('last closed lumisection in ramdisk for run '+str(self.runnumber)+' is '+str(bu_lumis[-1])+', requesting to close at LS '+ str(bu_lumis[-1]+ls_delay))
                     writedoc['lastLS']=bu_lumis[-1]+ls_delay #current+delay
                 else:  writedoc['lastLS']=ls_delay
             else:

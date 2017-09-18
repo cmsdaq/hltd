@@ -214,11 +214,7 @@ class RunRanger:
                               +'*never* happen')
 
         elif dirname.startswith('herod') or dirname.startswith('tsunami') or dirname.startswith('brutus'):
-            try:
-                os.remove(fullpath)
-            except:
-                #safety net if cgi script removes herod
-                pass
+
             if dirname.startswith('herod'): nlen=len('herod')
             if dirname.startswith('tsunami'): nlen=len('tsunami')
             if dirname.startswith('brutus'): nlen=len('brutus')
@@ -232,7 +228,7 @@ class RunRanger:
                   self.logger.error("can not parse run number suffix from "+dirname+ ". Aborting command")
                   skip_action=True
             except Exception as exp:
-                self.logger.error("Exception parsing run number suffix from " +dirname+ str(exp) + ". Aborting command")
+                self.logger.error("Exception parsing run number suffix from " +dirname + ' ' + str(exp) + ". Aborting command")
                 skip_action=True
 
             kill_all_runs = True if nlen==len(dirname) else False
@@ -536,18 +532,66 @@ class RunRanger:
             self.logger.info("Remount is performed")
 
         elif dirname.startswith('stop') and conf.role == 'fu':
-            self.logger.fatal("Stopping all runs..")
-            self.state.masked_resources=True
 
+            self.logger.info("Stop command invoked: "+ dirname)
             #make sure to not run inotify acquire while we are here
             self.resource_lock.acquire()
             self.state.disabled_resource_allocation=True
+            q_list = self.runList.getQuarantinedRuns()
+            a_list = self.runList.getActiveRuns()
+            ongoing_rnlist = [r.runnumber for r in self.runList.getOngoingRuns()]
             self.resource_lock.release()
+            self.logger.info('active runs:'+str([r.runnumber for r in a_list]) + ' quarantined runs:' + str([r.runnumber for r in q_list]))
 
-            #this disables any already started run to pick up released resources
-            self.runList.clearOngoingRunFlags()
-            #shut down any quarantined runs
-            try:
+            nlen = len('stopnow') if dirname.startswith('stopnow') else len('stop')
+            stop_now_cmd = True if dirname.startswith('stopnow') else False
+            stop_all_runs = True if nlen==len(dirname) else False
+
+            if not stop_all_runs:
+              stop_suffix = dirname[nlen:]
+              try:
+                  if stop_suffix.isdigit():
+                    rn = int(stop_suffix)
+                    found=False;
+                    for run in q_list:
+                      if run.runnumber==rn:
+                        found=True
+                        if len(ongoing_rnlist):
+                          #not the only run
+                          self.state.masked_resources=True
+                        run.Shutdown(True,False)
+                        break
+                    if not found:
+                      for run in a_list:
+                        if run.runnumber==rn and not run.pending_shutdown:
+                          found=True
+                          ongoing_rnlist.remove(rn)
+                          if len(ongoing_rnlist)==0:
+                            #mask if this is the only run. otherwise another run will start on released resources
+                            self.state.masked_resources=True
+                          if len(run.online_resource_list)==0:
+                            run.Shutdown(True,False)
+                          else:
+                            self.resource_lock.acquire()
+                            run.Stop(stop_now=stop_now_cmd)
+                            self.resource_lock.release()
+                          break
+                    if found:time.sleep(.1)
+                  else:
+                    self.logger.error("can not parse run number suffix from "+dirname+ ". Aborting command")
+              except Exception as exp:
+                  self.logger.error("Exception parsing run number suffix from " +dirname+". Aborting command")
+                  self.logger.exception(exp)
+
+            else:
+              self.logger.info('setting masked flag')
+              #mask released resources from BU until next run is started
+              self.state.masked_resources=True
+
+              #this disables any already started run to pick up released resources
+              self.runList.clearOngoingRunFlags()
+              #shut down any quarantined runs
+              try:
                 for run in self.runList.getQuarantinedRuns():
                     run.Shutdown(True,False)
                 listOfActiveRuns = self.runList.getActiveRuns()
@@ -557,14 +601,15 @@ class RunRanger:
                             run.Shutdown(True,False)
                         else:
                             self.resource_lock.acquire()
-                            if dirname!='stopnow':run.Stop()
-                            else:run.Stop(stop_now=True)
+                            run.Stop(stop_now=stop_now_cmd)
                             self.resource_lock.release()
                 time.sleep(.1)
-            except Exception as ex:
+              except Exception as ex:
                 self.logger.fatal("Unable to stop run(s)")
                 self.logger.exception(ex)
+
             self.state.disabled_resource_allocation=False
+
             try:self.resource_lock.release()
             except:pass
             os.remove(fullpath)
