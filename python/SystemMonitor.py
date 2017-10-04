@@ -285,6 +285,8 @@ class system_monitor(threading.Thread):
                     reporting_fus = 0
                     reporting_fus_rescount = 0
                     reporting_fus_cloud = 0
+                    num_hlt_errors = {}
+                    num_hlt_errors_lastrun = 0.
                     fu_cpu_name="N/A"
                     fu_phys_cores=0
                     fu_ht_cores=0
@@ -385,7 +387,13 @@ class system_monitor(threading.Thread):
                         except Exception as ex:
                             self.logger.warning('problem updating boxinfo summary: '+str(ex))
                         try:
-                            lastFURuns.append(edata['activeRuns'][-1])
+                            last_run = edata['activeRuns'][-1]
+                            lastFURuns.append(last_run)
+                            for rs in edata['activeRunStats']:
+                                try:
+                                    num_hlt_errors[last_run]+=rs['errors']
+                                except:
+                                    num_hlt_errors[last_run]=rs['errors']
                         except:pass
                     res_per_fu=0 if not reporting_fus else reporting_fus_rescount/reporting_fus
                     if len(stale_machines) and counter==1:
@@ -393,6 +401,12 @@ class system_monitor(threading.Thread):
                     fuRuns = sorted(list(set(lastFURuns)))
                     if len(fuRuns)>0:
                         lastFUrun = fuRuns[-1]
+                        if lastFUrun>=0:
+                          try:
+                            #divide with max number of times each process can be (re)started: 1 + restart limit
+                            num_hlt_errors_lastrun = num_hlt_errors[lastFUrun]/(1.+conf.process_restart_limit)
+                          except:
+                            num_hlt_errors_lastrun = 0.
                         #second pass
                         for key in self.boxInfo.FUMap.keys():
                             if key==selfhost:continue
@@ -434,6 +448,7 @@ class system_monitor(threading.Thread):
                                 "outputBandwidthMB":output_bw_mb,
                                 "activeRunOutputMB":active_run_output_bw_mb,
                                 "activeRunLSBWMB":active_run_lumi_bw_mb,
+                                "activeRunHLTErr":num_hlt_errors_lastrun,
                                 "ramdisk_occupancy":ramdisk_occ,
                                 "fuDiskspaceAlarm":fu_data_alarm,
                                 "bu_stop_requests_flag":bu_stop_requests_flag,

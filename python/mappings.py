@@ -533,6 +533,7 @@ central_boxinfo_mapping = {
               "outputBandwidthMB":           { "type" : "float"   },
               "activeRunOutputMB":           { "type" : "float"   },
               "activeRunLSBWMB":             { "type" : "float"   },
+              "activeRunHLTErr":             { "type" : "float"   },
               "active_resources" :           { "type" : "short" },
               "active_resources_activeRun" : { "type" : "short" },
               "idle" :                       { "type" : "short" },

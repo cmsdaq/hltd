@@ -39,7 +39,7 @@ class BoxInfo:
     def __init__(self):
         self.machine_blacklist=[]
         self.FUMap = {}
-        self.boxdoc_version = 4
+        self.boxdoc_version = 5
         self.updater = None
 
 class ResInfo:
