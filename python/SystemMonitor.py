@@ -391,9 +391,9 @@ class system_monitor(threading.Thread):
                             lastFURuns.append(last_run)
                             for rs in edata['activeRunStats']:
                                 try:
-                                    num_hlt_errors[last_run]+=rs['errors']
+                                    num_hlt_errors[last_run]+=rs['errorsRes']
                                 except:
-                                    num_hlt_errors[last_run]=rs['errors']
+                                    num_hlt_errors[last_run]=rs['errorsRes']
                         except:pass
                     res_per_fu=0 if not reporting_fus else reporting_fus_rescount/reporting_fus
                     if len(stale_machines) and counter==1:
@@ -433,6 +433,7 @@ class system_monitor(threading.Thread):
                     res_doc = {
                                 "active_resources":active_res,
                                 "active_resources_activeRun":resource_count_activeRun,
+                                #"active_resources_oldRun":active_res-resource_count_activeRun,
                                 #"active_resources":resource_count_activeRun,
                                 "idle":resource_count_idle,
                                 "used":resource_count_used,

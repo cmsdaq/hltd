@@ -508,7 +508,8 @@ central_boxinfo_mapping = {
                       'ongoing':  {'type': 'boolean'},
                       'totalRes': {'type': 'integer'},
                       'qRes':     {'type': 'integer'},
-                      'errors':   {'type': 'integer'}
+                      'errors':   {'type': 'integer'},
+                      'errorsRes':   {'type': 'integer'}
                       }
                   },
               'cloudState'    :{'type':'keyword'},

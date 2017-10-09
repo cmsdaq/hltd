@@ -81,7 +81,7 @@ class RunList:
     def getStateDoc(self):
         docArray = []
         for runObj in self.runs:
-            docArray.append({'run':runObj.runnumber,'totalRes':runObj.n_used,'qRes':runObj.n_quarantined,'ongoing':runObj.is_ongoing_run,'errors':runObj.num_errors})
+            docArray.append({'run':runObj.runnumber,'totalRes':runObj.n_used,'qRes':runObj.n_quarantined,'ongoing':runObj.is_ongoing_run,'errors':runObj.num_errors,'errorsRes':runObj.num_errors_res})
         return docArray
 
     def clearOngoingRunFlags(self):
@@ -97,6 +97,7 @@ class Run:
         self.pending_shutdown=False
         self.is_ongoing_run=True
         self.num_errors = 0
+        self.num_errors_res = 0
 
         self.runnumber = nr
         self.dirname = dirname

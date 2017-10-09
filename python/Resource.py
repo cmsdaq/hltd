@@ -360,6 +360,11 @@ class ProcessWatchdog(threading.Thread):
 
                 #bump error count in active_runs_errors which is logged in the box file
                 self.resource.parent.num_errors+=1
+                try:
+                  self.resource.parent.num_errors_res+=len(self.resource.cpu)
+                except Exception as ex:
+                  self.logger.warning('unable to update counter:'+str(ex))
+                  pass
 
                 if returncode < 0:
                     self.logger.error('RUN:' + str(self.resource.runnumber)+" - process "+str(pid)
