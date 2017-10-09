@@ -1,6 +1,7 @@
 [Unit]
 Description=HLT daemon configuration service
 Wants=network-online.target
+After=network.service rsyslog.service
 
 [Service]
 Type=oneshot
