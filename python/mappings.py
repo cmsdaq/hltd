@@ -537,6 +537,7 @@ central_boxinfo_mapping = {
               "activeRunHLTErr":             { "type" : "float"   },
               "active_resources" :           { "type" : "short" },
               "active_resources_activeRun" : { "type" : "short" },
+              "active_resources_oldRuns" :   { "type" : "short" },
               "idle" :                       { "type" : "short" },
               "used" :                       { "type" : "short" },
               "broken" :                     { "type" : "short" },

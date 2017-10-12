@@ -433,7 +433,7 @@ class system_monitor(threading.Thread):
                     res_doc = {
                                 "active_resources":active_res,
                                 "active_resources_activeRun":resource_count_activeRun,
-                                #"active_resources_oldRun":active_res-resource_count_activeRun,
+                                "active_resources_oldRuns":active_res - resource_count_activeRun,
                                 #"active_resources":resource_count_activeRun,
                                 "idle":resource_count_idle,
                                 "used":resource_count_used,
