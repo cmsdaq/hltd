@@ -357,6 +357,7 @@ class system_monitor(threading.Thread):
                                     active_addition+=r_idle
 
                                 active_addition+=r_used
+                                active_addition+=r_broken
                                 resource_count_used+=r_used
                                 resource_count_broken+=r_broken
                                 resource_count_quarantined+=r_quar
@@ -433,7 +434,7 @@ class system_monitor(threading.Thread):
                     res_doc = {
                                 "active_resources":active_res,
                                 "active_resources_activeRun":resource_count_activeRun,
-                                "active_resources_oldRuns":active_res - resource_count_activeRun,
+                                "active_resources_oldRuns":active_res - resource_count_activeRun-resource_count_idle,
                                 #"active_resources":resource_count_activeRun,
                                 "idle":resource_count_idle,
                                 "used":resource_count_used,
