@@ -391,10 +391,11 @@ class system_monitor(threading.Thread):
                             last_run = edata['activeRuns'][-1]
                             lastFURuns.append(last_run)
                             for rs in edata['activeRunStats']:
+                                entry_run=rs['run']
                                 try:
-                                    num_hlt_errors[last_run]+=rs['errorsRes']
+                                    num_hlt_errors[entry_run]+=rs['errorsRes']
                                 except:
-                                    num_hlt_errors[last_run]=rs['errorsRes']
+                                    num_hlt_errors[entry_run]=rs['errorsRes']
                         except:pass
                     res_per_fu=0 if not reporting_fus else reporting_fus_rescount/reporting_fus
                     if len(stale_machines) and counter==1:
@@ -402,7 +403,7 @@ class system_monitor(threading.Thread):
                     fuRuns = sorted(list(set(lastFURuns)))
                     if len(fuRuns)>0:
                         lastFUrun = fuRuns[-1]
-                        if lastFUrun>=0:
+                        if lastFUrun>0:
                           try:
                             #divide with max number of times each process can be (re)started: 1 + restart limit
                             num_hlt_errors_lastrun = num_hlt_errors[lastFUrun]/(1.+conf.process_restart_limit)
