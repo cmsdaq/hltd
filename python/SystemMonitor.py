@@ -52,11 +52,11 @@ class system_monitor(threading.Thread):
         #cpu timing information
         self.cpu_name,self.cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
         #start direct injection into central index (fu role)
-        if conf.use_elasticsearch == True:
-            self.found_data_interfaces=False
-            self.ifs=[]
-            self.log_ifconfig=0
-            self.startESBox()
+        self.found_data_interfaces=False
+        self.ifs=[]
+        self.log_ifconfig=0
+        #always start ESBox thread because dynamic core file require it to run
+        self.startESBox()
 
     def preStart(self):
         self.rehash()
@@ -914,7 +914,8 @@ class system_monitor(threading.Thread):
                 }
                     #TODO: disk traffic(iostat)
                     #see: http://stackoverflow.com/questions/1296703/getting-system-status-in-python
-                eb.elasticize_fubox(doc)
+                if conf.use_elasticsearch:
+                    eb.elasticize_fubox(doc)
             except Exception as ex:
                 self.logger.exception(ex)
             try:
