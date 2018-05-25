@@ -601,8 +601,16 @@ class system_monitor(threading.Thread):
                             "cpuName":self.cpu_name
                         }
                         try:
-                            with open(mfile,'w+') as fp:
+                            with open(mfile,'w') as fp:
                                 json.dump(boxdoc,fp,indent=True)
+                            boxinfo_update_attempts=0
+                        except IOError as ex:
+                            if ex.errno==11 and boxinfo_update_attempts<5: #Resource temporarily unavailable
+                                self.logger.warning("Resource temporarily unavailable on attempting to write: "+ mfile)
+                                boxinfo_update_attempts+=1
+                            else:
+                                self.logger.exception(ex)
+                                boxinfo_update_attempts=0
                         except Exception as ex:
                             self.logger.exception(ex)
 
