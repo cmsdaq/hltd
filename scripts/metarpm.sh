@@ -211,7 +211,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fffmeta.spec <<EOF
 Name: $PACKAGENAME
-Version: 2.2.5
+Version: 2.2.8
 Release: 0${revsuffix}
 Summary: hlt daemon
 License: gpl
