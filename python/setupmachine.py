@@ -802,7 +802,7 @@ if __name__ == "__main__":
             hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
             hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
             hltdcfg.reg('auto_clear_quarantined',auto_clear_quarantined,'[Recovery]')
-            hltdcfg.reg('process_restart_limit',process_restart_limit,'[Recovery]')
+            hltdcfg.reg('process_restart_limit',str(process_restart_limit),'[Recovery]')
             hltdcfg.reg('cmssw_base',cmssw_base,'[CMSSW]')
             hltdcfg.reg('cmssw_default_version',cmssw_version,'[CMSSW]')
             hltdcfg.reg('cmssw_threads',str(resource_cmsswthreads),'[CMSSW]')
