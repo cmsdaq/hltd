@@ -542,6 +542,7 @@ if __name__ == "__main__":
     dqmmachine = 'False'
     execdir = '/opt/hltd'
     auto_clear_quarantined = 'False'
+    process_restart_limit = 1
     if resource_cmsswthreads == 1 or resource_cmsswstreams == 1:
         resourcefract = 0.33
         resourcefractd = 0.45
@@ -562,6 +563,7 @@ if __name__ == "__main__":
             resource_cmsswstreams = 1
             #auto_clear_quarantined = 'True'
         if myhost in dqm_list or myhost in dqmtest_list or myhost in detdqm_list:
+            process_restart_limit = 5
             use_elasticsearch = 'False'
             runindex_name = 'dqm'
             cmsswloglevel = 'DISABLED'
@@ -800,6 +802,7 @@ if __name__ == "__main__":
             hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
             hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
             hltdcfg.reg('auto_clear_quarantined',auto_clear_quarantined,'[Recovery]')
+            hltdcfg.reg('process_restart_limit',process_restart_limit,'[Recovery]')
             hltdcfg.reg('cmssw_base',cmssw_base,'[CMSSW]')
             hltdcfg.reg('cmssw_default_version',cmssw_version,'[CMSSW]')
             hltdcfg.reg('cmssw_threads',str(resource_cmsswthreads),'[CMSSW]')
