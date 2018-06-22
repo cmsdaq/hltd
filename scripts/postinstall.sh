@@ -27,3 +27,5 @@ touch /opt/hltd/scratch/new-version || true
 #restart soapfile (process will not run if disabled in configuration, but service will be active)
 /usr/bin/systemctl restart soap2file
 
+#start hltd if not running (ensures hltd startup on new installation)
+/usr/bin/systemctl start hltd
