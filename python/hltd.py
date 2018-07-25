@@ -421,13 +421,25 @@ class hltd(Daemon2,object):
                     elif cloud_st==1:#cloud is already on
                         break
                     elif cloud_st>1:#error,try to switch off cloud and switch HLT mode
-                      logger.warning("cloud status returned error. going to try to stop cloud")
-                      stop_st = state.extinguish_cloud(repeat=True)
-                      #trusting the extinguish function return code
-                      if not stop_st:
-                        logger.error("failed deactivating cloud")
-                        #script error, leaving cores in cloud mode
+                      time.sleep(1)
+                      logger.warning("cloud status returned error. going to try to retry check")
+                      cloud_st = state.cloud_status()
+
+                      if not cloud_st:#cloud off,switch on
+                        result = state.ignite_cloud()
                         break
+                      elif cloud_st==1:#cloud is already on
+                        break
+                      elif cloud_st>1:#error,try to switch off cloud and switch HLT mode
+ 
+                        logger.warning("cloud status returned error. going to try to stop cloud")
+                        stop_st = state.extinguish_cloud(repeat=True)
+                      #trusting the extinguish function return code
+                        if not stop_st:
+                          logger.error("failed deactivating cloud")
+                          #script error, leaving cores in cloud mode
+                          break
+                state.cloud_mode=False
                 if resInfo.cleanup_resources()==True:break
                 time.sleep(0.1)
                 logger.warning("retrying cleanup_resources")
