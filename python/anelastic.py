@@ -699,6 +699,34 @@ class LumiSectionHandler():
         ls,stream,pid = infile.ls,infile.stream,infile.pid
         outdir = self.outdir
 
+        try:
+          self.infile.checkSources()
+        except KeyError as ex:
+          #invalid/empty JSON file detected
+          self.logger.exception(ex)
+          if self.infile.pid not in self.pidList: return False
+          infile = self.infile
+          pid = infile.pid
+          numEvents = self.pidList[pid]["numEvents"]
+          file2merge = fileHandler(infile.filepath)
+          file2merge.setDefinitions(self.jsdfile)
+          file2merge.initData()
+          file2merge.setFieldByName("ErrorEvents",numEvents)
+          #file2merge.setFieldByName("ReturnCodeMask",0)
+          file2merge.setFieldByName("HLTErrorEvents",numEvents,warning=False)
+
+          outfile = next((outfile for outfile in self.outfileList if outfile.stream == stream),False)
+          if outfile:
+              outfile.merge(file2merge)
+              self.logger.warning("merging empty JSON file for ls,stream %r,%r - pid %r - lost events %r" %(ls,stream,pid,numEvents))
+              #infile.esCopy() #?
+              infile.deleteFile(silent=True)
+              return True
+
+          else:
+              self.logger.warning("no infile.data found or could not be parsed (empty JSON file)")
+              return False
+
         if pid not in self.pidList:
             processed = infile.getFieldByName("Processed")
             if processed!=0:
@@ -785,7 +813,6 @@ class LumiSectionHandler():
             return False
 
         self.logger.info(self.infile.basename)
-        self.infile.checkSources()
 
         #if self.closed.isSet(): self.closed.clear()
         if infile.data:

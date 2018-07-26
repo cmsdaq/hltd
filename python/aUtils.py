@@ -460,6 +460,23 @@ class fileHandler(object):
         #self.definitions = self.getJsonData(self.jsdfile)["data"]
         return True
 
+    def setDefinitions(self,jsdfile):
+        if self.filetype in [STREAM]:
+            #try:
+            self.jsdfile = jsdfile
+            #except:
+            #    self.logger.error("no definition field in "+str(self.filepath))
+            #   self.definitions = {}
+            #   return False
+        elif not self.jsdfile:
+            self.logger.warning("jsd file not set")
+            self.definitions = []
+            return False
+        if self.jsdfile not in jsdCache.keys():
+            jsdCache[self.jsdfile] = self.getJsonData(self.jsdfile)
+        self.definitions = jsdCache[self.jsdfile]["data"]
+        #self.definitions = self.getJsonData(self.jsdfile)["data"]
+        return True
 
     def deleteFile(self,silent=False):
         #return True
