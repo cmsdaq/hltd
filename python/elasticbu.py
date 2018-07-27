@@ -98,15 +98,22 @@ class elasticBandBU:
             self.hostinst = self.host+'_'+self.conf.instance
 
         #this naturally fits with the 'run' document
-        try:
-            version = None
-            arch = None
-            with open(os.path.join(mainDir,'hlt',conf.paramfile_name),'r') as fp:
+	retries=10
+        if runMode == True:
+	  while retries:
+	    retries-=1
+            try:
+              version = None
+              arch = None
+              with open(os.path.join(mainDir,'hlt',conf.paramfile_name),'r') as fp:
                 fffparams = json.load(fp)
                 version = fffparams['CMSSW_VERSION']
                 arch = fffparams['SCRAM_ARCH']
-        except:
-          pass
+                self.logger.info("OK")
+		break
+            except Exception as ex:
+	      self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
+	      time.sleep(0.2)
 
         #write run number document
         if runMode == True and self.stopping==False:
