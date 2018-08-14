@@ -795,7 +795,7 @@ class LumiSectionHandler():
                 #(otherwise this EoR of LS that doesn't exist on BU)
                 if self.EOLS:
                     #move empty stream JSON to BU
-                    outfile.moveFile(remotePath, createDestinationDir=False,updateFileInfo=False,copy=True)
+                    outfile.moveFile(remotePath, createDestinationDir=False, missingDirAlert=False, updateFileInfo=False,copy=True)
                     self.parent.mr.notifyMaxLsWithOutput(self.ls_num) #feedback for backpressure control
                     outfile.esCopy(keepmtime=False)
                     outfile.deleteFile(silent=True)
