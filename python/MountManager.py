@@ -48,23 +48,23 @@ class MountManager:
 	except Exception as ex:
             code = -1
 	    raise ex
-	finally:
-            if code<2:return True
-            if attemptsLeft<=0:
-                self.logger.error('Failed to perform umount of '+point+'. returncode:'+str(code))
-                return False
-            self.logger.warning("umount failed, trying to kill users of mountpoint "+point)
-            try:
-                if nsslock:nsslock.acquire()
-                #try to kill all unpriviledged child processes using the mount point
-                f_user = subprocess.Popen(['fuser','-km',os.path.join('/'+point,self.conf.ramdisk_subdirectory)],shell=False,preexec_fn=preexec_function,close_fds=True)
-                if nsslock:nsslock.release()
-                f_user.wait()
-            except:
-                if nsslock:
-                    try:nsslock.release()
-                    except:pass
-            return self.umount_helper(point,nsslock,attemptsLeft-1,initial=False)
+
+        if code<2:return True
+        if attemptsLeft<=0:
+            self.logger.error('Failed to perform umount of '+point+'. returncode:'+str(code))
+            return False
+        self.logger.warning("umount failed, trying to kill users of mountpoint "+point)
+        try:
+            if nsslock:nsslock.acquire()
+            #try to kill all unpriviledged child processes using the mount point
+            f_user = subprocess.Popen(['fuser','-km',os.path.join('/'+point,self.conf.ramdisk_subdirectory)],shell=False,preexec_fn=preexec_function,close_fds=True)
+            if nsslock:nsslock.release()
+            f_user.wait()
+        except:
+            if nsslock:
+                try:nsslock.release()
+                except:pass
+        return self.umount_helper(point,nsslock,attemptsLeft-1,initial=False)
       else:
         attemptsLeft-=1
         time.sleep(.5)
@@ -79,12 +79,12 @@ class MountManager:
 	except Exception as ex:
             code = -1
 	    raise ex
-	finally:
-            if code<2:return True
-            if attemptsLeft<=0:
-                self.logger.error('Failed to perform umount -f of '+point+'. returncode:'+str(code))
-                return False
-            return self.umount_helper(point,nsslock,attemptsLeft,initial=False)
+
+        if code<2:return True
+        if attemptsLeft<=0:
+            self.logger.error('Failed to perform umount -f of '+point+'. returncode:'+str(code))
+            return False
+        return self.umount_helper(point,nsslock,attemptsLeft,initial=False)
       return True
 
     def cleanup_mountpoints(self,nsslock,remount=True):
