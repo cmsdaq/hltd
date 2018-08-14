@@ -589,6 +589,14 @@ class hltd(Daemon2,object):
         except KeyboardInterrupt:
             logger.info("stop signal detected")
             aRuns =  runList.getActiveRuns()
+            timeElapsed=0
+            while runRanger.busy:
+              logger.info("waiting for run ranger to terminate runs")
+              time.sleep(5)
+              timeElapsed+=5
+              if timeElapsed>=60:
+                logger.warning("waiting for run ranger expired after 60 seconds")
+                break
             if len(aRuns)>0:
                 logger.info("terminating all ongoing runs")
                 for run in aRuns:
