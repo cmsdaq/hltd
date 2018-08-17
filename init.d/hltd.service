@@ -11,7 +11,7 @@ ExecStart=/opt/hltd/init.d/hltd start
 ExecStop=/opt/hltd/init.d/hltd stop
 ExecStopPost=/opt/hltd/init.d/hltd post-stop
 Restart=always
-RestartSec=20
+RestartSec=25
 
 [Install]
 WantedBy=multi-user.target
