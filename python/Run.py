@@ -567,9 +567,12 @@ class Run:
             pass
 
         time.sleep(.1)
+        res_copy = self.online_resource_list[:]
+        res_copy_term = []
         try:
-            for resource in self.online_resource_list: #@SM TODO: combine with join list??
+            for resource in res_copy: #@SM TODO: combine with join list??
                 if resource.processstate==100:
+                    res_copy_term.append(resource)
                     try:
                         self.logger.info('terminating process '+str(resource.process.pid)+
                                  ' in state '+str(resource.processstate)+' owning '+str(resource.cpu))
@@ -578,6 +581,9 @@ class Run:
                         else:resource.process.terminate()
                     except AttributeError:
                         pass
+                    time.sleep(.05)
+ 
+            for resource in res_copy_term: #@SM TODO: combine with join list??
                     if resource.watchdog!=None and resource.watchdog.is_alive():
                         try:
                             resource.join()
@@ -587,8 +593,11 @@ class Run:
                         self.logger.info('process '+str(resource.process.pid)+' terminated')
                     except AttributeError:
                         self.logger.info('terminated process (in another thread)')
-                    time.sleep(.1)
                     self.logger.info(' releasing resource(s) '+str(resource.cpu))
+
+            #dereference local copy
+            res_copy = []
+            res_copy_term = []
 
             self.resource_lock.acquire()
             q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
