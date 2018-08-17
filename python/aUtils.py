@@ -97,7 +97,7 @@ class MonitorRanger:
             if self.queueStatusPathDir and not os.path.exists(self.queueStatusPathDir):
               self.logger.info('no queue status dir yet.')
             else:
-              self.updateQueueStatusFile()
+              self.updateQueueStatusFile(".statsCollector")
             time.sleep(23.4)
 
     def register_inotify_path(self,path,mask):
@@ -148,7 +148,7 @@ class MonitorRanger:
                         self.maxQueuedLumi=queuedLumi
                     self.queuedLumiList.append(queuedLumi)
                     self.lock.release()
-                    self.updateQueueStatusFile()
+                    self.updateQueueStatusFile(".checkNewLumi")
                 else:
                     self.lock.release()
                     #skip if EoL for LS in queue has already been written once (e.g. double file create race)
@@ -167,7 +167,7 @@ class MonitorRanger:
                 queuedLumi = int(os.path.basename(event.fullpath).split('_')[1][2:])
                 if queuedLumi>self.maxCMSSWLumi:
                     self.maxCMSSWLumi = queuedLumi
-                self.updateQueueStatusFile()
+                self.updateQueueStatusFile(".checkNewLumi")
             except:
                 pass
             #not passed to the queue
@@ -183,7 +183,7 @@ class MonitorRanger:
         self.maxClosedLumi=maxClosedLumi
         self.numOpenLumis=numOpenLumis
         self.lock.release()
-        self.updateQueueStatusFile()
+        self.updateQueueStatusFile(".notifyLumi")
 
     def notifyMaxLsWithOutput(self,ls):
         self.maxLSWithOutput=max(ls,self.maxLSWithOutput)
@@ -193,7 +193,7 @@ class MonitorRanger:
         self.queueStatusPathMon = monpath
         self.queueStatusPathDir = path[:path.rfind('/')]
 
-    def updateQueueStatusFile(self):
+    def updateQueueStatusFile(self,tmpsuffix):
         if self.queueStatusPath==None:return
         num_queued_lumis = len(self.queuedLumiList)
         if not os.path.exists(self.queueStatusPathDir):
@@ -213,29 +213,30 @@ class MonitorRanger:
                "outputBW": self.output_bw,
                "lumiBW": self.lumi_bw
                }
-        try:
-            if self.queueStatusPath!=None:
-                attempts=3
-                while attempts>0:
+        
+        if self.queueStatusPath!=None:
+            attempts=3
+            while attempts>0:
+                try:
+                    #copy to main hltd
+                    tmpjson=json.dumps(doc)
+                    with open(self.queueStatusPath+tmpsuffix+TEMPEXT,"w") as fp:
+                        json.dump(doc,fp)
+                    os.rename(self.queueStatusPath+tmpsuffix+TEMPEXT,self.queueStatusPath)
+                    #copy to monitoring directory
                     try:
-                        with open(self.queueStatusPath+TEMPEXT,"w") as fp:
-                            #fcntl.flock(fp, fcntl.LOCK_EX)
-                            json.dump(doc,fp)
-                        os.rename(self.queueStatusPath+TEMPEXT,self.queueStatusPath)
-                        break
-                    except Exception as ex:
-                        attempts-=1
-                        if attempts==0:
-                            raise ex
+                        shutil.copyfile(self.queueStatusPath,self.queueStatusPathMon)
+                    except:
+                        pass
+                    break
+                except Exception as ex:
+                    attempts-=1
+                    if attempts==0:
+                        self.logger.error("Unable to open/write " + self.queueStatusPath)
+                        self.logger.exception(ex)
+                    else:
                         self.logger.warning("Unable to write status file, with error:" + str(ex)+".retrying...")
                         time.sleep(0.05)
-                try:
-                    shutil.copyfile(self.queueStatusPath,self.queueStatusPathMon)
-                except:
-                    pass
-        except Exception as ex:
-            self.logger.error("Unable to open/write " + self.queueStatusPath)
-            self.logger.exception(ex)
 
 
 class fileHandler(object):
