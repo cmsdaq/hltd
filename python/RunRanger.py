@@ -10,6 +10,7 @@ from signal import SIGKILL
 import subprocess
 import logging
 import socket
+import pwd
 
 import Run
 from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
@@ -38,6 +39,7 @@ class RunRanger:
         self.resource_lock = resource_lock
         self.bu_emulator = None
         self.busy = False
+        self.pw_record = pwd.getpwnam(confClass.user)
         global conf
         conf = confClass
 
@@ -65,6 +67,14 @@ class RunRanger:
             if not os.path.isdir(fullpath):
                 self.logger.info(fullpath +' is a file. A directory is needed to start a run.')
                 return
+            #check and fix directory ownership if not created as correct user and group
+            try:
+              stat_res = os.stat(fullpath)
+              if self.pw_record.pw_uid!=stat_res.st_uid || self.pw_record.pw_gid!=stat_res.st_gid:
+                self.logger.info("fixing owner of the run directory")
+                os.chown(fullpath,self.pw_record.pw_uid,self.pw_record.pw_gid) 
+            except Exception as ex:
+              self.logger.warning("exception checking run directory ownership: "+str(ex))
             nr=int(dirname[3:])
             if nr!=0:
                 # the dqm BU processes a run if the "global run file" is not mandatory or if the run is a global run
