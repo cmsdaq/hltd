@@ -38,7 +38,6 @@ class RunRanger:
         self.nsslock = nsslock
         self.resource_lock = resource_lock
         self.bu_emulator = None
-        self.busy = False
         self.pw_record = pwd.getpwnam(confClass.user)
         global conf
         conf = confClass
@@ -396,21 +395,6 @@ class RunRanger:
                     self.mm.cleanup_bu_disks(rn,True,False)
                 except:
                     self.logger.error('Could not parse '+dirname)
-
-        elif dirname.startswith('populationcontrol'):
-            self.busy=True
-            self.runList.clearOngoingRunFlags()
-            if len(self.runList.runs)>0:
-                self.logger.info("terminating all ongoing runs via cgi interface (populationcontrol): "+str(self.runList.getActiveRunNumbers()))
-                for run in self.runList.getActiveRuns():
-                    if conf.role=='fu':
-                        run.Shutdown(True,True)
-                    elif conf.role=='bu':
-                        run.ShutdownBU()
-                self.logger.info("terminated all ongoing runs via cgi interface (populationcontrol)")
-            try:os.remove(fullpath)
-            except:pass
-            self.busy=False
 
         elif dirname.startswith('harakiri') and conf.role == 'fu':
             try:os.remove(fullpath)

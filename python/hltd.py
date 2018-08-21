@@ -588,17 +588,9 @@ class hltd(Daemon2,object):
             httpd.serve_forever()
         except KeyboardInterrupt:
             logger.info("stop signal detected")
-            timeElapsed=0
-            while runRanger.busy:
-              logger.info("waiting for run ranger to terminate runs")
-              if timeElapsed>=10:
-                logger.warning("waiting for run ranger expired...")
-                break
-              time.sleep(1)
-              timeElapsed+=1
-            #if RunRanger is already terminating runs, no need to do it again
+            runList.clearOngoingRunFlags()
             aRuns =  runList.getActiveRuns()
-            if len(aRuns)>0 and not runRanger.busy:
+            if len(aRuns)>0:
                 logger.info("terminating all ongoing runs")
                 for run in aRuns:
                     if conf.role=='fu':
