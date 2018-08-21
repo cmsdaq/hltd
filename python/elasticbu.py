@@ -105,12 +105,15 @@ class elasticBandBU:
             try:
               version = None
               arch = None
+              hltmenuname = None
               with open(os.path.join(mainDir,'hlt',conf.paramfile_name),'r') as fp:
                 fffparams = json.load(fp)
                 version = fffparams['CMSSW_VERSION']
                 arch = fffparams['SCRAM_ARCH']
                 self.logger.info("OK")
-		break
+              with open(os.path.join(mainDir,'hlt','HltConfig.py'),'r') as fp:
+                hltmenuname = fp.readline().strip("\n") #first line
+              break
             except Exception as ex:
 	      self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
 	      time.sleep(0.2)
@@ -126,6 +129,7 @@ class elasticBandBU:
             document['rawDataSeenByHLT']=False
             if version: document['CMSSW_version']=version
             if arch: document['CMSSW_arch']=arch
+            if hltmenuname and len(hltmenuname): document['HLT_menu']=hltmenuname
             documents = [document]
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
             if isinstance(ret,tuple) and ret[1]==409:

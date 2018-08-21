@@ -97,6 +97,9 @@ central_runindex_mapping = {
                     },
                     'CMSSW_arch':{
 	              'type':'keyword'
+                    },
+                    'HLT_menu':{
+	              'type':'keyword'
                     }
                 }
             },
