@@ -112,7 +112,9 @@ class elasticBandBU:
                 arch = fffparams['SCRAM_ARCH']
                 self.logger.info("OK")
               with open(os.path.join(mainDir,'hlt','HltConfig.py'),'r') as fp:
-                hltmenuname = fp.readline().strip("\n") #first line
+                firstline = fp.readline().strip().strip("\n") #first line
+                if firstline.startswith("#"):
+                  hltmenuname = firstline.strip("#").strip()
               break
             except Exception as ex:
 	      self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
