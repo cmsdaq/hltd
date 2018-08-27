@@ -70,7 +70,7 @@ class RunRanger:
             if conf.role=='fu' and not conf.dqm_machine:
               try:
                 stat_res = os.stat(fullpath)
-                if self.pw_record.pw_uid!=stat_res.st_uid || self.pw_record.pw_gid!=stat_res.st_gid:
+                if self.pw_record.pw_uid!=stat_res.st_uid or self.pw_record.pw_gid!=stat_res.st_gid:
                   self.logger.info("fixing owner of the run directory")
                   os.chown(fullpath,self.pw_record.pw_uid,self.pw_record.pw_gid) 
               except Exception as ex:
