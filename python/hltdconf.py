@@ -75,6 +75,7 @@ class hltdConf:
         logging.info( '<hltd STATUS time="' + str(datetime.datetime.now()).split('.')[0] + '" user:' + self.user + ' role:' + self.role + '>')
 
     def autodetect_parameters(self):
+        #NOTE: will not work with daq3val if role is not set
         if not self.role and (os.uname()[1].startswith('bu-') or os.uname()[1].startswith('dvbu-')):
             self.role = 'bu'
         elif not self.role:

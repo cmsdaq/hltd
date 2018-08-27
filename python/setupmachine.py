@@ -72,6 +72,7 @@ def getmachinetype():
 
     #print "running on host ",myhost
     if   myhost.startswith('dvrubu-') or myhost.startswith('dvfu-'):
+      global cred
       if not cred: #load password if not yet loaded
         with open('/opt/fff/db.jsn','r') as fi:
           cred = json.load(fi)

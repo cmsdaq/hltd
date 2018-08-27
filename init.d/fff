@@ -46,7 +46,7 @@ def executeServiceUnit(command,service):
       return proc.returncode
 
 
-def reconfigureScript():
+def reconfigureScript(verbose=False):
     proc = Popen(['python2','/opt/fff/setupmachine.py','configure'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
 
@@ -54,6 +54,8 @@ def reconfigureScript():
       print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
       syslog.syslog('Failed to run reconfigure script: ' + str(output))
       return 1
+    elif verbose:
+      print output
     return 0
 
 def reconfigureScriptForce():
@@ -113,7 +115,7 @@ if __name__ == "__main__":
 
     #used by systemd. If called via systemd, it will take care of subservices (however, only for "stop" and "restart")
     if 'start' == cmd:
-        rc = reconfigureScript()
+        rc = reconfigureScript(True)
         sys.exit(rc)
 
     elif 'stop' == cmd:
@@ -142,7 +144,7 @@ if __name__ == "__main__":
 
     elif 'configure' == cmd:
         #only update configuration (same as start)
-        rc=reconfigureScript()
+        rc=reconfigureScript(True)
         sys.exit(rc)
 
     elif 'forceConfigure' == cmd:
@@ -163,7 +165,7 @@ if __name__ == "__main__":
 
     elif 'restoreUnblacklisted' == cmd:
         if not isBlacklisted():
-            rc=reconfigureScript()
+            rc=reconfigureScript(True)
             if rc==0:
                 reenableServices()
                 rc=executeServiceUnit('restart','fff')

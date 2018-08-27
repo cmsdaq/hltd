@@ -73,8 +73,9 @@ class RunRanger:
                 if self.pw_record.pw_uid!=stat_res.st_uid or self.pw_record.pw_gid!=stat_res.st_gid:
                   self.logger.info("fixing owner of the run directory")
                   os.chown(fullpath,self.pw_record.pw_uid,self.pw_record.pw_gid) 
+                os.chmod(fullpath,0777)
               except Exception as ex:
-                self.logger.warning("exception checking run directory ownership: "+str(ex))
+                self.logger.warning("exception checking run directory ownership and mode: "+str(ex))
             nr=int(dirname[3:])
             if nr!=0:
                 # the dqm BU processes a run if the "global run file" is not mandatory or if the run is a global run

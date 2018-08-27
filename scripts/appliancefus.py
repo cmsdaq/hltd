@@ -24,7 +24,7 @@ if host.startswith('dv'):
 	                DAQ_EQCFG_HOST_ATTRIBUTE ha,       \
 	                DAQ_EQCFG_HOST_NIC hn              \
 	                where                              \
-			d.dnsname like 'dvrubu-%'          \
+			(d.dnsname like 'dvrubu-%' OR d.dnsname like 'dvfu-%')          \
 	                AND ha.eqset_id=d.eqset_id         \
 	                AND hn.eqset_id=d.eqset_id         \
 	                AND hn.nic_id=d.nic_id             \

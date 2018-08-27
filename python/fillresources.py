@@ -54,6 +54,7 @@ def runFillResources(force):
 
     conf=hltdconf.hltdConf('/etc/hltd.conf')
 
+    #NOTE:will not work with daq3val, role must be set
     if conf.role==None and (os.uname()[1].startswith('fu-') or os.uname()[1].startswith('dvrubu-')): role='fu'
     else: role = conf.role
 
