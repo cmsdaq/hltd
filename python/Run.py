@@ -691,7 +691,6 @@ class Run:
                 #check if cloud mode switch has been aborted in the meantime
                 if self.state.abort_cloud_mode:
                     self.state.abort_cloud_mode=False
-                    #self.state.resources_blocked_flag=True
                     self.state.cloud_mode=False
                 else:
                     self.resInfo.move_resources_to_cloud()
@@ -752,9 +751,28 @@ class Run:
                                  ' in state '+str(resource.processstate) +
                                  ' to complete ')
                     try:
-                        resource.join()
+                        while True:
+                          resource.join(timeout=300)
+                          if not resource.isAlive():
+                            break
+                          self.resource_lock.acquire()
+                          #retry again with lock acquired
+                          if not resource.isAlive():
+                            break
+                          self.logger.warning("timeout waiting for run to end (5 min) pid: "+str(ppid)+" . retrying join...")
+                          if self.state.cloud_mode:
+                            #give resources to cloud and bail out
+                            if self.state.abort_cloud_mode:
+                              self.logger.warning("detected cloud abort signal while waiting for run end, aborting cloud switch and setting masked resource flag until the next run")
+                              self.state.abort_cloud_mode=False
+                              self.state.masked_resources=True
+                              self.state.cloud_mode=False
+                          self.resource_lock.release()
+
                         self.logger.info('process '+str(resource.process.pid)+' completed')
-                    except:pass
+                    except:
+                      try:self.resource_lock.release()
+                      except:pass
                 resource.clearQuarantined()
                 resource.process=None
 
@@ -811,7 +829,6 @@ class Run:
                     #check if cloud mode switch has been aborted in the meantime
                     if self.state.abort_cloud_mode:
                         self.state.abort_cloud_mode=False
-                        #self.state.resources_blocked_flag=True
                         self.state.cloud_mode=False
                         self.resource_lock.release()
                         return
@@ -868,8 +885,8 @@ class Run:
                 #abort the run
                 self.anelasticWatchdog=None
                 self.logger.warning("Premature end of anelastic.py for run "+str(self.runnumber))
-                self.logger.warning("Setting resources released flag to blocked until the next run on this machine")
-                #self.state.resources_blocked_flag=True #set this flag to prevent events being built until the next run
+                #self.logger.warning("Setting resources released flag to masked until the next run on this machine")
+                #self.state.masked_resources=True #set this flag to prevent events being built until the next run
                 self.Shutdown(killJobs=True,killScripts=True)
         except:
             pass

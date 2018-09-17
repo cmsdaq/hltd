@@ -197,9 +197,12 @@ class OnlineResource:
             self.logger.warning("OnlineResource: exception encountered in watching hlt slave")
             self.logger.warning(ex)
 
-    def join(self):
+    def join(self,timeout=None):
         self.logger.debug('calling join on thread ' +self.watchdog.name)
-        self.watchdog.join()
+        self.watchdog.join(timeout)
+
+    def isAlive(self):
+        return self.watchdog.isAlive()
 
     def clearQuarantined(self,doLock=True,restore=True):
         retq=[]
