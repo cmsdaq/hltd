@@ -76,7 +76,9 @@ class ResourceRanger:
         def waitResource(resource,is_locked):
 
             def resJoin(join_timeout):
-               if is_locked:self.resource_lock.release()
+               if is_locked:
+                 try:self.resource_lock.release()
+                 except:pass
                resource.watchdog.join(join_timeout)
                if is_locked:self.resource_lock.acquire()
 
@@ -87,16 +89,17 @@ class ResourceRanger:
                   self.logger.info('terminating ' + resource.process.pid)
                   resource.process.terminate()
                   resJoin(30)
-                  if is_locked:self.resource_lock.acquire()
                   if resource.isAlive():
                     self.logger.info('killing ' + resource.process.pid)
                     resource.process.kill()
                     resJoin(10)
-              except:
+              except Exception as ex:
+                self.logger.info("exception in waitResource: "+str(ex))
                 if is_locked:
                   #make sure to return it locked
-                  try:self.resource_lock.acquire()
+                  try:self.resource_lock.release()
                   except:pass
+                  self.resource_lock.acquire()
             return
 
         if basename.startswith('resource_summary'):return
@@ -239,7 +242,7 @@ class ResourceRanger:
  
         except Exception as ex:
             self.logger.error("exception in ResourceRanger")
-            self.logger.error(ex)
+            self.logger.exception(ex)
         try:
             self.resource_lock.release()
         except:pass
