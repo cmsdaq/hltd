@@ -94,6 +94,7 @@ class LumiSectionRanger:
                 except Exception as ex:
                     self.logger.exception(ex)
                     self.logger.fatal("Exiting on unhandled exception")
+                    self.writeElasticMarker()
                     os._exit(1)
             else:
                 time.sleep(0.5)
