@@ -364,10 +364,10 @@ class MountManager:
                     self.logger.info('Failed ramdisk cleanup (return code:'+str(p.returncode)+') in attempt'+str(10-tries))
 
       if cleanOutput:
-        outdirPath = self.conf.watch_directory[:self.conf.watch_directory.find(self.conf.ramdisk_subdirectory)]+self.conf.output_subdirectory
-        self.logger.info('outdirPath:'+ outdirPath + ' '+self.conf.output_subdirectory)
+        outdirPath = self.conf.watch_directory[:self.conf.watch_directory.find(self.conf.ramdisk_subdirectory)]+self.conf.output_subdirectory_remote
+        self.logger.info('outdirPath:'+ outdirPath + ' '+self.conf.output_subdirectory_remote)
 
-        if outdirPath.startswith('/fff') and self.conf.output_subdirectory in outdirPath:
+        if outdirPath.startswith('/fff') and self.conf.output_subdirectory_remote in outdirPath:
             self.logger.info('cleanup BU disks: deleting runs in output disk ...')
             tries = 10
             while tries > 0:
