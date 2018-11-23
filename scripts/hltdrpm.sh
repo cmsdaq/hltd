@@ -22,7 +22,7 @@ echo "working in $PWD"
 cat > hltd.spec <<EOF
 Name: hltd
 Version: 2.3.1
-Release: 0
+Release: 1
 Summary: hlt daemon
 License: gpl
 Group: DAQ
