@@ -27,7 +27,7 @@ class elasticUpdater:
           print "       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)"
           print " or for setting up subsystem aliases:"
           print "       python updatemappings.py central-es-hostname aliases subsystem runindex_index boxinfo_index hltdlogs_index merging_index"
-          print "       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101)"
+          print "       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101 2017)"
           os._exit(0)
 
         self.url=sys.argv[1]
@@ -51,6 +51,7 @@ class elasticUpdater:
         elif sys.argv[2]=="aliases":
           res = requests.get('http://'+self.url+':9200/_aliases')
           aliases = json.loads(res.content)
+          old_idx_list = []
           actions = []
           for idx in aliases:
             #print idx
@@ -60,6 +61,7 @@ class elasticUpdater:
                            'hltdlogs_'+sys.argv[3],'hltdlogs_'+sys.argv[3]+'_read','hltdlogs_'+sys.argv[3]+'_write',
                            'merging_'+sys.argv[3],'merging_'+sys.argv[3]+'_write']:
                 actions.append({"remove":{"index":idx,"alias":alias}})
+                old_idx_list.append(idx)
 
           actions.append({"add":{"alias":"runindex_"+sys.argv[3],"index":sys.argv[4]}})
           actions.append({"add":{"alias":"runindex_"+sys.argv[3]+"_read","index":sys.argv[4]}})
@@ -77,11 +79,20 @@ class elasticUpdater:
           actions.append({"add":{"alias":"runindex_"+sys.argv[3]+"_read","index":sys.argv[7]}}) #!
           actions.append({"add":{"alias":"merging_"+sys.argv[3]+"_write","index":sys.argv[7]}})
 
+          #adding all-year index if required
+          if len(sys.argv)>8 and sys.argv[8].isdigit():
+              year_suffix = sys.argv[3]+sys.argv[8]
+              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":sys.argv[4]}})
+              actions.append({"add":{"alias":"boxinfo_" +year_suffix+"_read","index":sys.argv[5]}})
+              actions.append({"add":{"alias":"hltdlogs_"+year_suffix+"_read","index":sys.argv[6]}})
+              actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":sys.argv[7]}}) #!
+
           data = json.dumps({"actions":actions})
           print data
           res = requests.post('http://'+self.url+':9200/_aliases',data)
           print res.status_code
 
+          print "current",sys.argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
           
           pass
         else:
