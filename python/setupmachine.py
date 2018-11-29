@@ -71,21 +71,14 @@ vm_override_buHNs = {
 def getmachinetype():
 
     #print "running on host ",myhost
-    if   myhost.startswith('dvrubu-') or myhost.startswith('dvfu-'):
-      global cred
-      if not cred: #load password if not yet loaded
-        with open('/opt/fff/db.jsn','r') as fi:
-          cred = json.load(fi)
-        dbpwd=cred["password"]
-      dvVersion=queryDaqvalVersion()
-      if dvVersion=='daq2val':
-        return 'daq2val','fu'
-      elif dvVersion=='daq3val':
-        return 'daq3val',"bu" if myhost.startswith('dvrubu-') else "fu"
-      else:
-        print "cannot determine daqval version"
-        return 'unknown','unknown'
-    elif myhost.startswith('dvbu-') : return 'daq2val','bu'
+    if myhost.startswith('dvrubu-') or myhost.startswith('dvfu-'):
+      return 'daq2val',"bu"
+    elif myhost.startswith('dvbu-') :
+      return 'daq2val','bu'
+    elif myhost.startswith('d3vfu-') :
+      return 'daq3val','fu'
+    elif myhost.startswith('d3vrubu-') :
+      return 'daq3val','bu'
     elif myhost.startswith('fu-') and myhost_domain=='cms904': return 'daq2_904','fu'
     elif myhost.startswith('bu-') and myhost_domain=='cms904': return 'daq2_904','bu'
     elif myhost.startswith('fu-') : return 'daq2','fu'
@@ -343,42 +336,6 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
 #
 #    return retval
 
-def queryDaqvalVersion():
-
-    con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd,'int2r_lb',
-                            cclass="FFFSETUP_dv",purity = cx_Oracle.ATTR_PURITY_SELF)
-
-    for tag in ['daq3val','daq2val']:
-      cur = con.cursor()
-
-      qstring =  "select d.dnsname from \
-		 DAQ_EQCFG_DNSNAME d \
-		 WHERE d.dnsname = '" + cnhostname + "' \
-                 AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
-                 where tag='"+tag.upper()+"' AND \
-                 ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+tag.upper()+"'))"
-
-      qstring2 = "select d.dnsname from \
-		 DAQ_EQCFG_DNSNAME d \
-		 WHERE d.dnsname = '" + cnhostname + "' \
-                 AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
-                 where tag='"+tag.upper()+"' AND \
-                 AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET WHERE tag='"+tag.upper()+"' and cfgkey = '"+ equipmentSet + "')"
-
-      if not equipmentSet or equipmentSet=="latest":
-        cur.execute(qstring)
-      else:
-        cur.execute(qstring2)
-
-      for result in cur:
-          if result[0]==cnhostname:
-              cur.close()
-              return tag
-      cur.close()
-
-    return None
-
-
 def getInstances(hostname):
     #instance.input example:
     #{"cmsdaq-401b28.cern.ch":{"names":["main","ecal"],"sizes":[40,20]}} #size is in megabytes
@@ -607,7 +564,7 @@ if __name__ == "__main__":
         runindex_name = 'dv'
         auto_clear_quarantined = 'True'
     elif cluster == 'daq3val':
-        runindex_name = 'dv3'
+        runindex_name = 'd3v'
         auto_clear_quarantined = 'True'
     elif cluster == 'daq2':
         runindex_name = 'cdaq'
