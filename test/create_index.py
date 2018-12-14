@@ -9,8 +9,7 @@ sys.path.append('/opt/hltd/lib')
 
 import mappings
 
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import *
+from elasticsearch5 import Elasticsearch
 
 if len(sys.argv)>=4:
 
@@ -29,7 +28,7 @@ if server_url.startswith('http://')==False:
   server_url='http://'+server_url
 
 #connection
-es = ElasticSearch(server_url)
+es = Elasticsearch(server_url)
 
 #pick mapping
 if index_name.startswith('runindex'):
@@ -47,7 +46,7 @@ alias_write=index_name+"_write"
 alias_read=index_name+"_read"
 
 if command=='create':
-  es.create_index(index_name, settings={ 'settings': my_settings, 'mappings': my_mapping })
+  es.indices.create_index(index_name, body={ 'settings': my_settings, 'mappings': my_mapping })
 
 if command=='alias':
 
@@ -70,7 +69,7 @@ if command=='alias':
   else:
     print alias_read,"already exists"
   if len(alias_settings["actions"])>0:
-    es.update_aliases(aliases_settings)
+    es.indices.update_aliases(aliases_settings)
 
 if command=='mapping':
     for key in my_mapping:

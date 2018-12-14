@@ -9,10 +9,10 @@ from six import (iterkeys, binary_type, text_type, string_types, integer_types,
 from six.moves import xrange
 from six.moves.urllib.parse import urlparse, urlencode, quote_plus
 
-from elasticsearch_hltd.connection_pool import RandomSelector
-from elasticsearch_hltd.exceptions import (ConnectionError, ConnectionTimeout,
+from elasticsearch5.connection_pool import RandomSelector
+from elasticsearch5.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
-from elasticsearch_hltd.transport import Transport
+from elasticsearch5.transport import Transport
 import simplejson as json  # for use_decimal
 
 from pyelasticsearch.exceptions import (ElasticHttpError,

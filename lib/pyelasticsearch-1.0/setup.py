@@ -56,10 +56,10 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search'
     ],
     install_requires=[
-        'elasticsearch>=1.0.0,<2.0.0',
-        'urllib3_hltd>=1.8,<2.0',
+        'elasticsearch5>=5.5.5,<6.0.0',
+        'urllib3_hltd>=1.10,<2.0',
         'simplejson>=3.0',
-        'six>=1.4.0,<2.0'
+        'six>=1.4.0'
     ],
     tests_require=['mock', 'nose>=1.2.1'],
     test_suite='nose.collector',

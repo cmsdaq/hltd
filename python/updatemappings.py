@@ -6,10 +6,18 @@ import os
 import mappings
 
 import requests
+
 try:
-  import simplejson as json
+  from elasticsearch5.serializer import JSONSerializer
+  json = JSONSerializer()
+  print "using elasticsearch-py JSONSerializer"
 except:
-  import json
+  try:
+    import simplejson as json
+    print "using simplejson serializer"
+  except:
+    print "using default json serializer"
+    import json
 
 class elasticUpdater:
 

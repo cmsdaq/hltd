@@ -1,15 +1,15 @@
 #!/bin/env python
 import sys,os
 
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import ElasticHttpError
+from elasticsearch5 import Elasticsearch
+import elasticsearch5.exceptions.TransportError as TransportError
 
 import simplejson as json
 import socket
 import logging
 
 def delete_template(es,name):
-    es.send_request('DELETE', ['_template', name])
+    es.indices.delete_template(name)
 
 def load_template(name):
     filepath = os.path.join(os.path.dirname((os.path.realpath(__file__))),'../json',name+"Template.json")
@@ -25,7 +25,7 @@ def load_template(name):
     return doc
 
 def send_template(es,name,doc):
-    es.send_request('PUT', ['_template', name], doc, query_params=None)
+    es.indices.put_template(name,doc)
 
 def create_template(es,name,label,subsystem,forceReplicas,forceShards,send=True):
     doc = load_template(label)
@@ -59,10 +59,10 @@ def printout(msg,usePrint,haveLog):
 def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,overrideTests=False, forceReplicas=-1, forceShards=-1, create_index_name=None,subsystem="cdaq"):
 
     #ip_url=getURLwithIP(es_server_url)
-    es = ElasticSearch(es_server_url,timeout=5)
+    es = Elasticsearch(es_server_url,timeout=5) #TODO: timeout is invalid parameter, fix this!
 
     #list_template
-    templateList = es.send_request('GET', ['_template'])
+    templateList = es.indices.get_template()
 
     TEMPLATES = ["runappliance_"+subsystem]
     loaddoc = None
@@ -109,22 +109,22 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
     if create_index_name:
         if loaddoc:
             try:
-                c_res = es.send_request('PUT', [create_index_name], body = loaddoc)
+                c_res = es.indices.create(create_index_name, body = loaddoc)
                 if c_res!={'acknowledged':True}:
                     printout("Result of index " + create_index_name + " create request: " + str(c_res),doPrint,True )
-            except ElasticHttpError, ex:
-                if ex[1]['type']=='index_already_exists_exception':
+            except TransportError as ex:
+                if ex[1]=='index_already_exists_exception':
                     #this is for index pre-creator
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:
-                        doc_resp = es.send_request('GET', ['_cat','indices',create_index_name],query_params={'h':'status'})
+                        doc_resp = es.cat.indices(index=create_index_name,params={'h':'status'})
                         if doc_resp.strip('\n')=='close':
                             printout("Index "+create_index_name+ " is already closed! Index will be reopened",doPrint,True)
-                            c_res = es.send_request('POST', [create_index_name,'_open'])
-                    except ElasticHttpError as ex:
-                        printout("setupES got ElasticHttpError getting index open/close state: "+str(ex),doPrint,True)
+                            c_res = es.indices.open(create_index_name)
+                    except TransportError as ex:
+                        printout("setupES got TransportError trying to open/close index: "+str(ex),doPrint,True)
                     except Exception as ex:
-                        printout("setupEs got Exception getting index open/closed state: "+str(ex),doPrint,True)
+                        printout("setupEs got Exception getting index open/closed: "+str(ex),doPrint,True)
             except Exception as ex:
                 #if type(ex)==RemoteTransportException: print "a",type(ex)
                 printout("Index not created: "+str(ex),doPrint,True)

@@ -15,10 +15,13 @@ from aUtils import *
 from daemon2 import stdOutLog,stdErrorLog
 import mappings
 
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import *
-import csv
+from elasticsearch5 import Elasticsearch
+from elasticsearch5.serializer import JSONSerializer
+from elasticsearch5.exceptions import (ConnectionError, ConnectionTimeout,
+                                      TransportError, SerializationError)
+from elasticBand import bulk_index
 
+import csv
 import requests
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
@@ -29,6 +32,8 @@ import socket
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 GENERICJSON,SUMMARYJSON = range(2) #injected JSON range
+
+jsonSerializer = JSONSerializer()
 
 def getURLwithIP(url,nsslock=None):
     try:
@@ -136,8 +141,7 @@ class elasticBandBU:
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
             if isinstance(ret,tuple) and ret[1]==409:
                 #run document was already created by another BU. In that case increase atomically active BU counter
-                #self.index_documents('run',[{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
-                self.index_documents('run',[{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+                self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,bulk=False,update_only=True,retry_on_conflict=300)
 
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
@@ -149,7 +153,7 @@ class elasticBandBU:
             try:
                 if retry or self.ip_url==None:
                     self.ip_url=getURLwithIP(self.es_server_url,self.nsslock)
-                    self.es = ElasticSearch(self.ip_url,timeout=20)
+                    self.es = Elasticsearch(self.ip_url,timeout=20)
 
                 #check if index alias exists
                 if requests.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
@@ -161,11 +165,11 @@ class elasticBandBU:
                     if (connectionAttempts%10)==0:
                         self.logger.error('unable to access to elasticsearch alias ' + alias_write + ' on '+self.es_server_url+' / '+self.ip_url)
                     continue
-            except ElasticHttpError as ex:
-                #es error, retry
-                self.logger.error(ex)
+
+            except (socket.gaierror,ConnectionError,ConnectionTimeout,RequestsConnectionError,RequestsTimeout) as ex:
+                #try to reconnect with different IP from DNS load balancing
                 if self.runMode and connectionAttempts>100:
-                    self.logger.error('elastic (BU): exiting after 100 ElasticHttpError reports from '+ self.es_server_url)
+                    self.logger.error('elastic (BU): exiting after 100 connection attempts to '+ self.es_server_url)
                     sys.exit(1)
                 elif self.runMode==False and connectionAttempts>10:
                     self.threadEvent.wait(60)
@@ -174,10 +178,11 @@ class elasticBandBU:
                 retry=True
                 continue
 
-            except (socket.gaierror,ConnectionError,Timeout,RequestsConnectionError,RequestsTimeout) as ex:
-                #try to reconnect with different IP from DNS load balancing
+            except (TransportError,SerializationError) as ex:
+                #es error, retry
+                self.logger.error(ex)
                 if self.runMode and connectionAttempts>100:
-                    self.logger.error('elastic (BU): exiting after 100 connection attempts to '+ self.es_server_url)
+                    self.logger.error('elastic (BU): exiting after 100 ElasticHttpError reports from '+ self.es_server_url)
                     sys.exit(1)
                 elif self.runMode==False and connectionAttempts>10:
                     self.threadEvent.wait(60)
@@ -195,7 +200,7 @@ class elasticBandBU:
             if res.status_code==200:
                 if res.content.strip()=='{}':
                     self.logger.info('inserting new mapping for '+str(key))
-                    requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
+                    requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -207,7 +212,7 @@ class elasticBandBU:
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
                                 self.logger.info('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
-                                requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
+                                requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                                 if res.status_code!=200: self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content)
                                 break
             else:
@@ -324,8 +329,7 @@ class elasticBandBU:
         #first update: endtime field
         self.index_documents('run',[{"endTime":endtime}],doc_id,bulk=False,update_only=True)
         #second update:decrease atomically active BU counter
-        #self.index_documents('run',[{"inline":"ctx._source.activeBUs-=1","lang":"painless"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
-        self.index_documents('run',[{"inline":"ctx._source.activeBUs-=1"}],doc_id,bulk=False,update_only=True,script=True,retry_on_conflict=300)
+        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,retry_on_conflict=300)
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')
@@ -440,7 +444,7 @@ class elasticBandBU:
         doc_pars = {"parent":str(self.runnumber)}
         self.index_documents('eols',documents,doc_id,doc_params=doc_pars,bulk=False)
 
-    def index_documents(self,name,documents,doc_id=None,doc_params=None,bulk=True,overwrite=True,update_only=False,retry_on_conflict=0,script=False):
+    def index_documents(self,name,documents,doc_id=None,doc_params=None,bulk=True,overwrite=True,update_only=False,retry_on_conflict=0):
 
         if name=='fu-box-status' or name.startswith("boxinfo") or name=='resource_summary':
             destination_index = self.boxinfo_write
@@ -453,25 +457,40 @@ class elasticBandBU:
             attempts+=1
             try:
                 if bulk:
-                    self.es.bulk_index(destination_index,name,documents)
+                    bulk_index(self.es,destination_index,name,documents)
                 else:
                     if doc_id:
                       if update_only:
-                        if script:
-                          self.es.update(index=destination_index,doc_type=name,id=doc_id,script=documents[0],upsert=False,retry_on_conflict=retry_on_conflict)
-                        else:
-                          self.es.update(index=destination_index,doc_type=name,id=doc_id,doc=documents[0],upsert=False,retry_on_conflict=retry_on_conflict)
+                        self.es.update(index=destination_index,doc_type=name,id=doc_id,body=documents[0],params={retry_on_conflict:retry_on_conflict})
                       else:
-                        #overwrite existing can be used with id specified
-                        if doc_params:
-                          self.es.index(destination_index,name,documents[0],doc_id,parent=doc_params['parent'],overwrite_existing=overwrite)
-                        else:
-                          self.es.index(destination_index,name,documents[0],doc_id,overwrite_existing=overwrite)
+                        doc_p = doc_params if doc_params else {}
+                        doc_p["op_type"]= "create" if overwrite else "index"
+                        self.es.index(index=destination_index,doc_type=name,body=documents[0],id=doc_id,params = doc_params)
                     else:
-                        self.es.index(destination_index,name,documents[0])
+                        self.es.index(index=destination_index,doc_type=name,body=documents[0],params = doc_params)
                 return True
 
-            except ElasticHttpError as ex:
+            except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:
+                if attempts>100 and self.runMode:
+                    raise(ex)
+                if is_box or attempts<=1:
+                    self.logger.warning('elasticsearch connection error' + str(ex)+'. retry.')
+                elif (attempts-2)%10==0:
+                    self.logger.error('elasticsearch connection error' + str(ex)+'. retry.')
+                if self.stopping:return False
+                ip_url=getURLwithIP(self.es_server_url,self.nsslock)
+                self.es = Elasticsearch(ip_url,timeout=20)
+                time.sleep(0.1)
+                if is_box==True:#give up on too many box retries as they are indexed again every 5 seconds
+                  break
+ 
+            except SerializationError as ex: #TODO (transport error)
+                  if attempts<10:
+                    self.logger.warning('elasticsearch Serialization error. retrying..')
+                    continue
+                  return False
+ 
+            except TransportError as ex: #TODO (transport error)
                 if name=='run' and ex[0]==409: #create failed because overwrite was forbidden
                     return (False,ex[0])
 
@@ -488,19 +507,6 @@ class elasticBandBU:
                 else:
                     self.logger.error('elasticsearch HTTP error '+str(ex)+'. skipping document '+name)
                 return False
-            except (socket.gaierror,ConnectionError,Timeout) as ex:
-                if attempts>100 and self.runMode:
-                    raise(ex)
-                if is_box or attempts<=1:
-                    self.logger.warning('elasticsearch connection error' + str(ex)+'. retry.')
-                elif (attempts-2)%10==0:
-                    self.logger.error('elasticsearch connection error' + str(ex)+'. retry.')
-                if self.stopping:return False
-                ip_url=getURLwithIP(self.es_server_url,self.nsslock)
-                self.es = ElasticSearch(ip_url,timeout=20)
-                time.sleep(0.1)
-                if is_box==True:#give up on too many box retries as they are indexed again every 5 seconds
-                  break
         return False
 
 

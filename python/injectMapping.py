@@ -8,14 +8,14 @@ import time
 #from aUtils import *
 import mappings
 
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import *
+from elasticsearch5 import Elasticsearch
+from elasticsearch5.serializer import JSONSerializer
 
 import requests
-from requests.exceptions import ConnectionError as RequestsConnectionError
-from requests.exceptions import Timeout as RequestsTimeout
 import simplejson as json
 import socket
+
+jsonSerializer = JSONSerializer()
 
 class elasticBandInjector:
 
@@ -39,7 +39,7 @@ class elasticBandInjector:
         #silence
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
-        self.es = ElasticSearch(self.es_server_url,timeout=20)
+        self.es = Elasticsearch(self.es_server_url,timeout=20) #is this needed? (using requests)
         if requests.get(self.es_server_url+'/_alias/'+alias_write).status_code == 200:
             print 'writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.es_server_url
             self.createDocMappingsMaybe(alias_write,mapping)
@@ -53,7 +53,7 @@ class elasticBandInjector:
             if res.status_code==200:
                 if res.content.strip()=='{}':
                     print 'inserting new mapping for '+str(key)
-                    requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
+                    requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -64,7 +64,7 @@ class elasticBandInjector:
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
                                 print 'inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc)
-                                rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
+                                rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                                 if rres.status_code!=200:
                                     print rres.content
                                 break

@@ -1,4 +1,4 @@
-from pyelasticsearch.client import ElasticSearch
+from elasticsearch5 import Elasticsearch
 from pprint import pprint
 from ordereddict import OrderedDict
 
@@ -99,7 +99,7 @@ class Query:
 
 class Collation:
     def __init__(self,es_server_url):
-        self.server = ElasticSearch(es_server_url)
+        self.server = Elasticsearch(es_server_url)
         self.datadict = {
             'prc-out' : {
                 "lookup" : Query('prc-out','source'),

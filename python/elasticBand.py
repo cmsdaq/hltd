@@ -1,8 +1,12 @@
 import os,socket,time
 import sys
 import threading
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import *
+
+from elasticsearch5 import Elasticsearch
+from elasticsearch5.serializer import JSONSerializer
+from elasticsearch5.exceptions import (ConnectionError, ConnectionTimeout,
+                                      TransportError, SerializationError)
+
 import simplejson as json
 import csv
 import math
@@ -45,6 +49,22 @@ def getCPUInfoIntel():
     finally:
         return cpu_name
 
+jsonSerializer = JSONSerializer()
+
+def bulk_index(es, index, doc_type_common, documents, query_params=None):
+
+        body_tmp = []
+        if not documents:
+            raise ValueError('No document array provided for bulk_index operation')
+
+        for doc in documents:
+            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index, '_type': doc_type_common}}))
+            body_tmp.append(jsonSerializer.dumps(doc))
+
+        # Need the trailing newline.
+        body = '\n'.join(body_tmp) + '\n'
+        return es.bulk(body=body,query_params=query_params)
+
 
 class elasticBand():
 
@@ -58,7 +78,7 @@ class elasticBand():
         self.fuoutBuffer = {}
         self.prcsstateBuffer = {}
 
-        self.es = ElasticSearch(self.es_server_url,timeout=20)
+        self.es = Elasticsearch(self.es_server_url,timeout=20)
         eslib_logger = logging.getLogger('elasticsearch')
         eslib_logger.setLevel(logging.ERROR)
 
@@ -78,8 +98,8 @@ class elasticBand():
 
             #body.pop('template')
             #c_res = self.es.create_index(index = self.indexName, body = body)
-            c_res = self.es.send_request('PUT', [self.indexName], body = body)
-            if c_res!={'acknowledged':True}:
+            c_res = self.es.indices.create(self.indexName, body = body)
+            if 'acknowledged' in c_res and c_res['acknowledged']==True:
                 self.logger.info("Result of index create: " + str(c_res) )
         except Exception as ex:
             self.logger.info("Elastic Exception "+ str(ex))
@@ -352,15 +372,23 @@ class elasticBand():
 
     def tryIndex(self,docname,document):
         try:
-            self.es.index(self.indexName,docname,document)
-        except (ConnectionError,Timeout) as ex:
+            self.es.index(index=self.indexName,doc_type=docname,body=document)
+        except (ConnectionError,ConnectionTimeout) as ex:
             self.logger.warning("Elasticsearch connection error:"+str(ex))
             self.indexFailures+=1
             if self.indexFailures<2:
                 self.logger.exception(ex)
             #    self.logger.warning("Elasticsearch connection error.")
             time.sleep(3)
-        except ElasticHttpError as ex:
+
+        except SerializationError as ex:
+            self.logger.warning("Elasticsearch serializer error:"+str(ex))
+            self.indexFailures+=1
+            if self.indexFailures<2:
+                self.logger.exception(ex)
+            time.sleep(.1)
+
+        except TransportError as ex:
             self.logger.warning("Elasticsearch http error:"+str(ex))
             self.indexFailures+=1
             if self.indexFailures<2:
@@ -372,7 +400,7 @@ class elasticBand():
         while attempts>0 and len(documents):
             attempts-=1
             try:
-                reply = self.es.bulk_index(self.indexName,docname,documents)
+                reply = bulk_index(self.es,self.indexName,docname,documents)
                 try:
                     if reply['errors']==True:
                         retry_doc = []
@@ -417,12 +445,12 @@ class elasticBand():
                       js_reply = str(exc)
                     self.logger.error("unable to parse error reply from elasticsearch: " + js_reply + " documents:"+str(len(documents)))
 
-            except (ConnectionError,Timeout) as ex:
+            except (ConnectionError,ConnectionTimeout) as ex:
                 self.logger.warning("Elasticsearch connection error:"+str(ex)+ " attempts left:"+str(attempts) + " tried IP rotate:"+str(tried_ip_rotate))
                 if attempts==0:
                     if not tried_ip_rotate:
                         #try another host before giving up
-                        self.es=ElasticSearch(getURLwithIP(self.es_server_url),timeout=20)
+                        self.es=Elasticsearch(getURLwithIP(self.es_server_url),timeout=20)
                         tried_ip_rotate=True
                         attempts=1
                         continue
@@ -432,7 +460,17 @@ class elasticBand():
                         if logErr:
                             self.logger.exception(ex)
                 time.sleep(2)
-            except ElasticHttpError as ex:
+
+            except SerializationError as ex:
+                self.logger.warning("Elasticsearch serialization error:"+str(ex) + " attempts left:"+str(attempts))
+                if attempts==0:
+                    self.indexFailures+=1
+                    if self.indexFailures<2:
+                        if logErr:
+                            self.logger.exception(ex)
+                time.sleep(.1)
+ 
+            except TransportError as ex:
                 self.logger.warning("Elasticsearch http error:"+str(ex) + " attempts left:"+str(attempts))
                 if attempts==0:
                     self.indexFailures+=1

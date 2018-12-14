@@ -26,12 +26,14 @@ cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 echo "Moving files to their destination"
 mkdir -p usr/lib64/$python_dir/site-packages
 mkdir -p usr/lib64/$python_dir/site-packages/pyelasticsearch
-mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch_hltd
+mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch5
 mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
 cd $TOPDIR
 #urllib3 1.10 (renamed urllib3_hltd)
-cd opt/hltd/lib/urllib3-1.10/
+#cd opt/hltd/lib/urllib3-1.10/
+#urllib3 1.24.1 (renamed urllib3_hltd)
+cd opt/hltd/lib/urllib3-1.24.1/
 python ./setup.py -q build
 python - <<'EOF'
 import compileall
@@ -61,17 +63,17 @@ cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/$python_dir/site-packages/pyel
 
 cd $TOPDIR
 #elasticsearch-py
-cd opt/hltd/lib/elasticsearch-py-1.4/
+cd opt/hltd/lib/elasticsearch-py-5.5.5/
 python ./setup.py -q build
 python - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch_hltd",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
 EOF
 python -O - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch_hltd",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
 EOF
-cp -R build/lib/elasticsearch_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/elasticsearch_hltd/
+cp -R build/lib/elasticsearch5/* $TOPDIR/usr/lib64/$python_dir/site-packages/elasticsearch5/
 
 
 cd $TOPDIR
@@ -167,7 +169,7 @@ rm -rf opt
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
 Name: hltd-libs
-Version: 2.1.0
+Version: 2.4.0
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -179,7 +181,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:python,libcap,python-six >= 1.9 ,python-requests,python-elasticsearch
+Requires:python,libcap,python-six >= 1.9 ,python-requests
 
 %description
 fff hlt daemon libraries
@@ -200,7 +202,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/*python_inotify*
 /usr/lib64/$python_dir/site-packages/*_zlibextras.so
 /usr/lib64/$python_dir/site-packages/pyelasticsearch
-/usr/lib64/$python_dir/site-packages/elasticsearch_hltd
+/usr/lib64/$python_dir/site-packages/elasticsearch5
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/procname.so
 EOF

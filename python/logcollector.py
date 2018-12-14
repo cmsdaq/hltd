@@ -23,8 +23,10 @@ import requests
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
 
-from pyelasticsearch.client import ElasticSearch
-from pyelasticsearch.exceptions import *
+from elasticsearch5 import Elasticsearch
+from elasticsearch5.serializer import JSONSerializer
+from elasticsearch5.exceptions import ElasticsearchException
+from elasticBand import bulk_index
 
 from hltdconf import *
 from elasticBand import elasticBand
@@ -61,6 +63,8 @@ maxlogsize=4194304 #4GB in kbytes
 #datetime_fmt = "%d-%b-%Y %H:%M:%S %Z"
 
 hostname = os.uname()[1]
+
+jsonSerializer = JSONSerializer()
 
 class SuppressInfo:
 
@@ -357,7 +361,7 @@ class CMSSWLogParser(threading.Thread):
     def __init__(self,rn,path,pid,queue):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.es = ElasticSearch('http://'+conf.es_local+':9200',timeout=5)
+        self.es = Elasticsearch('http://'+conf.es_local+':9200',timeout=5)
         self.path = path
         self.pid = pid
         self.rn = rn
@@ -551,7 +555,8 @@ class CMSSWLogESWriter(threading.Thread):
                         break
                 if len(documents)>0:
                     try:
-                        reply = self.eb.es.bulk_index(self.eb.indexName,'cmsswlog',documents)
+                        #reply = self.eb.es.bulk_index(self.eb.indexName,'cmsswlog',documents)
+                        reply = bulk_index(self.eb.es,self.eb.indexName,'cmsswlog',documents)
                         if reply['errors']==True:
                             self.logger.error("Error reply on bulk-index request(logcollector):"+ str(reply))
                     except Exception,ex:
@@ -573,7 +578,7 @@ class CMSSWLogESWriter(threading.Thread):
                                 #check if this entry should be inserted into the central index
                                 if evt.severity>=FATALLEVEL and evt.inject_central_index:
                                     hlc.esHandler.elasticize_cmsswlog(evt.document)
-                                self.eb.es.index(self.eb.indexName,'cmsswlog',evt.document)
+                                self.eb.es.index(index=self.eb.indexName,doc_type='cmsswlog',body=evt.document)
                         except Exception,ex:
                             try:
                               errinfo = list(ex)
@@ -794,11 +799,12 @@ class HLTDLogIndex():
             try:
                 self.logger.info('writing to elastic index '+self.index_name)
                 ip_url=getURLwithIP(es_server_url)
-                self.es = ElasticSearch(ip_url,timeout=5)
+                self.es = Elasticsearch(ip_url,timeout=5)
                 #update in case of new documents added to mapping definition
                 self.updateMappingMaybe(ip_url)
                 break
-            except (ElasticHttpError,ConnectionError,Timeout,RequestsConnectionError,RequestsTimeout) as ex:
+
+            except (ElasticsearchException,RequestsConnectionError,RequestsTimeout) as ex:
                 #try to reconnect with different IP from DNS load balancing
                 self.logger.info(ex)
                 if attempts<=0:
@@ -835,25 +841,25 @@ class HLTDLogIndex():
             document['lexicalId']=0
         document['msgtime']=timestamp
         try:
-            self.es.index(self.index_name,'hltdlog',document)
+            self.es.index(index=self.index_name,doc_type='hltdlog',body=document)
         except:
             try:
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
-                self.es = ElasticSearch(ip_url,timeout=5)
-                self.es.index(self.index_name,'hltdlog',document)
+                self.es = Elasticsearch(ip_url,timeout=5)
+                self.es.index(index=self.index_name,doc_type='hltdlog',body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
     def elasticize_cmsswlog(self,document):
         try:
-            self.es.index(self.index_name,'cmsswlog',document)
+            self.es.index(index=self.index_name,doc_type='cmsswlog',body=document)
         except:
             try:
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
-                self.es = ElasticSearch(ip_url,timeout=5)
-                self.es.index(self.index_name,'cmsswlog',document)
+                self.es = Elasticsearch(ip_url,timeout=5)
+                self.es.index(index=self.index_name,doc_type='cmsswlog',body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
@@ -863,7 +869,7 @@ class HLTDLogIndex():
             res = requests.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200 and res.content.strip()=='{}':
-                requests.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',json.dumps(doc))
+                requests.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
 
 class HLTDLogParser(threading.Thread):
     def __init__(self,dir,file,loglevel,esHandler,skipToEnd):
