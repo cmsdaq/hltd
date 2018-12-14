@@ -25,7 +25,7 @@ cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 
 echo "Moving files to their destination"
 mkdir -p usr/lib64/$python_dir/site-packages
-mkdir -p usr/lib64/$python_dir/site-packages/pyelasticsearch
+#mkdir -p usr/lib64/$python_dir/site-packages/pyelasticsearch
 mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch5
 mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
@@ -45,20 +45,20 @@ compileall.compile_dir("build/lib/urllib3_hltd",quiet=True)
 EOF
 cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urllib3_hltd/
 
-cd $TOPDIR
-#pyelasticsearch
-cd opt/hltd/lib/pyelasticsearch-1.0/
-python ./setup.py -q build
-python - <<'EOF'
-import compileall
-compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
-EOF
-python -O - <<'EOF'
-import compileall
-compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
-EOF
-cp -R build/lib/pyelasticsearch/* $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
-cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
+#cd $TOPDIR
+##pyelasticsearch
+#cd opt/hltd/lib/pyelasticsearch-1.0/
+#python ./setup.py -q build
+#python - <<'EOF'
+#import compileall
+#compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
+#EOF
+#python -O - <<'EOF'
+#import compileall
+#compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
+#EOF
+#cp -R build/lib/pyelasticsearch/* $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
+#cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
 
 
 cd $TOPDIR
@@ -181,7 +181,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:python,libcap,python-six >= 1.9 ,python-requests
+Requires:python,libcap,python-six >= 1.9,python-simplejson >= 3.3.1,python-requests
 
 %description
 fff hlt daemon libraries
@@ -201,7 +201,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/*_inotify.so*
 /usr/lib64/$python_dir/site-packages/*python_inotify*
 /usr/lib64/$python_dir/site-packages/*_zlibextras.so
-/usr/lib64/$python_dir/site-packages/pyelasticsearch
+#/usr/lib64/$python_dir/site-packages/pyelasticsearch
 /usr/lib64/$python_dir/site-packages/elasticsearch5
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/procname.so

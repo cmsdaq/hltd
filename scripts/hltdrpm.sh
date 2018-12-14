@@ -21,7 +21,7 @@ echo "working in $PWD"
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: hltd
-Version: 2.3.2
+Version: 2.4.0
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -38,7 +38,7 @@ Provides:/etc/hltd.conf.template
 Provides:/etc/logrotate.d/hltd
 Provides:/usr/lib/systemd/system/hltd.service
 Provides:/usr/lib/systemd/system/soap2file.service
-Requires:hltd-libs >= 2.1.0,SOAPpy,python-simplejson >= 3.3.1,jsonMerger,python-psutil,python-dateutil,cx_Oracle
+Requires:hltd-libs >= 2.4.0,SOAPpy,jsonMerger,python-psutil,python-dateutil,cx_Oracle
 
 %description
 fff hlt daemon
