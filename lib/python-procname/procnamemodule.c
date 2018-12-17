@@ -45,7 +45,7 @@ procname_setprocname(PyObject *self, PyObject *args) {
         int argc;
         char **argv;
         char *name;
-        if (!PyArg_ParseTuple(args, "s", &name))
+        if (!PyArg_ParseTuple(args, "s", &name)) //no utf-8 checks
                 return NULL;
         Py_GetArgcArgv(&argc, &argv);
         strncpy(argv[0], name , strlen(name));
@@ -65,8 +65,24 @@ static PyMethodDef procname_methods[] = {
         {NULL, NULL, 0, NULL}
 };
 
+#if PY_MAJOR_VERSION == 2
 PyMODINIT_FUNC
 initprocname(void) {
         (void) Py_InitModule3("procname", procname_methods, procname__doc__);
 }
 
+#elif PY_MAJOR_VERSION == 3
+
+static struct PyModuleDef procnamedef = {
+    PyModuleDef_HEAD_INIT,
+    "procname",
+    procname__doc__,
+    -1,
+    procname_methods
+};
+
+PyObject*  PyInit_procname(void)
+{
+    return PyModule_Create(&procnamedef);
+}
+#endif
