@@ -25,7 +25,7 @@ static PyObject * zlibextras_crc32_combine(PyObject *self, PyObject *args)
    * * extended into a 64-bit long inside the integer object). 3.0 does the
    * * right thing and returns unsigned. http://bugs.python.org/issue1202 */
   crc3_signed = (int32_t)crc32_combine(crc1, crc2, len2);
-  return PyInt_FromLong(crc3_signed);
+  return PyLong_FromLong(crc3_signed);
 }
 
 static PyObject * zlibextras_adler32_combine(PyObject *self, PyObject *args)
@@ -41,7 +41,7 @@ static PyObject * zlibextras_adler32_combine(PyObject *self, PyObject *args)
    * * extended into a 64-bit long inside the integer object). 3.0 does the
    * * right thing and returns unsigned. http://bugs.python.org/issue1202 */
   adler3_signed = (int32_t)adler32_combine(adler1, adler2, len2);
-  return PyInt_FromLong(adler3_signed);
+  return PyLong_FromLong(adler3_signed);
 }
 
 static PyMethodDef ZlibExtrasMethods[] = {
@@ -50,6 +50,7 @@ static PyMethodDef ZlibExtrasMethods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+#if PY_MAJOR_VERSION == 2
 PyMODINIT_FUNC init_zlibextras(void)
 {
     (void) Py_InitModule("_zlibextras", ZlibExtrasMethods);
@@ -60,3 +61,34 @@ PyMODINIT_FUNC initzlibextras(void)
     (void) Py_InitModule("zlibextras", ZlibExtrasMethods);
 }
 
+#elif PY_MAJOR_VERSION == 3
+
+static char doc[] = "binding for zlib adler32_combine and crc32_combine";
+
+static struct PyModuleDef _zlibdef = {
+    PyModuleDef_HEAD_INIT,
+    "_zlibextras",
+    doc,
+    -1,
+    ZlibExtrasMethods
+};
+
+static struct PyModuleDef zlibdef = {
+    PyModuleDef_HEAD_INIT,
+    "zlibextras",
+    doc,
+    -1,
+    ZlibExtrasMethods
+};
+
+
+PyObject*  PyInit__zlibdef(void)
+{
+    return PyModule_Create(&_zlibdef);
+}
+
+PyObject*  PyInit_zlibdef(void)
+{
+    return PyModule_Create(&zlibdef);
+}
+#endif
