@@ -16,7 +16,7 @@ Building:
 
 On a (CC7) build machine prerequisite packages need to be installed:
 ```
-yum install -y python-devel libcap-devel rpm-build
+yum install -y python-devel libcap-devel rpm-build python-six
 ```
 
 building hltd library RPM:
