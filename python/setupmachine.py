@@ -476,6 +476,27 @@ if __name__ == "__main__":
         print "Enviroment parameter missing"
         sys.exit(1)
     env = cred['env']
+    tmphost = os.uname()[1]
+
+    #override environment for certain hostnames if "prod" detected:
+    if tmphost.startswith("fu-vm-") or tmphost.startswith("bu-vm-") and env=="prod":
+      env="vm"
+      cred = {
+        "env":"vm",
+        "revsuffix":"",
+        "centrales":"es-vm-cdaq-01.cern.ch",
+        "locales":"es-vm-local-01.cern.ch",
+        "eqset":"test",
+        "cmsswbase":"/home/daqlocal",
+        "user":"daqlocal",
+        "nthreads":"2",
+        "nfwkstreams":"2",
+        "cmsswloglevel":"INFO",
+        "hltdloglevel":"ERROR",
+        "login":"null",
+        "password":"null",
+        "sid":"null"
+      }
 
     if 'centrales' not in cred:
         print "elasticsearch central host/alias missing"
@@ -752,7 +773,7 @@ if __name__ == "__main__":
                 hltdcfg.reg('cgi_instance_port_offset',str(idx),'[Web]')
                 hltdcfg.reg('soap2file_port',soap2file_port,'[Web]')
 
-                hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
+                #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
 
                 hltdcfg.reg('watch_directory',watch_dir_bu,'[General]')
 
@@ -800,7 +821,7 @@ if __name__ == "__main__":
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
             hltdcfg.reg('soap2file_port','0','[Web]')
-            hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
+            #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
             hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
