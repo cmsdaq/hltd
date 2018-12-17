@@ -10,7 +10,7 @@ import threading
 #import fcntl
 
 from inotifywrapper import InotifyWrapper
-import _inotify as inotify
+import inotify._inotify as inotify
 import _zlibextras as zlibextras
 
 ES_DIR_NAME = "TEMP_ES_DIRECTORY"

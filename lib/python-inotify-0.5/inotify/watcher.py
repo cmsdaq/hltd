@@ -21,7 +21,7 @@ newly-created directories on your behalf.'''
 
 __author__ = "Bryan O'Sullivan <bos@serpentine.com>"
 
-import _inotify as inotify
+import inotify._inotify as inotify
 import array
 import errno
 import fcntl

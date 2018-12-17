@@ -9,6 +9,8 @@ if not platform.startswith('linux'):
     raise Exception('inotify is linux-specific, and does not work on %s' %
                     platform)
 
+mod = distutils.core.Extension('inotify._inotify',sources=['inotify/_inotify.c'])
+
 distutils.core.setup(
     name='python-inotify',
     version='0.5',
@@ -19,6 +21,5 @@ distutils.core.setup(
     platforms='Linux',
     packages=['inotify'],
     url='http://www.serpentine.com/',
-    ext_modules=[distutils.core.Extension('inotify._inotify',
-                                          ['inotify/_inotify.c'])],
+    ext_modules=[mod]
     )

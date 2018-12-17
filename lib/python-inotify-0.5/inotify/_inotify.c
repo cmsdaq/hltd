@@ -161,6 +161,7 @@ static struct {
     int bit;
     const char *name;
     PyObject *pyname;
+    PyObject *pyname_Bytes;
 } bit_names[] = {
     bit_name(IN_ACCESS),
     bit_name(IN_MODIFY),
@@ -196,7 +197,7 @@ static PyObject *decode_mask(uint32_t mask)
     for (i = 0; bit_names[i].bit; i++) {
 	if (mask & bit_names[i].bit) {
 	    if (bit_names[i].pyname == NULL) {
-		bit_names[i].pyname = PyBytes_FromString(bit_names[i].name);
+		bit_names[i].pyname       = PyUnicode_FromString(bit_names[i].name);
 		if (bit_names[i].pyname == NULL)
 		    goto bail;
 	    }
@@ -214,7 +215,40 @@ bail:
 done:
     return ret;
 }
+
+
+static PyObject *decode_mask_bytes(uint32_t mask)
+{
+    PyObject *ret = PyList_New(0);
+    int i;
+
+    if (ret == NULL)
+	goto bail;
     
+    for (i = 0; bit_names[i].bit; i++) {
+	if (mask & bit_names[i].bit) {
+	    if (bit_names[i].pyname_Bytes == NULL) {
+		bit_names[i].pyname_Bytes = PyBytes_FromString(bit_names[i].name);
+		if (bit_names[i].pyname_Bytes == NULL)
+		    goto bail;
+	    }
+	    Py_INCREF(bit_names[i].pyname_Bytes);
+	    if (PyList_Append(ret, bit_names[i].pyname_Bytes) == -1)
+		goto bail;
+	}
+    }
+    
+    goto done;
+    
+bail:
+    Py_CLEAR(ret);
+
+done:
+    return ret;
+}
+
+
+
 static PyObject *pydecode_mask(PyObject *self, PyObject *args)
 {
     uint32_t mask;
@@ -237,7 +271,7 @@ static char doc[] = "Low-level inotify interface wrappers.";
 static void define_const(PyObject *dict, const char *name, uint32_t val)
 {
     PyObject *pyval = PyLong_FromUnsignedLong(val);
-    PyObject *pyname = PyBytes_FromString(name);
+    PyObject *pyname = PyUnicode_FromString(name);
 
     if (!pyname || !pyval)
 	goto bail;
@@ -359,7 +393,7 @@ static PyObject *event_repr(struct event *evt)
     if (join == NULL)
 	goto bail;
 
-    pymasks = decode_mask(PyLong_AsLong(evt->mask));
+    pymasks = decode_mask_bytes(PyLong_AsLong(evt->mask));
     if (pymasks == NULL)
 	goto bail;
     
@@ -374,20 +408,20 @@ static PyObject *event_repr(struct event *evt)
 	char *name = pyname ? PyBytes_AsString(pyname) : "???";
 	
 	if (cookie == -1)
-	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, name=%s)",
+	    ret = PyUnicode_FromFormat("event(wd=%d, mask=%s, name=%s)",
 				      wd, maskstr, name);
 	else
-	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, "
+	    ret = PyUnicode_FromFormat("event(wd=%d, mask=%s, "
 				      "cookie=0x%x, name=%s)",
 				      wd, maskstr, cookie, name);
 
 	Py_XDECREF(pyname);
     } else {
 	if (cookie == -1)
-	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s)",
+	    ret = PyUnicode_FromFormat("event(wd=%d, mask=%s)",
 				      wd, maskstr);
 	else {
-	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, cookie=0x%x)",
+	    ret = PyUnicode_FromFormat("event(wd=%d, mask=%s, cookie=0x%x)",
 				      wd, maskstr, cookie);
 	}
     }
@@ -601,7 +635,25 @@ static PyMethodDef methods[] = {
     {NULL},
 };
 
-#if PY_MAJOR_VERSION == 3
+
+#if PY_MAJOR_VERSION == 2
+void init_inotify(void)
+{
+    PyObject *mod, *dict;
+
+    //printf("called init_inotify (v2)\n"); //DEBUG
+    if (PyType_Ready(&event_type) == -1)
+        return;
+
+    mod = Py_InitModule3("_inotify", methods, doc);
+    
+    dict = PyModule_GetDict(mod);
+    if (dict)
+	define_consts(dict);
+}
+
+#elif PY_MAJOR_VERSION == 3
+
 static struct PyModuleDef _inotify_module_def = {
     PyModuleDef_HEAD_INIT,
     "_inotify",
@@ -609,24 +661,21 @@ static struct PyModuleDef _inotify_module_def = {
     -1,
     methods
 };
-#endif
 
-void init_inotify(void)
+PyObject*  PyInit__inotify(void)
 {
     PyObject *mod, *dict;
 
+    //printf("called PyInit__inotify (v3)\n");
     if (PyType_Ready(&event_type) == -1)
-        return;
+        return NULL;
 
-#if PY_MAJOR_VERSION == 3
     mod = PyModule_Create(&_inotify_module_def);
-//#endif
-#elif PY_MAJOR_VERSION == 2
-    mod = Py_InitModule3("_inotify", methods, doc);
-#endif
-
     
     dict = PyModule_GetDict(mod);
     if (dict)
-	define_consts(dict);
+    	define_consts(dict);
+
+    return mod;
 }
+#endif

@@ -4,7 +4,7 @@ import sys,traceback
 import os
 
 import logging
-import _inotify as inotify
+import inotify._inotify as inotify
 import threading
 import Queue
 

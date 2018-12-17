@@ -5,7 +5,6 @@ python_dir=`readlink /usr/bin/python2`
 python_version=${python_dir:6}
 
 # set the RPM build architecture
-#BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 BUILD_ARCH=x86_64
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $SCRIPTDIR/..
@@ -25,7 +24,7 @@ cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 
 echo "Moving files to their destination"
 mkdir -p usr/lib64/$python_dir/site-packages
-#mkdir -p usr/lib64/$python_dir/site-packages/pyelasticsearch
+mkdir -p usr/lib64/$python_dir/site-packages/inotify
 mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch5
 mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
@@ -44,22 +43,6 @@ import compileall
 compileall.compile_dir("build/lib/urllib3_hltd",quiet=True)
 EOF
 cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urllib3_hltd/
-
-#cd $TOPDIR
-##pyelasticsearch
-#cd opt/hltd/lib/pyelasticsearch-1.0/
-#python ./setup.py -q build
-#python - <<'EOF'
-#import compileall
-#compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
-#EOF
-#python -O - <<'EOF'
-#import compileall
-#compileall.compile_dir("build/lib/pyelasticsearch/",quiet=True)
-#EOF
-#cp -R build/lib/pyelasticsearch/* $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
-#cp -R pyelasticsearch.egg-info/ $TOPDIR/usr/lib64/$python_dir/site-packages/pyelasticsearch/
-
 
 cd $TOPDIR
 #elasticsearch-py
@@ -97,10 +80,8 @@ python -O - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-cp build/lib.linux-x86_64-${python_version}/prctl.pyo $TOPDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/prctl.py $TOPDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/prctl.pyc $TOPDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/_prctl.so $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/prctl.* $TOPDIR/usr/lib64/$python_dir/site-packages/
+#fill egg-info:
 cat > $TOPDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py$python_version.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-prctl
@@ -124,13 +105,16 @@ EOF
 cd $TOPDIR
 cd opt/hltd/lib/python-inotify-0.5/
 ./setup.py -q build
-cp build/lib.linux-x86_64-${python_version}/inotify/_inotify.so $TOPDIR/usr/lib64/$python_dir/site-packages
-cp build/lib.linux-x86_64-${python_version}/inotify/watcher.py $TOPDIR/usr/lib64/$python_dir/site-packages
-python - <<EOF
-import py_compile
-py_compile.compile("build/lib.linux-x86_64-${python_version}/inotify/watcher.py")
+python - <<'EOF'
+import compileall
+compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
 EOF
-cp build/lib.linux-x86_64-${python_version}/inotify/watcher.pyc $TOPDIR/usr/lib64/$python_dir/site-packages/
+python -O - <<'EOF'
+import compileall
+compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
+EOF
+cp -R build/lib.linux-x86_64-${python_version}/inotify/* $TOPDIR/usr/lib64/$python_dir/site-packages/inotify/
+#fill egg-info:
 cat > $TOPDIR/usr/lib64/$python_dir/site-packages/python_inotify-0.5.egg-info <<EOF
 Metadata-Version: 1.0
 Name: python-inotify
@@ -148,10 +132,9 @@ Classifier: License :: OSI Approved :: LGPL
 Classifier: Natural Language :: English
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Programming Language :: Python
-Classifier: Programming Language :: Python :: 2.4
-Classifier: Programming Language :: Python :: 2.5
-Classifier: Programming Language :: Python :: 2.6
 Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.6
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: System :: Filesystems
 Classifier: Topic :: System :: Monitoring
@@ -187,21 +170,22 @@ Requires:python,libcap,python-six >= 1.9,python-simplejson >= 3.3.1,python-reque
 fff hlt daemon libraries
 
 %prep
+
 %build
 
 %install
 rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
 tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
+
 %post
+
 %files
 %defattr(-, root, root, -)
 /usr/lib64/$python_dir/site-packages/*prctl*
-/usr/lib64/$python_dir/site-packages/*watcher*
-/usr/lib64/$python_dir/site-packages/*_inotify.so*
-/usr/lib64/$python_dir/site-packages/*python_inotify*
 /usr/lib64/$python_dir/site-packages/*_zlibextras.so
-#/usr/lib64/$python_dir/site-packages/pyelasticsearch
+/usr/lib64/$python_dir/site-packages/python_inotify*
+/usr/lib64/$python_dir/site-packages/inotify
 /usr/lib64/$python_dir/site-packages/elasticsearch5
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/procname.so

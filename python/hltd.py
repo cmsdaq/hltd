@@ -23,7 +23,7 @@ import pwd
 
 #modules distributed with hltd
 import prctl
-import _inotify as inotify
+import inotify._inotify as inotify
 
 #modules which are part of hltd
 from daemon2 import Daemon2
