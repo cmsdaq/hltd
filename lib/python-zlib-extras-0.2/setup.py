@@ -8,7 +8,7 @@ platform = distutils.util.get_platform()
 
 distutils.core.setup(
     name='zlib-extras',
-    version='0.1',
+    version='0.2',
     description='Additional interfaces to zlib library',
     author="Srecko morovic",
     author_email='srecko.morovic@cern.ch',

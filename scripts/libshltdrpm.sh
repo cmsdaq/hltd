@@ -61,7 +61,7 @@ cp -R build/lib/elasticsearch5/* $TOPDIR/usr/lib64/$python_dir/site-packages/ela
 
 cd $TOPDIR
 #_zlibextras library
-cd opt/hltd/lib/python-zlib-extras-0.1/
+cd opt/hltd/lib/python-zlib-extras-0.2/
 rm -rf build
 python ./setup.py -q build
 cp -R build/lib.linux-x86_64-${python_version}/_zlibextras.so $TOPDIR/usr/lib64/$python_dir/site-packages/
