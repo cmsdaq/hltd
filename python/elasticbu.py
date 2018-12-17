@@ -590,7 +590,7 @@ class elasticCollectorBU():
     def makeOutputDir(self):
         try:
             os.mkdir(self.outRunDir)
-            os.chmod(self.outRunDir,0777)
+            os.chmod(self.outRunDir,0o777)
         except:
             #this is opportunistic, will fail in normal conditions fail
             pass

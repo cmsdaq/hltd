@@ -8,8 +8,14 @@ import time
 import logging
 import subprocess
 import threading
-import CGIHTTPServer
-import BaseHTTPServer
+
+try:
+  from CGIHTTPServer import CGIHTTPRequestHandler
+  from BaseHTTPServer import HTTPServer
+except: #py3
+  from http.server import CGIHTTPRequestHandler
+  from http.server import HTTPServer
+
 import cgitb
 import pwd
 #import socket
@@ -348,8 +354,8 @@ def setFromConf(myinstance,resInfo):
             os.makedirs(conf.log_dir)
         if not os.path.exists(os.path.join(conf.log_dir,'pid')):
             os.makedirs(os.path.join(conf.log_dir,'pid'))
-        os.chmod(conf.log_dir,0777)
-        os.chmod(os.path.join(conf.log_dir,'pid'),0777)
+        os.chmod(conf.log_dir,0o777)
+        os.chmod(os.path.join(conf.log_dir,'pid'),0o777)
 
     logging.basicConfig(filename=os.path.join(conf.log_dir,"hltd.log"),
                     level=conf.service_log_level,
@@ -568,7 +574,7 @@ class hltd(Daemon2,object):
 
         try:
             cgitb.enable(display=0, logdir="/tmp")
-            handler = CGIHTTPServer.CGIHTTPRequestHandler
+            handler = CGIHTTPRequestHandler
             #handler = WebCtrl(self) #to be tested later
             # the following allows the base directory of the http
             # server to be 'conf.watch_directory, which is writeable
@@ -579,7 +585,7 @@ class hltd(Daemon2,object):
 
             handler.cgi_directories = ['/cgi-bin']
             logger.info("starting http server on port "+str(conf.cgi_port))
-            httpd = BaseHTTPServer.HTTPServer(("", conf.cgi_port), handler)
+            httpd = HTTPServer(("", conf.cgi_port), handler)
 
             logger.info("hltd serving at port "+str(conf.cgi_port)+" with role "+conf.role)
             os.chdir(conf.watch_directory)

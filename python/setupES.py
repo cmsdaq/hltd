@@ -1,12 +1,15 @@
 #!/bin/env python
 import sys,os
-
+import six
 from elasticsearch5 import Elasticsearch
 from elasticsearch5.exceptions import TransportError
 
 import simplejson as json
 import socket
 import logging
+
+#compatibility (py3 unicode is str)
+unicode = str if sys.version_info.major == 3 else unicode
 
 def delete_template(es,name):
     es.indices.delete_template(name)
@@ -16,10 +19,10 @@ def load_template(name):
     try:
         with open(filepath) as json_file:
             doc = json.load(json_file)
-    except IOError,ex:
+    except IOError as ex:
         #print ex
         doc = None
-    except Exception,ex:
+    except Exception as ex:
         #print ex
         doc = None
     return doc
@@ -41,7 +44,7 @@ def create_template(es,name,label,subsystem,forceReplicas,forceShards,send=True)
 #get rid of unicode elements
 def convert(inp):
     if isinstance(inp, dict):
-        return dict((convert(key), convert(value)) for key, value in inp.iteritems())
+        return dict((convert(key), convert(value)) for key, value in six.iteritems(inp))
     elif isinstance(inp, list):
         return [convert(element) for element in inp]
     elif isinstance(inp, unicode):
@@ -51,7 +54,7 @@ def convert(inp):
 
 def printout(msg,usePrint,haveLog):
     if usePrint:
-        print msg
+        print(msg)
     elif haveLog:
         logging.info(msg)
 
@@ -135,7 +138,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        print "Please provide an elasticsearch server url (e.g. http://es-local:9200) and subsystem (e.g. cdaq,dv)"
+        print("Please provide an elasticsearch server url (e.g. http://es-local:9200) and subsystem (e.g. cdaq,dv)")
         sys.exit(1)
 
     replaceOption=0

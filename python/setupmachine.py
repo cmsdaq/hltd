@@ -143,7 +143,7 @@ def setupDirs(role,fu_dir,bu_dir):
             os.makedirs(fu_dir)
         except OSError:
             try:
-                os.chmod(fu_dir,0777)
+                os.chmod(fu_dir,0o777)
             except:
                 pass
 
@@ -154,7 +154,7 @@ def setupDirs(role,fu_dir,bu_dir):
             os.makedirs(bu_dir+'/appliance')
         except OSError:
             try:
-                os.chmod(bu_dir+'/appliance',0777)
+                os.chmod(bu_dir+'/appliance',0o777)
             except:
                 pass
 
