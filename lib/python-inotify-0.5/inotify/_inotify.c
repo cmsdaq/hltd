@@ -32,7 +32,7 @@ static PyObject *init(PyObject *self, PyObject *args)
 	goto bail;
     }
 	
-    ret = PyInt_FromLong(fd);
+    ret = PyLong_FromLong(fd);
     if (ret == NULL)
 	goto bail;
 
@@ -60,22 +60,30 @@ static PyObject *add_watch(PyObject *self, PyObject *args)
     PyObject *ret = NULL;
     uint32_t mask;
     int wd = -1;
-    char *path;
     int fd;
 
+#if PY_MAJOR_VERSION == 3
+    #define PATHFORMAT(x) PyBytes_AsString(x)
+    PyObject *path;
+    //input path is unicode-compliant (s) in py3
+    if (!PyArg_ParseTuple(args, "iO&I:add_watch", &fd, PyUnicode_FSConverter ,&path, &mask))
+#elif PY_MAJOR_VERSION == 2
+    #define PATHFORMAT(x) x
+    char *path;
     if (!PyArg_ParseTuple(args, "isI:add_watch", &fd, &path, &mask))
+#endif
 	goto bail;
-
+ 
     Py_BEGIN_ALLOW_THREADS
-    wd = inotify_add_watch(fd, path, mask);
+    wd = inotify_add_watch(fd, PATHFORMAT(path), mask);
     Py_END_ALLOW_THREADS
 
     if (wd == -1) {
-	PyErr_SetFromErrnoWithFilename(PyExc_OSError, path);
+	PyErr_SetFromErrnoWithFilename(PyExc_OSError, PATHFORMAT(path));
 	goto bail;
     }
     
-    ret = PyInt_FromLong(wd);
+    ret = PyLong_FromLong(wd);
     if (ret == NULL)
 	goto bail;
     
@@ -177,7 +185,7 @@ static struct {
     {0}
 };
 
-static PyObject *decode_mask(int mask)
+static PyObject *decode_mask(uint32_t mask)
 {
     PyObject *ret = PyList_New(0);
     int i;
@@ -188,7 +196,7 @@ static PyObject *decode_mask(int mask)
     for (i = 0; bit_names[i].bit; i++) {
 	if (mask & bit_names[i].bit) {
 	    if (bit_names[i].pyname == NULL) {
-		bit_names[i].pyname = PyString_FromString(bit_names[i].name);
+		bit_names[i].pyname = PyBytes_FromString(bit_names[i].name);
 		if (bit_names[i].pyname == NULL)
 		    goto bail;
 	    }
@@ -209,9 +217,9 @@ done:
     
 static PyObject *pydecode_mask(PyObject *self, PyObject *args)
 {
-    int mask;
+    uint32_t mask;
     
-    if (!PyArg_ParseTuple(args, "i:decode_mask", &mask))
+    if (!PyArg_ParseTuple(args, "I:decode_mask", &mask))
 	return NULL;
 
     return decode_mask(mask);
@@ -228,8 +236,8 @@ static char doc[] = "Low-level inotify interface wrappers.";
 
 static void define_const(PyObject *dict, const char *name, uint32_t val)
 {
-    PyObject *pyval = PyInt_FromLong(val);
-    PyObject *pyname = PyString_FromString(name);
+    PyObject *pyval = PyLong_FromUnsignedLong(val);
+    PyObject *pyname = PyBytes_FromString(name);
 
     if (!pyname || !pyval)
 	goto bail;
@@ -335,50 +343,51 @@ static void event_dealloc(struct event *evt)
     Py_XDECREF(evt->cookie);
     Py_XDECREF(evt->name);
     
-    (*evt->ob_type->tp_free)(evt);
+    //(*evt->ob_base.ob_type->tp_free)(evt);
+    (*Py_TYPE(evt)->tp_free)(evt);
 }
 
 static PyObject *event_repr(struct event *evt)
 {
-    int wd = PyInt_AsLong(evt->wd);
-    int cookie = evt->cookie == Py_None ? -1 : PyInt_AsLong(evt->cookie);
+    int wd = (int) (PyLong_AsLong(evt->wd));
+    int cookie = (int) ( evt->cookie == Py_None ? -1 : PyLong_AsLong(evt->cookie) );
     PyObject *ret = NULL, *pymasks = NULL, *pymask = NULL;
     PyObject *join = NULL;
     char *maskstr;
 
-    join = PyString_FromString("|");
+    join = PyBytes_FromString("|");
     if (join == NULL)
 	goto bail;
 
-    pymasks = decode_mask(PyInt_AsLong(evt->mask));
+    pymasks = decode_mask(PyLong_AsLong(evt->mask));
     if (pymasks == NULL)
 	goto bail;
     
-    pymask = _PyString_Join(join, pymasks);
+    pymask = _PyBytes_Join(join, pymasks);
     if (pymask == NULL)
 	goto bail;
     
-    maskstr = PyString_AsString(pymask);
+    maskstr = PyBytes_AsString(pymask);
     
     if (evt->name != Py_None) {
-	PyObject *pyname = PyString_Repr(evt->name, 1);
-	char *name = pyname ? PyString_AsString(pyname) : "???";
+	PyObject *pyname = PyBytes_Repr(evt->name, 1);
+	char *name = pyname ? PyBytes_AsString(pyname) : "???";
 	
 	if (cookie == -1)
-	    ret = PyString_FromFormat("event(wd=%d, mask=%s, name=%s)",
+	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, name=%s)",
 				      wd, maskstr, name);
 	else
-	    ret = PyString_FromFormat("event(wd=%d, mask=%s, "
+	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, "
 				      "cookie=0x%x, name=%s)",
 				      wd, maskstr, cookie, name);
 
 	Py_XDECREF(pyname);
     } else {
 	if (cookie == -1)
-	    ret = PyString_FromFormat("event(wd=%d, mask=%s)",
+	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s)",
 				      wd, maskstr);
 	else {
-	    ret = PyString_FromFormat("event(wd=%d, mask=%s, cookie=0x%x)",
+	    ret = PyBytes_FromFormat("event(wd=%d, mask=%s, cookie=0x%x)",
 				      wd, maskstr, cookie);
 	}
     }
@@ -396,10 +405,9 @@ done:
 }
 
 static PyTypeObject event_type = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
-    "_inotify.event",             /*tp_name*/
-    sizeof(struct event), /*tp_basicsize*/
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "_inotify.event",          /*tp_name*/
+    sizeof(struct event),      /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)event_dealloc, /*tp_dealloc*/
     0,                         /*tp_print*/
@@ -442,7 +450,7 @@ PyObject *read_events(PyObject *self, PyObject *args)
     PyObject *ctor_args = NULL;
     PyObject *pybufsize = NULL;
     PyObject *ret = NULL;
-    int bufsize = 65536;
+    long bufsize = 65536;
     char *buf = NULL;
     int nread, pos;
     int fd;
@@ -451,7 +459,7 @@ PyObject *read_events(PyObject *self, PyObject *args)
         goto bail;
 
     if (pybufsize && pybufsize != Py_None)
-	bufsize = PyInt_AsLong(pybufsize);
+	bufsize = PyLong_AsLong(pybufsize);
     
     ret = PyList_New(0);
     if (ret == NULL)
@@ -522,16 +530,16 @@ PyObject *read_events(PyObject *self, PyObject *args)
 
 	evt = (struct event *) obj;
 
-	evt->wd = PyInt_FromLong(in->wd);
-	evt->mask = PyInt_FromLong(in->mask);
+	evt->wd = PyLong_FromLong(in->wd);
+	evt->mask = PyLong_FromUnsignedLong(in->mask);
 	if (in->mask & IN_MOVE)
-	    evt->cookie = PyInt_FromLong(in->cookie);
+	    evt->cookie = PyLong_FromUnsignedLong(in->cookie);
 	else {
 	    Py_INCREF(Py_None);
 	    evt->cookie = Py_None;
 	}
 	if (in->len)
-	    evt->name = PyString_FromString(in->name);
+	    evt->name = PyBytes_FromString(in->name);
 	else {
 	    Py_INCREF(Py_None);
 	    evt->name = Py_None;
@@ -593,6 +601,16 @@ static PyMethodDef methods[] = {
     {NULL},
 };
 
+#if PY_MAJOR_VERSION == 3
+static struct PyModuleDef _inotify_module_def = {
+    PyModuleDef_HEAD_INIT,
+    "_inotify",
+    doc,
+    -1,
+    methods
+};
+#endif
+
 void init_inotify(void)
 {
     PyObject *mod, *dict;
@@ -600,10 +618,15 @@ void init_inotify(void)
     if (PyType_Ready(&event_type) == -1)
         return;
 
+#if PY_MAJOR_VERSION == 3
+    mod = PyModule_Create(&_inotify_module_def);
+//#endif
+#elif PY_MAJOR_VERSION == 2
     mod = Py_InitModule3("_inotify", methods, doc);
+#endif
 
-    dict = PyModule_GetDict(mod);
     
+    dict = PyModule_GetDict(mod);
     if (dict)
 	define_consts(dict);
 }

@@ -27,7 +27,7 @@ import errno
 import fcntl
 import os
 import termios
-
+import six
 
 class Event(object):
     '''Derived inotify event class.
@@ -94,7 +94,7 @@ _event_props = {
     'isdir': 'Event occurred on a directory',
     }
 
-for k, v in _event_props.iteritems():
+for k, v in six.iteritems(_event_props):
     mask = getattr(inotify, 'IN_' + k.upper())
     def getter(self):
         return self.mask & mask
@@ -203,7 +203,7 @@ class Watcher(object):
         '''Yield a (path, watch descriptor, event mask) tuple for each
         entry being watched.'''
 
-        for path, (wd, mask) in self._paths.iteritems():
+        for path, (wd, mask) in six.iteritems(self._paths):
             yield path, wd, mask
 
     def __del__(self):
@@ -240,14 +240,14 @@ class Watcher(object):
 
         try:
             yield self.add(path, mask)
-        except OSError, err:
+        except OSError as err:
             if onerror and err.errno not in self.ignored_errors:
                 onerror(err)
         for root, dirs, names in os.walk(path, topdown=False, onerror=onerror):
             for d in dirs:
                 try:
                     yield self.add(root + '/' + d, submask)
-                except OSError, err:
+                except OSError as err:
                     if onerror and err.errno not in self.ignored_errors:
                         onerror(err)
 
@@ -299,7 +299,7 @@ class AutoWatcher(Watcher):
                     mask = parentmask | inotify.IN_ONLYDIR
                     try:
                         self.add_all(evt.fullpath, mask)
-                    except OSError, err:
+                    except OSError as err:
                         if err.errno not in self.ignored_errors:
                             raise
         return events
