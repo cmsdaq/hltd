@@ -2,7 +2,7 @@
 import os,sys
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')
-from daemon2 import Daemon2
+#from daemon2 import Daemon2
 from hltdconf import initConf
 from subprocess import Popen,check_call
 from subprocess import PIPE
@@ -11,7 +11,7 @@ from applianceumount import checkMode
 import time
 import syslog
 
-def startHLTD(daemon,srvInstance,retry_on_pid_found):
+def preStartHLTD():
     if os.getuid() != 0:
       print "Must be root user to do that",':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
       sys.exit(1)
@@ -24,43 +24,11 @@ def startHLTD(daemon,srvInstance,retry_on_pid_found):
     check_call(['cp','-R', '/opt/hltd/cgi','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/scripts','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/json','/opt/hltd/scratch/'])
-    #remove lock file which is no longer used
-    daemon.removeLockFile()
-    #start the service
-    proc = Popen(["/opt/hltd/scratch/python/hltd.py",srvInstance], stdout=PIPE)
-    output = proc.communicate()[0]
-    tries=3
-    while True:
-        time.sleep(.1)
-        if daemon.silentStatus() and proc.returncode==0:
-            print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
-            #daemon.touchLockFile()
-            return
-        else:
-            if proc.returncode==3:
-                if retry_on_pid_found:
-                    #old sysV version still running, make a restart to start a new version with systemd
-                    stopHLTD(daemon,srvInstance)
-                    startHLTD(daemon,srvInstance,False)
-                sys.exit(0)
-            tries-=1
-            if tries>0:continue
-            print 'Starting hltd instance',srvInstance,':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
-            print output
-            sys.exit(1)
 
-def stopHLTD(daemon,instance):
-    #read configuration file to find location to write stop file
-    confFound=False
-    try:
-        conf = initConf(instance)
-        confFound=True
-    except Exception as ex:
-        print " CONFIGURATION error:",str(ex),"(check configuration file) [  \033[1;31mFAILED\033[0;39m  ]"
-        #sys.exit(4)
-
-    daemon.stop()
-    daemon.removeLockFile()
+#old style (forking)
+#def startHLTD(instance):
+#    proc = Popen(["/opt/hltd/scratch/python/hltd.py",instance,"--forking"], stdout=PIPE)
+#    output = proc.communicate()[0]
 
 
 def suspendRemoteClientsMaybe(instance,force):
@@ -125,15 +93,11 @@ if __name__ == "__main__":
         instances = [sys.argv[2]]
 
     for instance in instances:
-        daemon = Daemon2('hltd',instance)
+        #daemon = Daemon2('hltd',instance)
 
         if len(sys.argv) >= 2:
-            if 'start' == sys.argv[1]:
-                startHLTD(daemon,instance,True)
-
-            elif 'stop' == sys.argv[1]:
-                sys.stdout.write('Stopping hltd instance '+instance+':')
-                stopHLTD(daemon,instance)
+            if 'pre-start' == sys.argv[1]:
+                 preStartHLTD()
 
             elif 'post-stop' == sys.argv[1]:
                 #TODO: command should probably be handled using a special service which "fff" and "hltd" are part of
@@ -141,19 +105,15 @@ if __name__ == "__main__":
                 suspendRemoteClientsMaybe(instance,False)
 
             elif 'stop-appliance' == sys.argv[1]:
-                if daemon.status():
+                try:
+                  check_call(['/usr/bin/systemctl','is-active','hltd'])
                   sys.stdout.write('HLTd must be stopped before running this command on BU\n')
-                else:
+                  sys.exit(1)
+                except:
+                  #service stopped
                   sys.stdout.write('Suspending mount points for appliance ' + instance+"\n")
                   suspendRemoteClientsMaybe(instance,True)
 
-            elif 'restart' == sys.argv[1]:
-                sys.stdout.write('Restarting hltd instance '+instance+':')
-                stopHLTD(daemon,instance)
-                startHLTD(daemon,instance,False)
-
-            elif 'status' == sys.argv[1]:
-                daemon.status()
             else:
                 print "Unknown command"
                 sys.exit(2)

@@ -28,13 +28,12 @@ building hltd executable RPM:
 ```
 scripts/hltdrpm.sh
 ```
-
-building fffmeta RPM:
-
+optionally to only read parameters from cache:
 ```
-scripts/metarpm scripts/%PARAMFILE%
+scripts/hltdrpm.sh --batch # or -b
 ```
+fffmeta RPM is now merged with hltd RPM and should no longer be built or installed.
 
-Note: Provide paramfile cache name, which contains last values used. If it does not exist, the file will be created.
+Note: Provide as last command line parameter the param cache file containing last values used. If it does not exist, the file will be created.
 "scripts/paramcache.template" is available with default values (note that you need to provide correct password).
-For VM build (fffmeta-vm package), paramcache-vm can be used. If no name is provided to the script, it will default to "paramcache" name.
+If no name is provided to the script, default name will be "paramcache". "env":"vm" parameter value is now obsolete with "prod" covering all use cases.

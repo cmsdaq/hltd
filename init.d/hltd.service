@@ -5,13 +5,14 @@ After=fff.service network.service nfs.service rsyslog.service
 PartOf=fff.service
 
 [Service]
-Type=forking
-PIDFile=/var/run/hltd.pid
-ExecStart=/opt/hltd/init.d/hltd start
-ExecStop=/opt/hltd/init.d/hltd stop
+Type=simple
+ExecStartPre=/opt/hltd/init.d/hltd pre-start
+ExecStart=/opt/hltd/scratch/python/hltd.py
 ExecStopPost=/opt/hltd/init.d/hltd post-stop
 Restart=always
 RestartSec=25
+KillMode=control-group
+KillSignal=SIGINT
 
 [Install]
 WantedBy=multi-user.target

@@ -632,5 +632,14 @@ class hltd(Daemon2,object):
 if __name__ == "__main__":
     import procname
     procname.setprocname('hltd')
-    daemon = hltd(sys.argv[1])
-    daemon.start()
+    p_instance = "main"
+    do_forking = False
+    if len(sys.argv)>1:
+      for param in sys.argv[1:]:
+        if param=="--forking":do_forking=True
+        else: p_instance=param
+    daemon = hltd(p_instance)
+    if do_forking:
+      daemon.start()
+    else: #default
+      daemon.run()
