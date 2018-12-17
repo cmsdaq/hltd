@@ -2,7 +2,7 @@
 import sys,os
 
 from elasticsearch5 import Elasticsearch
-import elasticsearch5.exceptions.TransportError as TransportError
+from elasticsearch5.exceptions import TransportError
 
 import simplejson as json
 import socket
@@ -118,6 +118,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:
                         doc_resp = es.cat.indices(index=create_index_name,params={'h':'status'})
+                        #doc_resp = es.cat.indices(index=create_index_name,'h'='status')
                         if doc_resp.strip('\n')=='close':
                             printout("Index "+create_index_name+ " is already closed! Index will be reopened",doPrint,True)
                             c_res = es.indices.open(create_index_name)

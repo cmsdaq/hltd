@@ -959,6 +959,7 @@ class system_monitor(threading.Thread):
         if self.statThread:
             self.statThread.join()
         if self.esBoxThread:
+            if self.eb:self.eb.stop()
             self.esBoxThread.join()
 
 

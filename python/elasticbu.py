@@ -141,7 +141,7 @@ class elasticBandBU:
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
             if isinstance(ret,tuple) and ret[1]==409:
                 #run document was already created by another BU. In that case increase atomically active BU counter
-                self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,bulk=False,update_only=True,retry_on_conflict=300)
+                self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,params={retry_on_conflict:300},bulk=False,update_only=True)
 
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
@@ -172,8 +172,11 @@ class elasticBandBU:
                     self.logger.error('elastic (BU): exiting after 100 connection attempts to '+ self.es_server_url)
                     sys.exit(1)
                 elif self.runMode==False and connectionAttempts>10:
+                    self.logger.warning(str(ex))
                     self.threadEvent.wait(60)
                 else:
+                    if connectionAttempts==1:
+                      self.logger.warning(str(ex))
                     self.threadEvent.wait(1)
                 retry=True
                 continue
@@ -269,7 +272,7 @@ class elasticBandBU:
 
         documents = [document]
         doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('microstatelegend',documents,doc_id,doc_params=doc_pars,bulk=False)
+        return self.index_documents('microstatelegend',documents,doc_id,params=doc_pars,bulk=False)
 
 
     def elasticize_pathlegend(self,fullpath):
@@ -297,7 +300,7 @@ class elasticBandBU:
             document['names']= self.read_line(fullpath)
         documents = [document]
         doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('pathlegend',documents,doc_id,doc_params=doc_pars,bulk=False)
+        return self.index_documents('pathlegend',documents,doc_id,params=doc_pars,bulk=False)
 
     def elasticize_inputlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
@@ -311,7 +314,7 @@ class elasticBandBU:
             self.logger.warning("can not parse "+fullpath)
         documents = [document]
         doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('inputstatelegend',documents,doc_id,doc_params=doc_pars,bulk=False)
+        return self.index_documents('inputstatelegend',documents,doc_id,params=doc_pars,bulk=False)
 
     def elasticize_stream_label(self,infile):
         #elasticize stream name information
@@ -320,8 +323,8 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
         doc_id=infile.basename
-        doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('stream_label',[document],doc_id,doc_params=doc_pars,bulk=False)
+        #doc_pars = {"parent":str(self.runnumber)}
+        return self.index_documents('stream_label',[document],params=doc_pars,bulk=False)
 
     def elasticize_runend_time(self,endtime):
         self.logger.info(str(endtime)+" going into buffer")
@@ -329,7 +332,7 @@ class elasticBandBU:
         #first update: endtime field
         self.index_documents('run',[{"endTime":endtime}],doc_id,bulk=False,update_only=True)
         #second update:decrease atomically active BU counter
-        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,retry_on_conflict=300)
+        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,params={retry_on_conflict:300})
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')
@@ -442,9 +445,9 @@ class elasticBandBU:
         document['appliance']=self.host
         documents = [document]
         doc_pars = {"parent":str(self.runnumber)}
-        self.index_documents('eols',documents,doc_id,doc_params=doc_pars,bulk=False)
+        self.index_documents('eols',documents,doc_id,params=doc_pars,bulk=False)
 
-    def index_documents(self,name,documents,doc_id=None,doc_params=None,bulk=True,overwrite=True,update_only=False,retry_on_conflict=0):
+    def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False):
 
         if name=='fu-box-status' or name.startswith("boxinfo") or name=='resource_summary':
             destination_index = self.boxinfo_write
@@ -461,13 +464,13 @@ class elasticBandBU:
                 else:
                     if doc_id:
                       if update_only:
-                        self.es.update(index=destination_index,doc_type=name,id=doc_id,body=documents[0],params={retry_on_conflict:retry_on_conflict})
+                        self.es.update(index=destination_index,doc_type=name,id=doc_id,body=documents[0],params=params)
                       else:
-                        doc_p = doc_params if doc_params else {}
-                        doc_p["op_type"]= "create" if overwrite else "index"
-                        self.es.index(index=destination_index,doc_type=name,body=documents[0],id=doc_id,params = doc_params)
+                        params["op_type"] = "create" if not overwrite else "index"
+                        self.es.index(index=destination_index,doc_type=name,body=documents[0],id=doc_id,params=params)
                     else:
-                        self.es.index(index=destination_index,doc_type=name,body=documents[0],params = doc_params)
+                      self.es.index(index=destination_index,doc_type=name,body=documents[0],params = params)
+
                 return True
 
             except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:

@@ -51,7 +51,7 @@ def getCPUInfoIntel():
 
 jsonSerializer = JSONSerializer()
 
-def bulk_index(es, index, doc_type_common, documents, query_params=None):
+def bulk_index(es, index, doc_type_common, documents):# query_params=None): #todo:ass kwargs
 
         body_tmp = []
         if not documents:
@@ -63,7 +63,8 @@ def bulk_index(es, index, doc_type_common, documents, query_params=None):
 
         # Need the trailing newline.
         body = '\n'.join(body_tmp) + '\n'
-        return es.bulk(body=body,query_params=query_params)
+        #return es.bulk(body=body,query_params=query_params)
+        return es.bulk(body=body)
 
 
 class elasticBand():
