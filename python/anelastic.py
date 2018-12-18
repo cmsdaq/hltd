@@ -520,7 +520,7 @@ class LumiSectionRanger:
         destName = os.path.join(outputDir,runname,eorname)
         document = {"data":[str(0)]}
 
-        for stream self.streamCounters:
+        for stream in self.streamCounters:
             document = {"data":[str(self.streamCounters[stream])]}
             break
         try:

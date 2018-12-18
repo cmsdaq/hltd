@@ -4,7 +4,7 @@
 
 import logging
 import threading
-import watcher
+import inotify.watcher as watcher
 import inotify._inotify as inotify
 #import select
 #import sys

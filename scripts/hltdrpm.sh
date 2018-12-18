@@ -45,7 +45,7 @@ fi
 
 if [ $ASK = "1" ]; then
 
-echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python36 or python3.6 (press enter for \"${lines[0]}\"):"
+echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -252,11 +252,19 @@ echo "working in $PWD"
 pypkgprefix="python"
 pkgsuffix=""
 pkgobsoletes=""
-if [ $pythonver = "python3.6" ] || [ $pythonver = "python36" ]; then
+if [ $pythonver = "python3.6" ]; then
   pypkgprefix="python36"
-  pypkgsuffix="-python36"
+  pkgsuffix="-python36"
   pkgobsoletes=", hltd"
 fi
+
+if [ $pythonver = "python3.4" ]; then
+  pypkgprefix="python34"
+  pkgsuffix="-python34"
+  pkgobsoletes=", hltd"
+fi
+
+
 
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
@@ -351,7 +359,7 @@ cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd.python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 

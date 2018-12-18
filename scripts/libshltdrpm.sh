@@ -102,7 +102,7 @@ $pyexec -O - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-cp build/lib.linux-x86_64-${python_version}/prctl.* $TOPDIR/usr/lib64/$python_dir/site-packages/
+cp build/lib.linux-x86_64-${python_version}/*prctl.* $TOPDIR/usr/lib64/$python_dir/site-packages/
 #fill egg-info:
 cat > $TOPDIR/usr/lib64/$python_dir/site-packages/python_prctl-1.5.0-py$python_version.egg-info <<EOF
 Metadata-Version: 1.0
@@ -168,16 +168,43 @@ cd opt/hltd/lib/python-procname/
 $pyexec ./setup.py -q build
 cp build/lib.linux-x86_64-${python_version}/procname*.so $TOPDIR/usr/lib64/$python_dir/site-packages
 
+SOAPPY_FILES=""
+WSTOOLS_FILES=""
+if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+  cd $TOPDIR
+  cd opt/hltd/lib/SOAPpy-py3-0.52.24
+  $pyexec ./setup.py -q build
+  cp -R build/lib/SOAPpy $TOPDIR/usr/lib64/$python_dir/site-packages/
+  SOAPPY_FILES=/usr/lib64/$python_dir/site-packages/SOAPpy
+
+  cd $TOPDIR
+  cd opt/hltd/lib/wstools-0.4.8
+  $pyexec ./setup.py -q build
+  cp -R build/lib/wstools $TOPDIR/usr/lib64/$python_dir/site-packages/
+  WSTOOLS_FILES=/usr/lib64/$python_dir/site-packages/wstools
+
+fi
+
+
+
 cd $TOPDIR
 rm -rf opt
 
 pkgname="hltd-libs"
 pypkgprefix="python"
-
+extradeps=""
 if [ $python_dir = "python3.6" ]; then
   pypkgprefix="python36"
   pkgname="hltd-libs-python36"
+  extradeps=", python36-defusedxml"
 fi
+
+if [ $python_dir = "python3.4" ]; then
+  pypkgprefix="python34"
+  pkgname="hltd-libs-python34"
+  extradeps=", python34-defusedxml"
+fi
+
 
 
 # we are done here, write the specs and make the fu***** rpm
@@ -195,7 +222,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,$pypkgprefix}-requests
+Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,${pypkgprefix}-requests $extradeps
 
 %description
 fff hlt daemon libraries
@@ -221,6 +248,8 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/procname*.so
 /usr/lib64/$python_dir/site-packages/__pycache__
+${SOAPPY_FILES}
+${WSTOOLS_FILES}
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
 rpmbuild --define "_topdir `pwd`/RPMBUILD" -bb hltd-libs.spec
