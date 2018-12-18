@@ -6,9 +6,12 @@ import logging
 #from aUtils import * #for stdout and stderr redirection
 try:
   #hltd service dependency
-  import ConfigParser
+  from ConfigParser import SafeConfigParser
 except:
-  print "No ConfigParser"
+  try:
+    from Configparser import SafeConfigParser
+  except:
+    print("No ConfigParser")
 
 
 #Output redirection class
@@ -69,7 +72,7 @@ class Daemon2:
             if pid > 0:
                 # exit first parent
                 return -1
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
         # decouple from parent environment
@@ -82,7 +85,7 @@ class Daemon2:
             if pid > 0:
                 # exit from second parent
                 sys.exit(0)
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
             sys.exit(1)
 
@@ -114,7 +117,7 @@ class Daemon2:
         Start the daemon
         """
         if req_conf and not os.path.exists(self.conffile):
-            print "Missing "+self.conffile+" - can not start instance"
+            print("Missing "+self.conffile+" - can not start instance")
             #raise Exception("Missing "+self.conffile)
             sys.exit(4)
         # Check for a pidfile to see if the daemon already runs
@@ -240,7 +243,7 @@ class Daemon2:
                 sys.stdout.flush()
                 time.sleep(0.5)
                 timeout-=0.5
-        except OSError, err:
+        except OSError as err:
             time.sleep(.1)
             err = str(err)
             if err.find("No such process") > 0:
@@ -285,17 +288,17 @@ class Daemon2:
     def do_umount(self,mpoint):
         try:
             subprocess.check_call(['umount',mpoint])
-        except subprocess.CalledProcessError, err1:
+        except subprocess.CalledProcessError as err1:
             if err1.returncode>1:
                 try:
                     time.sleep(0.5)
                     subprocess.check_call(['umount','-f',mpoint])
-                except subprocess.CalledProcessError, err2:
+                except subprocess.CalledProcessError as err2:
                     if err2.returncode>1:
                         try:
                             time.sleep(1)
                             subprocess.check_call(['umount','-f',mpoint])
-                        except subprocess.CalledProcessError, err3:
+                        except subprocess.CalledProcessError as err3:
                             if err3.returncode>1:
                                 sys.stdout.write("Error calling umount (-f) in cleanup_mountpoints\n")
                                 sys.stdout.write(str(err3.returncode)+"\n")
@@ -306,7 +309,7 @@ class Daemon2:
 
     def emergencyUmount(self):
 
-        cfg = ConfigParser.SafeConfigParser()
+        cfg = SafeConfigParser()
         cfg.read(self.conffile)
 
         bu_base_dir=None#/fff/BU0?

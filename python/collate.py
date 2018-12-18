@@ -23,7 +23,7 @@ class Aggregator:
 
     def histoadd(self,input):
         if not self.result: self.result = [0] * len(input)
-        print len(input),len(self.result)
+        print((len(input),len(self.result)))
         assert len(input) == len(self.result)
         self.result = [x + self.result[ind] for ind,x in enumerate(input)]
 
@@ -55,7 +55,7 @@ class Aggregator:
         return self.result
 
     def iterate(self,input):
-        for k,v in input.items():
+        for k,v in list(input.items()):
             self.actdict[k](v)
 
     def __call__(self,input):
@@ -65,11 +65,11 @@ class Aggregator:
         self.result = None
         self.work = None
         if self.actdict:
-            for v in self.actdict.values(): v.reset()
+            for v in list(self.actdict.values()): v.reset()
 
     def value(self):
         if self.actdict:
-            return dict((k,v.value()) for k,v in self.actdict.items())
+            return dict((k,v.value()) for k,v in list(self.actdict.items()))
         else:
             return self.result
 
@@ -160,10 +160,10 @@ class Collation:
     def collate(self,ind,doctype,ls,stream=None):
         result = self.search(ind,doctype,ls,stream)
         for element in  result['hits']['hits']:
-            for k,v in element['_source'].items():
+            for k,v in list(element['_source'].items()):
                 self.action(doctype)[k](v)
-        retval = dict((k,v.value()) for k,v in self.action(doctype).items())
-        for v in self.action(doctype).values(): v.reset()
+        retval = dict((k,v.value()) for k,v in list(self.action(doctype).items()))
+        for v in list(self.action(doctype).values()): v.reset()
         return retval
 
     def refresh(self,ind):

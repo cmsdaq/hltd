@@ -119,7 +119,7 @@ class elasticBand():
         with open(infile.filepath,'r') as fp:
             try:
                 document = json.load(fp)
-            except json.scanner.JSONDecodeError,ex:
+            except json.scanner.JSONDecodeError as ex:
                 if silent==False:
                     self.logger.exception(ex)
                 return None,-1
@@ -287,7 +287,7 @@ class elasticBand():
             keys = ["in","out","errorEvents","returnCodeMask","Filelist","fileSize","InputFiles","fileAdler32","TransferDestination","hltErrorEvents"]
         else:
             keys = ["in","out","errorEvents","returnCodeMask","Filelist","fileSize","InputFiles","fileAdler32","TransferDestination"]
-        datadict = dict(zip(keys, values))
+        datadict = dict(list(zip(keys, values)))
         try:datadict.pop('Filelist')
         except:pass
         document['data']=datadict
