@@ -82,12 +82,12 @@ static struct PyModuleDef zlibdef = {
 };
 
 
-PyObject*  PyInit__zlibdef(void)
+PyObject*  PyInit__zlibextras(void)
 {
     return PyModule_Create(&_zlibdef);
 }
 
-PyObject*  PyInit_zlibdef(void)
+PyObject*  PyInit_zlibextras(void)
 {
     return PyModule_Create(&zlibdef);
 }
