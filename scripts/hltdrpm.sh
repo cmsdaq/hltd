@@ -189,7 +189,7 @@ hltdloglevel=${lines[13]}
 cat > $SCRIPTDIR/temp_db.jsn <<EOF
 {
   "env":"prod",
-  "pythonver":"${pythonver}"
+  "pythonver":"${pythonver}",
   "revsuffix":"${revsuffix}",
   "centrales":"${centrales}",
   "locales":"${locales}",
@@ -358,6 +358,9 @@ mv $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
 cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+#grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/*.py   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+#grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
