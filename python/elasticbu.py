@@ -106,10 +106,10 @@ class elasticBandBU:
             self.hostinst = self.host+'_'+self.conf.instance
 
         #this naturally fits with the 'run' document
-	retries=10
+        retries=10
         if runMode == True:
-	  while retries:
-	    retries-=1
+          while retries:
+            retries-=1
             try:
               version = None
               arch = None
@@ -125,8 +125,8 @@ class elasticBandBU:
                   hltmenuname = firstline.strip("#").strip()
               break
             except Exception as ex:
-	      self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
-	      time.sleep(0.2)
+              self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
+              time.sleep(0.2)
 
         #write run number document
         if runMode == True and self.stopping==False:

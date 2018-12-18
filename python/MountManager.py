@@ -40,14 +40,14 @@ class MountManager:
         try:
             self.logger.info('calling umount of '+point)
             p = subprocess.Popen(["umount",point], shell=False, stdout=subprocess.PIPE)
-	    p.wait()
+            p.wait()
             #subprocess.check_call(['umount',point])
-	    code = p.returncode
+            code = p.returncode
         except subprocess.CalledProcessError as err:
-	    code = err.returncode
-	except Exception as ex:
+            code = err.returncode
+        except Exception as ex:
             code = -1
-	    raise ex
+            raise ex
 
         if code<2:return True
         if attemptsLeft<=0:
@@ -71,14 +71,14 @@ class MountManager:
         try:
             self.logger.info("trying umount -f of "+point)
             p = subprocess.Popen(["umount","-f",point], shell=False, stdout=subprocess.PIPE)
-	    p.wait()
+            p.wait()
             #subprocess.check_call(['umount','-f',point])
-	    code = p.returncode
+            code = p.returncode
         except subprocess.CalledProcessError as err:
-	    code = err.returncode
-	except Exception as ex:
+            code = err.returncode
+        except Exception as ex:
             code = -1
-	    raise ex
+            raise ex
 
         if code<2:return True
         if attemptsLeft<=0:
@@ -279,10 +279,10 @@ class MountManager:
                         self.logger.fatal("Unable to mount ramdisk - exiting.")
                         sys.exit(1)
 
-		    try:
-			if self.conf.output_subdirectory_remote.startswith('ramdisk'):
+                    try:
+                        if self.conf.output_subdirectory_remote.startswith('ramdisk'):
                           os.mkdir(os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory_remote))
-		    except Exception as ex:
+                    except Exception as ex:
                       self.logger.info(str(ex))
 
                     self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.output_subdirectory_remote+' '+os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory))
