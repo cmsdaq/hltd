@@ -2,7 +2,12 @@ import os
 import time
 import simplejson as json
 import re
-import httplib
+
+try:
+  from httplib import  HTTPConnection
+except:
+  from http.client import  HTTPConnection
+
 import subprocess
 import threading
 import demote
@@ -77,7 +82,7 @@ class OnlineResource:
             try:
                 if self.hostip: resaddr = self.hostip
                 else: resaddr = self.cpu[0]
-                connection = httplib.HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
+                connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
                 connection.request("GET",'cgi-bin/start_cgi.py?run='+str(runnumber))
                 response = connection.getresponse()
                 #do something intelligent with the response code
@@ -98,7 +103,7 @@ class OnlineResource:
         try:
             if self.hostip: resaddr = self.hostip
             else: resaaddr = self.cpu[0]
-            connection = httplib.HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
+            connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
             connection.request("GET",'cgi-bin/stop_cgi.py?run='+str(self.runnumber))
             time.sleep(0.05)
             response = connection.getresponse()
@@ -153,7 +158,7 @@ class OnlineResource:
                         if runkey:
                             runkey = runkey.group(1).lower()
                             break
-            except IOError,ex:
+            except IOError as ex:
                 logging.exception(ex)
                 logging.info("the default run key will be used for the dqm jobs")
             new_run_args = [conf.cmssw_script_location+'/startDqmRun.sh',

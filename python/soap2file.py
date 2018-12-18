@@ -78,6 +78,6 @@ if __name__ == "__main__":
         else:
             daemon.start()
     else:
-        print "Soap2file service is disabled"
+        print("Soap2file service is disabled")
         sys.exit(0)
 

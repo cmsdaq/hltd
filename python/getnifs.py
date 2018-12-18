@@ -101,7 +101,7 @@ def get_network_interfaces():
                 if family not in i.addresses:
                     i.addresses[family] = list()
                 i.addresses[family].append(addr)
-        return retval.values()
+        return list(retval.values())
     finally:
         libc.freeifaddrs(ifap)
 

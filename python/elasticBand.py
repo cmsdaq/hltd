@@ -119,7 +119,7 @@ class elasticBand():
         with open(infile.filepath,'r') as fp:
             try:
                 document = json.load(fp)
-            except json.scanner.JSONDecodeError,ex:
+            except json.scanner.JSONDecodeError as ex:
                 if silent==False:
                     self.logger.exception(ex)
                 return None,-1

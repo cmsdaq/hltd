@@ -6,11 +6,19 @@ import subprocess
 import shutil
 import threading
 import time
-import httplib
-import cgitb
-import CGIHTTPServer
-import BaseHTTPServer
 import syslog
+
+try:
+  from httplib import HTTPConnection
+except:
+  from http.server import HTTPConnection
+import cgitb
+try: 
+  from CGIHTTPServer import CGIHTTPRequestHandler
+  from BaseHTTPServer import HTTPServer
+except:
+  from http.server import CGIHTTPRequestHandler
+  from http.server import HTTPServer
 
 class UmountResponseReceiver(threading.Thread):
 
@@ -25,7 +33,7 @@ class UmountResponseReceiver(threading.Thread):
 
         try:
             cgitb.enable(display=0, logdir="/tmp")
-            handler = CGIHTTPServer.CGIHTTPRequestHandler
+            handler = CGIHTTPRequestHandler
             # the following allows the base directory of the http
             # server to be 'conf.watch_directory, which is writeable
             # to everybody
@@ -37,7 +45,7 @@ class UmountResponseReceiver(threading.Thread):
 
             handler.cgi_directories = ['/cgi-bin']
             print("starting http server on port "+str(self.cgi_port+20))
-            self.httpd = BaseHTTPServer.HTTPServer(("", self.cgi_port+20), handler)
+            self.httpd = HTTPServer(("", self.cgi_port+20), handler)
 
             self.httpd.serve_forever()
             self.finished=True
@@ -91,7 +99,7 @@ def stopFUs(instance):
     except Exception as ex:
         if instance!="main": raise ex
         else:
-            print "Unable to read parameters",str(ex),"using defaults"
+            print("Unable to read parameters",str(ex),"using defaults")
 
     if machine_is_bu==False:return True
     syslog.syslog("hltd-"+str(instance)+": initiating FU unmount procedure")
@@ -112,7 +120,7 @@ def stopFUs(instance):
 
         current_time = time.time()
         age = current_time - os.path.getmtime(os.path.join(boxinfodir,machine))
-        print "found machine",machine," which is ",str(age)," seconds old"
+        print("found machine",machine," which is ",str(age)," seconds old")
         syslog.syslog("hltd-"+str(instance)+": found machine "+str(machine) + " which is "+ str(age)+" seconds old")
         if age < 30:
             if receiver==None:
@@ -121,12 +129,12 @@ def stopFUs(instance):
                 time.sleep(1)
             try:
                 #subtract cgi offset when connecting machine
-                connection = httplib.HTTPConnection(machine, cgi_port-cgi_offset,timeout=5)
+                connection = HTTPConnection(machine, cgi_port-cgi_offset,timeout=5)
                 connection.request("GET",'cgi-bin/suspend_cgi.py?port='+str(cgi_port))
                 response = connection.getresponse()
                 machinelist.append(machine)
             except:
-                print "Unable to contact machine",machine
+                print("Unable to contact machine",machine)
 
     usedTimeout=0
     try:
@@ -149,7 +157,7 @@ def stopFUs(instance):
             else:break
     except:
         #handle interrupt
-        print "Interrupted!"
+        print("Interrupted!")
         syslog.syslog("hltd-"+str(instance)+": FU suspend was interrupted")
         count=0
         if receiver!=None:
@@ -178,11 +186,11 @@ def stopFUs(instance):
                 pass
         receiver.join()
 
-    print "Finished FU suspend for:",str(machinelist)
-    print "Not successful:",str(activeMachines)
+    print("Finished FU suspend for:",str(machinelist))
+    print("Not successful:",str(activeMachines))
     syslog.syslog("hltd-"+str(instance)+": unmount script completed. remaining machines :"+str(activeMachines))
     if usedTimeout==maxTimeout:
-        print "FU suspend failed for hosts:",activeMachines
+        print("FU suspend failed for hosts:",activeMachines)
         syslog.syslog("hltd-"+str(instance)+": FU suspend failed for hosts"+str(activeMachines))
         return False
 

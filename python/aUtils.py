@@ -15,7 +15,7 @@ import _zlibextras as zlibextras
 
 ES_DIR_NAME = "TEMP_ES_DIRECTORY"
 #file types
-UNKNOWN,OUTPUTJSD,DEFINITION,STREAM,INDEX,FAST,SLOW,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,INI,EOLS,BOLS,EOR,COMPLETE,DAT,PDAT,PJSNDATA,PIDPB,PB,CRASH,MODULELEGEND,PATHLEGEND,INPUTLEGEND,BOX,QSTATUS,FLUSH,PROCESSING = range(28)
+UNKNOWN,OUTPUTJSD,DEFINITION,STREAM,INDEX,FAST,SLOW,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,INI,EOLS,BOLS,EOR,COMPLETE,DAT,PDAT,PJSNDATA,PIDPB,PB,CRASH,MODULELEGEND,PATHLEGEND,INPUTLEGEND,BOX,QSTATUS,FLUSH,PROCESSING = list(range(28))
 TO_ELASTICIZE = [STREAM,INDEX,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,EOLS,EOR,COMPLETE,FLUSH]
 TEMPEXT = ".recv"
 STREAMERRORNAME = 'streamError'
@@ -364,9 +364,9 @@ class fileHandler(object):
         try:
             with open(filepath,'r') as fi:
                 data = json.load(fi)
-        except IOError,e:
+        except IOError as e:
             data = {}
-        except StandardError,e:
+        except (StandardError,Exception) as e:
         #    self.logger.exception(e)
             self.logger.warning('Box parse error:'+str(e))
             data = {}
@@ -378,10 +378,10 @@ class fileHandler(object):
         try:
             with open(filepath) as fi:
                 data = json.load(fi)
-        except json.scanner.JSONDecodeError,e:
+        except json.scanner.JSONDecodeError as e:
             self.logger.exception(e)
             data = {}
-        except StandardError,e:
+        except (StandardError,Exception) as e:
             self.logger.exception(e)
             data = {}
         return data
@@ -455,7 +455,7 @@ class fileHandler(object):
             self.logger.warning("jsd file not set")
             self.definitions = []
             return False
-        if self.jsdfile not in jsdCache.keys():
+        if self.jsdfile not in jsdCache:
             jsdCache[self.jsdfile] = self.getJsonData(self.jsdfile)
         self.definitions = jsdCache[self.jsdfile]["data"]
         #self.definitions = self.getJsonData(self.jsdfile)["data"]
@@ -473,7 +473,7 @@ class fileHandler(object):
             self.logger.warning("jsd file not set")
             self.definitions = []
             return False
-        if self.jsdfile not in jsdCache.keys():
+        if self.jsdfile not in jsdCache:
             jsdCache[self.jsdfile] = self.getJsonData(self.jsdfile)
         self.definitions = jsdCache[self.jsdfile]["data"]
         #self.definitions = self.getJsonData(self.jsdfile)["data"]
@@ -487,7 +487,7 @@ class fileHandler(object):
         if os.path.isfile(filepath):
             try:
                 os.remove(filepath)
-            except Exception,e:
+            except Exception as e:
                 self.logger.exception(e)
                 return False
         return True
@@ -540,7 +540,7 @@ class fileHandler(object):
                         shutil.move(oldpath,newpath_tmp)
                 break
 
-            except (OSError,IOError),e:
+            except (OSError,IOError) as e:
                 if silent==False:
                     if isinstance(e, IOError) and e.errno==2:
                         self.logger.warning("Error in attempt to copy/move file to destination " + newpath + ":" + str(e))
@@ -557,7 +557,7 @@ class fileHandler(object):
                     return False,checksum
                 else:
                     time.sleep(0.5)
-            except Exception, e:
+            except Exception as e:
                 self.logger.exception(e)
                 raise e
         #renaming
@@ -566,7 +566,7 @@ class fileHandler(object):
             try:
                 os.rename(newpath_tmp,newpath)
                 break
-            except (OSError,IOError),e:
+            except (OSError,IOError) as e:
                 if silent==False:
                     if isinstance(e, IOError) and e.errno==2:
                         self.logger.warning("Error encountered in attempt to copy/move file to destination " + newpath + ":" + str(e))
@@ -585,7 +585,7 @@ class fileHandler(object):
                     return False,checksum
                 else:
                     time.sleep(0.5)
-            except Exception, e:
+            except Exception as e:
                 self.logger.exception(e)
                 raise e
 
@@ -731,7 +731,7 @@ class fileHandler(object):
             with open(filepath,"w") as fi:
                 if empty==False:
                     json.dump(outputData,fi)
-        except Exception,e:
+        except Exception as e:
             if verbose:
                 self.logger.exception(e)
             else:
@@ -755,7 +755,7 @@ class fileHandler(object):
                         else:
                             shutil.copy(self.filepath,newpathTemp)
                         break
-                    except (OSError,IOError),e:
+                    except (OSError,IOError) as e:
                         retries-=1
                         if retries == 0:
                             self.logger.exception(e)
@@ -768,7 +768,7 @@ class fileHandler(object):
                     try:
                         os.rename(newpathTemp,newpath)
                         break
-                    except (OSError,IOError),e:
+                    except (OSError,IOError) as e:
                         retries-=1
                         if retries == 0:
                             self.logger.exception(e)
@@ -974,7 +974,7 @@ class Aggregator(object):
         self.oldData = oldData
 
     def output(self):
-        self.result = map(self.action,self.definitions,self.newData,self.oldData)
+        self.result = list(map(self.action,self.definitions,self.newData,self.oldData))
         return self.result
 
     def action(self,definition,data1,data2=None):
@@ -982,7 +982,7 @@ class Aggregator(object):
         if hasattr(self,actionName):
             try:
                 return getattr(self,actionName)(data1,data2)
-            except AttributeError,e:
+            except AttributeError as e:
                 self.logger.exception(e)
                 return None
         else:
@@ -992,7 +992,7 @@ class Aggregator(object):
     def action_binaryOr(self,data1,data2):
         try:
             res =  int(data1) | int(data2)
-        except TypeError,e:
+        except TypeError as e:
             self.logger.exception(e)
             res = 0
         return str(res)
@@ -1013,7 +1013,7 @@ class Aggregator(object):
     def action_sum(self,data1,data2):
         try:
             res =  int(data1) + int(data2)
-        except TypeError,e:
+        except TypeError as e:
             self.logger.exception(e)
             res = 0
         return str(res)

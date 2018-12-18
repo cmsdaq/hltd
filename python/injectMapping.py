@@ -41,7 +41,7 @@ class elasticBandInjector:
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
         self.es = Elasticsearch(self.es_server_url,timeout=20) #is this needed? (using requests)
         if requests.get(self.es_server_url+'/_alias/'+alias_write).status_code == 200:
-            print 'writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.es_server_url
+            print('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.es_server_url)
             self.createDocMappingsMaybe(alias_write,mapping)
 
     def createDocMappingsMaybe(self,index_name,mapping):
@@ -52,7 +52,7 @@ class elasticBandInjector:
             #only update if mapping is empty
             if res.status_code==200:
                 if res.content.strip()=='{}':
-                    print 'inserting new mapping for '+str(key)
+                    print('inserting new mapping for '+str(key))
                     requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                 else:
                     #still check if number of properties is identical in each type
@@ -60,20 +60,20 @@ class elasticBandInjector:
                     for indexname in inmapping:
                         properties = inmapping[indexname]['mappings'][key]['properties']
 
-                        print 'checking mapping '+ indexname + '/' + key + ' which has ' + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..'
+                        print('checking mapping '+ indexname + '/' + key + ' which has ' + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..')
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
-                                print 'inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc)
+                                print('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
                                 rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                                 if rres.status_code!=200:
-                                    print rres.content
+                                    print(rres.content)
                                 break
             else:
-                print 'requests error code '+res.status_code+' in mapping request'
+                print('requests error code '+res.status_code+' in mapping request')
 
 if __name__ == "__main__":
 
-    print "Elastic mapping injector. Parameters: server URL, subsystem name, all|run|box|log"
+    print("Elastic mapping injector. Parameters: server URL, subsystem name, all|run|box|log")
     url = sys.argv[1]
     if not url.startswith('http://'):url='http://'+url
     subsys = sys.argv[2]
@@ -82,5 +82,5 @@ if __name__ == "__main__":
     upd_log = sys.argv[3]=='all' or sys.argv[3]=='log'
     es = elasticBandInjector(url,subsys,upd_run,upd_box,upd_log)
 
-    print "Quit"
+    print("Quit")
     os._exit(0)

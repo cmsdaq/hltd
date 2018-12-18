@@ -1,11 +1,15 @@
-import ConfigParser
+try:
+  from ConfigParser import SafeConfigParser
+except:
+  from configparser import SafeConfigParser
+
 import logging
 import os
 import datetime
 
 class hltdConf:
     def __init__(self, conffile):
-        cfg = ConfigParser.SafeConfigParser()
+        cfg = SafeConfigParser()
         cfg.read(conffile)
 
         self.role = None

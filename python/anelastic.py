@@ -1,6 +1,7 @@
 #!/bin/env python
 
 import sys,traceback
+import six
 import os
 import time
 import shutil
@@ -9,7 +10,10 @@ import subprocess
 import filecmp
 import inotify._inotify as inotify
 import threading
-import Queue
+try:
+  import Queue as queue
+except:
+  import queue
 import simplejson as json
 import logging
 
@@ -25,7 +29,7 @@ class LumiSectionRanger:
     def __init__(self,mr,tempdir,outdir,run_number):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.dqmHandler = None
-        self.dqmQueue = Queue.Queue()
+        self.dqmQueue = queue.Queue()
         self.mr = mr
         self.stoprequest = threading.Event()
         self.emptyQueue = threading.Event()
@@ -89,7 +93,7 @@ class LumiSectionRanger:
                         self.infile = fileHandler(event.fullpath)
                     self.emptyQueue.clear()
                     self.process()
-                except (KeyboardInterrupt,Queue.Empty) as e:
+                except (KeyboardInterrupt,queue.Empty) as e:
                     self.emptyQueue.set()
                 except Exception as ex:
                     self.logger.exception(ex)
@@ -281,7 +285,7 @@ class LumiSectionRanger:
         basename = self.infile.basename
         errCode = self.infile.data["errorCode"]
         self.logger.info("%r with errcode: %r" %(basename,errCode))
-        for item in lsList.values():
+        for key,item in six.iteritems(lsList):
             item.processFile(self.infile)
 
     def createOutputDirs(self,remotefiledir):
@@ -449,7 +453,7 @@ class LumiSectionRanger:
             self.stop(timeout=30)
 
     def checkClosure(self,checkEmpty=True):
-        for key in self.LSHandlerList.keys():
+        for key in LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 if not checkEmpty and self.LSHandlerList[key].emptyLS:continue
                 return False
@@ -457,14 +461,14 @@ class LumiSectionRanger:
 
     def getOpenLumis(self):
         openLumis=[]
-        for key in self.LSHandlerList.keys():
+        for key in LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 openLumis.append(key)
         return openLumis
 
     def getNumOpenLumis(self):
         openLumis=0
-        for key in self.LSHandlerList.keys():
+        for key in LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 openLumis+=1
         return openLumis
@@ -516,7 +520,7 @@ class LumiSectionRanger:
         destName = os.path.join(outputDir,runname,eorname)
         document = {"data":[str(0)]}
 
-        for stream in self.streamCounters.keys():
+        for stream self.streamCounters:
             document = {"data":[str(self.streamCounters[stream])]}
             break
         try:
@@ -597,7 +601,7 @@ class LumiSectionRanger:
         lsList = self.LSHandlerList
         eolsCreated=False
         inputpath=None
-        for item in lsList.values():
+        for key,item in six.iteritems(lsList):
             if not item.EOLS:
                 #construct ramdisk path for this
                 self.logger.info("checking if EoLS file exists in input for LS "+str(item.ls_num))
@@ -1210,7 +1214,7 @@ class DQMMerger(threading.Thread):
                   self.logger.warning('pb file check: '+str(ex))
                 #inject into main queue so that it gets closed (todo: think of special type that will
                 self.source.put(FileEvent(dqmJson.filepath,STREAMDQMHISTOUTPUT))
-            except Queue.Empty as e:
+            except queue.Empty as e:
                 if self.finish:break
                 continue
             except KeyboardInterrupt as e:
@@ -1252,7 +1256,7 @@ if __name__ == "__main__":
     sys.stderr = stdErrorLog()
     sys.stdout = stdOutLog()
 
-    eventQueue = Queue.Queue()
+    eventQueue = queue.Queue()
 
     try: 
       run_number = sys.argv[1]
@@ -1313,7 +1317,7 @@ if __name__ == "__main__":
         logging.info("Closing notifier")
         mr.stop_inotify()
 
-    except Exception,e:
+    except Exception as e:
         logger.exception(e)
         logging.info("Closing notifier")
         if mr is not None:

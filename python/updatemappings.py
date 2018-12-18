@@ -10,32 +10,32 @@ import requests
 try:
   from elasticsearch5.serializer import JSONSerializer
   json = JSONSerializer()
-  print "using elasticsearch-py JSONSerializer"
+  print("using elasticsearch-py JSONSerializer")
 except:
   try:
     import simplejson as json
-    print "using simplejson serializer"
+    print("using simplejson serializer")
   except:
-    print "using default json serializer"
+    print("using default json serializer")
     import json
 
 class elasticUpdater:
 
     def __init__(self):
         if len(sys.argv)<2:
-          print "Usage:"
-          print "  for runindex, boxinfo and hltdlogs indices:"
-          print "       python updatemappings.py central-es-hostname subsystem"
-          print "       (es-vm-cdaq-01 cdaq)"
-          print "  or use this syntax to specify exact index names for runindex,boxinfo and hltdlogs:"
-          print "       python updatemappings.py central-es-hostname null runindex_index boxinfo_index hltdlogs_index"
-          print "       (es-vm-cdaq-01 auto runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101)"
-          print "  or for copying mapping from one index to another:"
-          print "       python updatemappings.py central-es-hostname subsystem input_index_mapping target_index"
-          print "       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)"
-          print " or for setting up subsystem aliases:"
-          print "       python updatemappings.py central-es-hostname aliases subsystem runindex_index boxinfo_index hltdlogs_index merging_index"
-          print "       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101 2017)"
+          print("Usage:")
+          print("  for runindex, boxinfo and hltdlogs indices:")
+          print("       python updatemappings.py central-es-hostname subsystem")
+          print("       (es-vm-cdaq-01 cdaq)")
+          print("  or use this syntax to specify exact index names for runindex,boxinfo and hltdlogs:")
+          print("       python updatemappings.py central-es-hostname null runindex_index boxinfo_index hltdlogs_index")
+          print("       (es-vm-cdaq-01 auto runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101)")
+          print("  or for copying mapping from one index to another:")
+          print("       python updatemappings.py central-es-hostname subsystem input_index_mapping target_index")
+          print("       (es-vm-cdaq-01 copy runindex_cdaq merging_cdaq)")
+          print(" or for setting up subsystem aliases:")
+          print("       python updatemappings.py central-es-hostname aliases subsystem runindex_index boxinfo_index hltdlogs_index merging_index")
+          print("       (es-vm-cdaq-01 aliases cdaq runindex_cdaq_20170101 boxinfo_cdaq_20170101 hltdlogs_cdaq_20170101 merging_cdaq_20170101 2017)")
           os._exit(0)
 
         self.url=sys.argv[1]
@@ -53,7 +53,7 @@ class elasticUpdater:
             for idx in res_j:
               #else:alias
               new_mapping = res_j[idx]['mappings']
-              print idx
+              print(idx)
               self.updateIndexMappingMaybe(sys.argv[4],new_mapping)
               break
         elif sys.argv[2]=="aliases":
@@ -96,11 +96,11 @@ class elasticUpdater:
               actions.append({"add":{"alias":"runindex_"+year_suffix+"_read","index":sys.argv[7]}}) #!
 
           data = json.dumps({"actions":actions})
-          print data
+          print(data)
           res = requests.post('http://'+self.url+':9200/_aliases',data)
-          print res.status_code
+          print(res.status_code)
 
-          print "current",sys.argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"')
+          print("current",sys.argv[3],"alias removed from indices: ",",".join(set(old_idx_list)).strip('"'))
           
           pass
         else:
@@ -123,7 +123,7 @@ class elasticUpdater:
 
             res = requests.post('http://'+self.url+':9200/'+index_name+'/_mapping/'+key,json.dumps(doc))
             if res.status_code==200:
-              print index_name,key
+              print(index_name,key)
             else:
 #              res_c = json.loads(res.content)
 #              for ret_err in  res_c["error"]["root_cause"]:
@@ -159,8 +159,8 @@ class elasticUpdater:
 #                if res.status_code==200:
 #                  print index_name,key,res.status_code
 #                else:
-                  print "FAILED"
-                  print index_name,key,res.status_code,res.content
+                  print("FAILED")
+                  print(index_name,key,res.status_code,res.content)
 
 
         for mkey in mapping:

@@ -357,7 +357,7 @@ class ResourceRanger:
             except:pass
 
     def checkNotifiedBoxes(self,runNumber):
-        keys = self.boxInfo.FUMap.keys()
+        keys = list(self.boxInfo.FUMap.keys())
         c_time = time.time()
         for key in keys:
             #if key==self.hostname:continue #checked in inotify thread

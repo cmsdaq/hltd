@@ -28,7 +28,7 @@ class RunList:
 
     def add(self,runObj):
         runNumber = runObj.runnumber
-        check = filter(lambda x: runNumber == x.runnumber,self.runs)
+        check = [x for x in self.runs if runNumber == x.runnumber]
         if len(check):
             raise Exception("Run "+str(runNumber)+" already exists")
         #doc = {runNumber:runObj}
@@ -37,24 +37,24 @@ class RunList:
 
     def remove(self,runNumber):
         #runs =  map(lambda x: x.keys()[0]==runNumber)
-        runs =  filter(lambda x: x.runnumber==runNumber,self.runs)
+        runs =  [x for x in self.runs if x.runnumber==runNumber]
         if len(runs)>1:
             self.logger.error("Multiple runs entries for "+str(runNumber)+" were found while removing run")
         for run in runs[:]: self.runs.pop(self.runs.index(run))
 
     def getOngoingRuns(self):
         #return map(lambda x: x[x.keys()[0]], filter(lambda x: x.is_ongoing_run==True,self.runs))
-        return filter(lambda x: x.is_ongoing_run==True,self.runs)
+        return [x for x in self.runs if x.is_ongoing_run==True]
 
     def getQuarantinedRuns(self):
-        return filter(lambda x: x.pending_shutdown==True,self.runs)
+        return [x for x in self.runs if x.pending_shutdown==True]
 
     def getActiveRuns(self):
         #return map(lambda x.runnumber: x, self.runs)
         return self.runs[:]
 
     def getActiveRunNumbers(self):
-        return map(lambda x: x.runnumber, self.runs)
+        return [x.runnumber for x in self.runs]
 
     def getLastRun(self):
         try:
@@ -70,7 +70,7 @@ class RunList:
 
     def getRun(self,runNumber):
         try:
-            return filter(lambda x: x.runnumber==runNumber,self.runs)[0]
+            return [x for x in self.runs if x.runnumber==runNumber][0]
         except:
             return None
 
@@ -214,11 +214,11 @@ class Run:
                 self.rawinputdir = conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
                 os.stat(self.rawinputdir)
                 self.inputdir_exists = True
-            except Exception, ex:
+            except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - failed to stat "+self.rawinputdir)
             try:
                 os.mkdir(self.rawinputdir+'/mon')
-            except Exception, ex:
+            except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - could not create mon dir inside the run input directory")
         else:
             self.rawinputdir= os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'run' + str(self.runnumber).zfill(conf.run_number_padding))
@@ -318,7 +318,7 @@ class Run:
                 self.resInfo.resmove(fromDir,self.resInfo.used,resourcename)
                 self.n_used+=1
             #TODO:fix core pairing with resource.cpu list (otherwise - restarting will not work properly)
-            if not filter(lambda x: sorted(x.cpu)==sorted(resourcenames),self.online_resource_list):
+            if not [x for x in self.online_resource_list if sorted(x.cpu)==sorted(resourcenames)]:
                 self.logger.debug("resource(s) "+str(resourcenames)
                               +" not found in online_resource_list, creating new")
                 newres = Resource.OnlineResource(self,resourcenames,self.resource_lock)
@@ -327,7 +327,7 @@ class Run:
                 return newres
             self.logger.debug("resource(s) "+str(resourcenames)
                           +" found in online_resource_list")
-            return filter(lambda x: sorted(x.cpu)==sorted(resourcenames),self.online_resource_list)[0]
+            return [x for x in self.online_resource_list if sorted(x.cpu)==sorted(resourcenames)][0]
         except Exception as ex:
             self.logger.info("exception encountered in looking for resources")
             self.logger.info(ex)
@@ -527,7 +527,7 @@ class Run:
             writedoc = {}
             bu_lumis = []
             try:
-                bu_eols_files = filter(lambda x: x.endswith("_EoLS.jsn"),os.listdir(self.rawinputdir))
+                bu_eols_files = [x for x in os.listdir(self.rawinputdir) if x.endswith("_EoLS.jsn")]
                 bu_lumis = (sorted([int(x.split('_')[1][2:]) for x in bu_eols_files]))
             except:
                 self.logger.error('RUN:'+str(self.runnumber)+" - unable to parse BU EoLS files")
@@ -788,20 +788,20 @@ class Run:
                 try:
                     if conf.dqm_machine==False:
                         self.anelastic_monitor.wait()
-                except OSError,ex:
+                except OSError as ex:
                     if "No child processes" not in str(ex):
                         self.logger.info("Exception encountered in waiting for termination of anelastic:" +str(ex))
-                except AttributeError,ex:
+                except AttributeError as ex:
                     self.logger.info("Exception encountered in waiting for termination of anelastic:" +str(ex))
                 self.anelastic_monitor = None
 
             if conf.use_elasticsearch == True:
                 try:
                     self.elastic_monitor.wait()
-                except OSError,ex:
+                except OSError as ex:
                     if "No child processes" not in str(ex):
                         self.logger.info("Exception encountered in waiting for termination of elastic:" +str(ex))
-                except AttributeError,ex:
+                except AttributeError as ex:
                     self.logger.info("Exception encountered in waiting for termination of elastic:" +str(ex))
                 self.elastic_monitor = None
             if conf.delete_run_dir is not None and conf.delete_run_dir == True:
@@ -848,7 +848,7 @@ class Run:
         except:pass
 
     def changeMarkerMaybe(self,marker):
-        current = filter(lambda x: x in Resource.RunCommon.VALID_MARKERS, os.listdir(self.dirname))
+        current = [x for x in os.listdir(self.dirname) if x in Resource.RunCommon.VALID_MARKERS]
         if (len(current)==1 and current[0] != marker) or len(current)==0:
             if len(current)==1: os.remove(self.dirname+'/'+current[0])
             fp = open(self.dirname+'/'+marker,'w+')
@@ -913,7 +913,7 @@ class Run:
             self.logger.info('start checking completion of run '+str(self.runnumber))
             self.completedChecker = threading.Thread(target=self.runCompletedChecker)
             self.completedChecker.start()
-        except Exception,ex:
+        except Exception as ex:
             self.logger.error('RUN:'+str(self.runnumber)+' - failure to start run completion checker')
             self.logger.exception(ex)
 

@@ -47,21 +47,21 @@ e = "DAQ_EQCFG_EQSET"
 
 #QUERY CREATIONS
 sqlCmd = []
-eqp = str(eqset_id.next())
-eqc = str(eqset_id.next())
+eqp = str(next(eqset_id))
+eqc = str(next(eqset_id))
 eqstr = "'{0}'".format(EQUIPMENT)
 #parent
 sqlCmd.append("INSERT INTO "+e+" (`eqset_id`, `cfgkey`, `description`, `parent_id`, `ctime`, `tag`, `is_directory`) VALUES ("+",".join([eqp,tag,null,null,ctime,null,null])+")")
 #child
 sqlCmd.append("INSERT INTO "+e+" (`eqset_id`, `cfgkey`, `description`, `parent_id`, `ctime`, `tag`, `is_directory`) VALUES ("+",".join([eqc,eqstr,null,eqp,ctime,null,null])+")")
 
-for bu in SETUP.keys():
+for bu in SETUP:
     bstr = "'{0}'".format(bu)
     for fu in SETUP[bu]:
         fstr = "'{0}'".format(fu)
 
-        nic = str(nic_id.next())
-        host = str(host_id.next())
+        nic = str(next(nic_id))
+        host = str(next(host_id))
         sqlCmd.append("INSERT INTO "+d+" (`eqset_id`, `dnsname`, `nic_id`, `network_name`)  VALUES (" +",".join([eqc,fstr,nic,net])+ ")")
         sqlCmd.append("INSERT INTO "+hn+" (`eqset_id`, `host_id`, `nic_id`) VALUES ("+",".join([eqc,host,nic])+")")
         sqlCmd.append("INSERT INTO "+ha+" (`eqset_id`, `host_id`, `attr_name`, `attr_value`) VALUES ("+",".join([eqc,host,attr,bstr])+")")
@@ -77,5 +77,5 @@ conn=MySQLdb.connect( host= db_host, user = db_user, passwd = db_pass, db = db_n
 cursor=conn.cursor()
 
 for cmd in sqlCmd:
-    print cmd
+    print(cmd)
     #cursor.execute(cmd)

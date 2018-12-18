@@ -85,15 +85,15 @@ def getmachinetype():
     elif myhost.startswith('hilton-') : return 'hilton','fu'
     elif myhost.startswith('bu-') : return 'daq2','bu'
     else:
-        print "unknown machine type"
+        print("unknown machine type")
         return 'unknown','unknown'
 
 
 def getIPs(hostname):
     try:
         ips = socket.gethostbyname_ex(hostname)
-    except socket.gaierror, ex:
-        print 'unable to get ',hostname,'IP address:',str(ex)
+    except socket.gaierror as ex:
+        print('unable to get ',hostname,'IP address:',str(ex))
         raise ex
     return ips
 
@@ -238,7 +238,7 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
     if eqset_ == 'latest':
         cur.execute(qstring)
     else:
-        print "query equipment set",parentTag+'/'+eqset_
+        print("query equipment set",parentTag+'/'+eqset_)
         cur.execute(qstring2)
 
     retval = []
@@ -246,7 +246,7 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
         retval.append(res)
     cur.close()
     if len(retval)==0:
-        print 'warning: query did not find anu BU for this FU'
+        print('warning: query did not find anu BU for this FU')
         syslog.syslog('warning: query did not find anu BU for this FU')
     #print retval
     return retval
@@ -435,21 +435,21 @@ def restoreFileMaybe(file):
             shouldCopy = True
 
         if shouldCopy:
-            print "restoring ",file
+            print("restoring ",file)
             backuppath = os.path.join(backup_dir,os.path.basename(file))
             f = open(backuppath)
             blines = f.readlines()
             f.close()
             if  checkModifiedConfig(blines) == False and len(blines)>0:
                 shutil.move(backuppath,file)
-    except Exception, ex:
-        print "restoring problem: " , ex
+    except Exception as ex:
+        print("restoring problem: " , ex)
         pass
 
 #main function
 if __name__ == "__main__":
     if not len(sys.argv)>1 or sys.argv[1] not in ['configure','forceConfigure','disable','getrole']:
-        print "Command parameter is missing or not among [configure,disable,getrole]"
+        print("Command parameter is missing or not among [configure,disable,getrole]")
         sys.exit(1)
 
     selection = sys.argv[1]
@@ -457,11 +457,11 @@ if __name__ == "__main__":
 
     if 'getrole' == selection:
         cluster,mtype = getmachinetype()
-        print mtype
+        print(mtype)
         sys.exit(0)
 
     elif 'disable' == selection:
-        print "disabling hltd"
+        print("disabling hltd")
         hltdcfg = FileManager(hltdconf,hltdconftemplate,'=',True,' ',' ')
         hltdcfg.reg('enabled','False','[General]')
         hltdcfg.commit()
@@ -473,7 +473,7 @@ if __name__ == "__main__":
         cred = json.load(fi)
 
     if 'env' not in cred:
-        print "Enviroment parameter missing"
+        print("Enviroment parameter missing")
         sys.exit(1)
     env = cred['env']
     tmphost = os.uname()[1]
@@ -499,13 +499,13 @@ if __name__ == "__main__":
       }
 
     if 'centrales' not in cred:
-        print "elasticsearch central host/alias missing"
+        print("elasticsearch central host/alias missing")
         sys.exit(1)
     elastic_host = cred['centrales']
     elastic_host_url = 'http://'+elastic_host+':9200'
 
     if 'locales' not in cred:
-        print "elasticsearch local host/alias missing"
+        print("elasticsearch local host/alias missing")
         sys.exit(1)
     elastic_host_local = cred['locales']
     elastic_host_local_url = 'http://'+elastic_host_local+':9200'
@@ -515,24 +515,24 @@ if __name__ == "__main__":
     dbpwd=cred['password']
 
     if 'eqset' not in cred:
-        print "equipment set name missing"
+        print("equipment set name missing")
         sys.exit(1)
     eqset_tmp = cred['eqset'].strip() 
     if eqset_tmp != '':
         equipmentSet = eqset_tmp
 
     if 'cmsswbase' not in cred:
-        print "CMSSW base dist path missing"
+        print("CMSSW base dist path missing")
         sys.exit(1)
     cmssw_base = cred['cmsswbase']
 
     if 'user' not in cred:
-        print "CMSSW job username parameter is missing"
+        print("CMSSW job username parameter is missing")
         sys.exit(1)
     username = cred['user']
 
     if 'nthreads' not in cred:
-        print "CMSSW number of threads/process is missing"
+        print("CMSSW number of threads/process is missing")
         sys.exit(1)
     nthreads = cred['nthreads']
     #@SM: override
@@ -540,7 +540,7 @@ if __name__ == "__main__":
     resource_cmsswthreads = nthreads
 
     if 'nfwkstreams' not in cred:
-        print "CMSSW number of framework streams/process is missing"
+        print("CMSSW number of framework streams/process is missing")
         sys.exit(1)
     nfwkstreams = cred['nfwkstreams']
      #@SM: override
@@ -548,12 +548,12 @@ if __name__ == "__main__":
     resource_cmsswstreams = nfwkstreams
 
     if 'cmsswloglevel' not in cred:
-        print "CMSSW log collection level is missing"
+        print("CMSSW log collection level is missing")
         sys.exit(1)
     cmsswloglevel = cred['cmsswloglevel']
 
     if 'hltdloglevel'not in cred:
-        print "hltd log collection level is missing"
+        print("hltd log collection level is missing")
         sys.exit(1)
     hltdloglevel =  cred['hltdloglevel']
 
@@ -639,18 +639,18 @@ if __name__ == "__main__":
                 if buName==None:
                     buName = addr[1].split('.')[0]
                 elif buName != addr[1].split('.')[0]:
-                    print "BU name not same for all interfaces:",buName,addr[1].split('.')[0]
+                    print("BU name not same for all interfaces:",buName,addr[1].split('.')[0])
                     continue
                 buDataAddr.append(addr[1])
                 #if none are pingable, first one is picked
                 if buName == None or len(buDataAddr)==0:
-                    print "no BU found for this FU in the dabatase"
+                    print("no BU found for this FU in the dabatase")
                     syslog.syslog("no BU found for this FU in the database")
                     sys.exit(-1)
         elif cluster == 'hilton':
             pass
         else:
-            print "FU configuration in cluster",cluster,"not supported yet !!"
+            print("FU configuration in cluster",cluster,"not supported yet !!")
             sys.exit(-2)
 
     elif mtype == 'bu':
@@ -659,7 +659,7 @@ if __name__ == "__main__":
         else:
             buName = os.uname()[1]
 
-    print "running configuration for machine",cnhostname,"of type",mtype,"in cluster",cluster,"; appliance bu is:",buName
+    print("running configuration for machine",cnhostname,"of type",mtype,"in cluster",cluster,"; appliance bu is:",buName)
     if buName==None: buName=""
 
     clusterName='appliance_'+buName
@@ -694,7 +694,7 @@ if __name__ == "__main__":
                     try:
                         nameToWrite = getIPs(addr)[0]
                     except Exception as ex:
-                        print ex
+                        print(ex)
                         #write bus.config even if name is not yet available by DNS
                         nameToWrite = addr
                     f.writelines(nameToWrite)
@@ -723,10 +723,10 @@ if __name__ == "__main__":
                 #delete existing run directories to ensure there is space (if this machine has a non-main instance)
                 if instances!=["main"]:
                     os.popen('rm -rf /fff/ramdisk/run*')
-            except subprocess.CalledProcessError, err1:
-                print 'failed to cleanup ramdisk',err1
+            except subprocess.CalledProcessError as err1:
+                print('failed to cleanup ramdisk',err1)
             except Exception as ex:
-                print 'failed to cleanup ramdisk',ex
+                print('failed to cleanup ramdisk',ex)
 
             cgibase=9000
 
@@ -752,8 +752,8 @@ if __name__ == "__main__":
                     #run loopback setup for non-main instances (is done on every boot since ramdisk is volatile)
                     try:
                         subprocess.check_call(['/opt/hltd/scripts/makeloopfs.sh','/fff/ramdisk',instance, str(sizes[idx])])
-                    except subprocess.CalledProcessError, err1:
-                        print 'failed to configure loopback device mount in ramdisk'
+                    except subprocess.CalledProcessError as err1:
+                        print('failed to configure loopback device mount in ramdisk')
 
                 soap2file_port='0'
 

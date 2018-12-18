@@ -43,7 +43,7 @@ class MountManager:
 	    p.wait()
             #subprocess.check_call(['umount',point])
 	    code = p.returncode
-        except subprocess.CalledProcessError, err:
+        except subprocess.CalledProcessError as err:
 	    code = err.returncode
 	except Exception as ex:
             code = -1
@@ -74,7 +74,7 @@ class MountManager:
 	    p.wait()
             #subprocess.check_call(['umount','-f',point])
 	    code = p.returncode
-        except subprocess.CalledProcessError, err:
+        except subprocess.CalledProcessError as err:
 	    code = err.returncode
 	except Exception as ex:
             code = -1
@@ -216,7 +216,7 @@ class MountManager:
                             self.bu_disk_ramdisk_CI_instance = toappend
                         else:
                             self.bu_disk_ramdisk_CI_instance = os.path.join(toappend,self.conf.instance)
-                    except subprocess.CalledProcessError, err2:
+                    except subprocess.CalledProcessError as err2:
                         self.logger.exception(err2)
                         self.logger.fatal("Unable to mount ramdisk - exiting.")
                         sys.exit(1)
@@ -274,7 +274,7 @@ class MountManager:
                             self.bu_disk_list_ramdisk_instance.append(toappend)
                         else:
                             self.bu_disk_list_ramdisk_instance.append(os.path.join(toappend,self.conf.instance))
-                    except subprocess.CalledProcessError, err2:
+                    except subprocess.CalledProcessError as err2:
                         self.logger.exception(err2)
                         self.logger.fatal("Unable to mount ramdisk - exiting.")
                         sys.exit(1)
@@ -304,7 +304,7 @@ class MountManager:
                         #    self.bu_disk_list_output_instance.append(os.path.join(toappend,self.conf.instance))
                         self.bu_disk_list_output_instance.append(toappend)
 
-                    except subprocess.CalledProcessError, err2:
+                    except subprocess.CalledProcessError as err2:
                         self.logger.exception(err2)
                         self.logger.fatal("Unable to mount output - exiting.")
                         sys.exit(1)

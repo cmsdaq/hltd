@@ -45,7 +45,7 @@ class InotifyWrapper(threading.Thread):
                 self.w.add_all(path,mask,reportError)
             else:
                 self.w.add(path,mask)
-        except OSError, err:
+        except OSError as err:
             self.logger.error('inotify wrapper exception: ' + err.strerror)
             raise err
 
@@ -72,10 +72,10 @@ class InotifyWrapper(threading.Thread):
                             self.parent_.process_IN_CLOSE_WRITE(event)
                         else:
                             self.parent_.process_default(event)
-                    except AttributeError, err:
+                    except AttributeError as err:
                         #parent does not implement the function
                         self.parent_.process_default(event)
-            except Exception, ex:
+            except Exception as ex:
                 if self.quit == False: self.logger.exception("exception in inotify run thread:")
 
     def stop(self):
@@ -83,7 +83,7 @@ class InotifyWrapper(threading.Thread):
         try:
             for wd in self.w._wds:
                 inotify.remove_watch(self.w.fd, wd)
-        except Exception, ex:
+        except Exception as ex:
             pass
         self.w.close()
         self.logger.debug('closed inotify fd')

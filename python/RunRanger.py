@@ -2,7 +2,10 @@ import os
 import signal
 import time
 import threading
-import httplib
+try:
+  from httplib import HTTPConnection
+except:
+  from http.client import HTTPConnection
 import shutil
 import demote
 import prctl
@@ -142,7 +145,7 @@ class RunRanger:
                         try:
                             if conf.role=='fu' and not self.state.entering_cloud_mode and not self.resInfo.has_active_resources():
                                 self.logger.error("RUN:"+str(run.runnumber)+' - trying to start a run without any available resources (all are QUARANTINED) - this requires manual intervention !')
-                        except Exception,ex:
+                        except Exception as ex:
                             self.logger.exception(ex)
 
                         if run.AcquireResources(mode='greedy'):
@@ -321,7 +324,7 @@ class RunRanger:
                                 while attemptsLeft>0:
                                     attemptsLeft-=1
                                     try:
-                                        connection = httplib.HTTPConnection(hostip, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
+                                        connection = HTTPConnection(hostip, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
                                         time.sleep(0.2)
                                         connection.request("GET",'cgi-bin/herod_cgi.py?command='+str(dirname))
                                         time.sleep(0.3)
@@ -481,7 +484,7 @@ class RunRanger:
                     self.logger.fatal("No BU name was found in the bus.config file. Leaving mount points unmounted until the hltd service restart.")
                     os.remove(fullpath)
                     return
-                connection = httplib.HTTPConnection(bu_name, replyport+20,timeout=5)
+                connection = HTTPConnection(bu_name, replyport+20,timeout=5)
                 connection.request("GET",'cgi-bin/report_suspend_cgi.py?host='+os.uname()[1])
                 response = connection.getresponse()
             except Exception as ex:
@@ -509,7 +512,7 @@ class RunRanger:
                         continue
 
                     self.logger.info('checking if BU hltd is available...')
-                    connection = httplib.HTTPConnection(bu_name, replyport,timeout=5)
+                    connection = HTTPConnection(bu_name, replyport,timeout=5)
                     connection.request("GET",'cgi-bin/getcwd_cgi.py')
                     response = connection.getresponse()
                     self.logger.info('BU hltd is running !...')
@@ -881,7 +884,7 @@ class RunRanger:
                   except:
                     self.logger.warning(str(host_short) + ' not in FUMap')
                   try:
-                    connection = httplib.HTTPConnection(host,conf.cgi_port,timeout=20)
+                    connection = HTTPConnection(host,conf.cgi_port,timeout=20)
                     connection.request("GET",'cgi-bin/restart_cgi.py')
                     time.sleep(.2)
                     response = connection.getresponse()
@@ -891,7 +894,7 @@ class RunRanger:
                     #try again in a moment (DNS could be loaded)
                     time.sleep(1)
                     try:
-                      connection = httplib.HTTPConnection(host,conf.cgi_port,timeout=20)
+                      connection = HTTPConnection(host,conf.cgi_port,timeout=20)
                       connection.request("GET",'cgi-bin/restart_cgi.py')
                       time.sleep(.2)
                       response = connection.getresponse()

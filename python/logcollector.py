@@ -14,7 +14,10 @@ import filecmp
 from inotifywrapper import InotifyWrapper
 import inotify._inotify as inotify
 import threading
-import Queue
+try:
+  import Queue as queue
+except:
+  import queue
 import simplejson as json
 import logging
 import collections
@@ -37,9 +40,9 @@ import mappings
 terminate = False
 threadEventRef = None
 #message type
-MLMSG,EXCEPTION,EVENTLOG,UNFORMATTED,STACKTRACE = range(5)
+MLMSG,EXCEPTION,EVENTLOG,UNFORMATTED,STACKTRACE = list(range(5))
 #message severity
-DEBUGLEVEL,INFOLEVEL,WARNINGLEVEL,ERRORLEVEL,FATALLEVEL = range(5)
+DEBUGLEVEL,INFOLEVEL,WARNINGLEVEL,ERRORLEVEL,FATALLEVEL = list(range(5))
 
 typeStr=['messagelogger','exception','eventlog','unformatted','stacktrace']
 severityStr=['DEBUG','INFO','WARNING','ERROR','FATAL']
@@ -222,13 +225,13 @@ class CMSSWLogEventML(CMSSWLogEvent):
         CMSSWLogEvent.fillCommon(self)
 
         #parse various header formats
-        headerInfo = filter(None,self.message[0].split(' '))
+        headerInfo = [_f for _f in self.message[0].split(' ') if _f]
         self.category =  headerInfo[1].rstrip(':')
 
         #capture special case MSG-e (Root signal handler piped to ML)
         if self.severity>=ERRORLEVEL:
             while len(headerInfo)>3 and headerInfo[3][:2].isdigit()==False:
-                if 'moduleCall' not in self.document.keys():
+                if 'moduleCall' not in self.document:
                     self.document['moduleCall']=headerInfo[3]
                 else:
                     self.document['moduleCall']+=headerInfo[3]
@@ -296,7 +299,7 @@ class CMSSWLogEventException(CMSSWLogEvent):
 
     def decode(self):
         CMSSWLogEvent.fillCommon(self)
-        headerInfo = filter(None,self.message[0].split(' '))
+        headerInfo = [_f for _f in self.message[0].split(' ') if _f]
 
         try:
             datepieces=headerInfo[4].strip().split('-')
@@ -308,13 +311,13 @@ class CMSSWLogEventException(CMSSWLogEvent):
         self.document['msgtimezone']=headerInfo[6].rstrip('-\n')
 
         if len(self.message)>1:
-            line2 = filter(None,self.message[1].split(' '))
+            line2 = [_f for _f in self.message[1].split(' ') if _f]
             self.document['category'] = line2[4].strip('\'')
 
         procl=2
         foundState=False
         while len(self.message)>procl:
-            line3 = filter(None,self.message[procl].strip().split(' '))
+            line3 = [_f for _f in self.message[procl].strip().split(' ') if _f]
             if line3[0].strip().startswith('[') and foundState==False:
                 self.document['fwkState'] = line3[-1].rstrip(':\n')
                 if self.document['fwkState']=='EventProcessor':
@@ -495,14 +498,14 @@ class CMSSWLogParser(threading.Thread):
                     try:
                         e.decode()
                         self.mainQueue.put(e)
-                    except Exception,ex:
+                    except Exception as ex:
                         self.logger.error('failed to parse message contentent')
                         self.logger.exception(ex)
             try:
                 event.decode()
                 self.mainQueue.put(event)
 
-            except Exception,ex:
+            except Exception as ex:
                 self.logger.error('failed to parse message contentent')
                 self.logger.exception(ex)
 
@@ -519,7 +522,7 @@ class CMSSWLogESWriter(threading.Thread):
     def __init__(self,rn):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.queue = Queue.Queue(1024)
+        self.queue = queue.Queue(1024)
         self.parsers = {}
         self.numParsers=0
         self.doStop = False
@@ -551,14 +554,14 @@ class CMSSWLogESWriter(threading.Thread):
                             #check if this entry should be inserted into the central index
                             if evt.severity>=FATALLEVEL and evt.inject_central_index:
                                 hlc.esHandler.elasticize_cmsswlog(evt.document)
-                    except Queue.Empty:
+                    except queue.Empty:
                         break
                 if len(documents)>0:
                     try:
                         reply = bulk_index(self.eb.es,self.eb.indexName,'cmsswlog',documents)
                         if reply['errors']==True:
                             self.logger.error("Error reply on bulk-index request(logcollector):"+ str(reply))
-                    except Exception,ex:
+                    except Exception as ex:
                         try:
                           errinfo = list(ex)
                           if errinfo[0]==403:
@@ -578,7 +581,7 @@ class CMSSWLogESWriter(threading.Thread):
                                 if evt.severity>=FATALLEVEL and evt.inject_central_index:
                                     hlc.esHandler.elasticize_cmsswlog(evt.document)
                                 self.eb.es.index(index=self.eb.indexName,doc_type='cmsswlog',body=evt.document)
-                        except Exception,ex:
+                        except Exception as ex:
                             try:
                               errinfo = list(ex)
                               if errinfo[0]==403:
@@ -588,7 +591,7 @@ class CMSSWLogESWriter(threading.Thread):
                             except Exception as ex2:
                                 self.logger.warning("Unable to parse exception " + str(ex) + ":" + str(ex2))
 
-                    except Queue.Empty:
+                    except queue.Empty:
                         break
             else:
                 if self.doStop == False and self.abort == False:
@@ -604,9 +607,9 @@ class CMSSWLogESWriter(threading.Thread):
                         break
 
     def stop(self):
-        for key in self.parsers.keys():
+        for key in self.parsers:
             self.parsers[key].stop()
-        for key in self.parsers.keys():
+        for key in self.parsers:
             self.parsers[key].join()
         self.abort = True
         self.threadEvent.set()
@@ -614,7 +617,7 @@ class CMSSWLogESWriter(threading.Thread):
 
     def clearFinished(self):
         aliveCount=0
-        for key in self.parsers.keys():
+        for key in self.parsers:
             aliveCount+=1
             if self.parsers[key].closed:
                 self.parsers[key].join()
@@ -632,7 +635,7 @@ class CMSSWLogESWriter(threading.Thread):
         try:
             self.parsers[path].join()
             self.numParsers-=1
-        except Exception,ex:
+        except Exception as ex:
             self.logger.warn('problem closing parser')
             self.logger.exception(ex)
 
@@ -670,7 +673,7 @@ class CMSSWLogCollector(object):
         self.logger.info("MonitorRanger: Join inotify wrapper")
         self.inotifyWrapper.join()
         self.logger.info("MonitorRanger: Inotify wrapper returned")
-        for rn in self.indices.keys():
+        for rn in self.indices:
             self.indices[rn].stop()
 
     def process_IN_CREATE(self, event):
@@ -702,7 +705,7 @@ class CMSSWLogCollector(object):
             self.indices[rn].addParser(event.fullpath,pid)
 
         #cleanup
-        for rn in self.indices.keys():
+        for rn in self.indices:
             alive = self.indices[rn].clearFinished()
             if alive == 0:
                 self.logger.info('removing old run'+str(rn)+' from the list')
@@ -722,7 +725,7 @@ class CMSSWLogCollector(object):
                 if e.startswith('pid'):
                     pid = int(e[3:])
             return rn,pid
-        except Exception,ex:
+        except Exception as ex:
             self.logger.warn('problem parsing log file name: '+str(ex))
             self.logger.exception(ex)
             return None,None
@@ -742,7 +745,7 @@ class CMSSWLogCollector(object):
                             os.remove(os.path.join(self.dir,file))
                     else:
                         os.remove(os.path.join(self.dir,file))
-                except Exception,ex:
+                except Exception as ex:
                     #maybe permissions were insufficient
                     self.logger.error("could not delete log file")
                     self.logger.exception(ex)
@@ -755,7 +758,7 @@ class CMSSWLogCollector(object):
                             os.remove(os.path.join(self.dir,file))
                     else:
                         os.remove(os.path.join(self.dir,file))
-                except Exception,ex:
+                except Exception as ex:
                     #maybe permissions were insufficient
                     self.logger.error("could not delete old saved HLT menu file")
                     self.logger.exception(ex)
@@ -769,7 +772,7 @@ class CMSSWLogCollector(object):
             out = std_out.split('\t')[0]
             self.logger.info("size of directory "+str(dir)+" is "+str(out)+ " kB")
             return int(out)
-        except Exception,ex:
+        except Exception as ex:
             self.logger.error("Could not check directory size")
             self.logger.exception(ex)
             return 0
@@ -963,7 +966,7 @@ class HLTDLogParser(threading.Thread):
                                 f.close()
                                 f = open(fullpath)
                                 self.logger.info('reopened file '+self.filename)
-                        except Exception,ex:
+                        except Exception as ex:
                             self.logger.info('problem reopening file')
                             self.logger.exception(ex)
                             pass
@@ -1121,7 +1124,7 @@ if __name__ == "__main__":
             clc = CMSSWLogCollector(cmsswlogdir,cmsswloglevel)
             clc.register_inotify_path(cmsswlogdir,mask)
             clc.start_inotify()
-        except Exception,e:
+        except Exception as e:
             logger.error('exception starting cmssw log monitor')
             logger.exception(e)
     else:
@@ -1143,7 +1146,7 @@ if __name__ == "__main__":
                         if counter%doEvery==0:
                             hlc = HLTDLogCollector(hltdlogdir,hltdlogs,hltdloglevel)
                             continue
-                    except Exception,ex:
+                    except Exception as ex:
                         logger.error('exception starting hltd log monitor')
                         logger.exception(ex)
                         hlc=None

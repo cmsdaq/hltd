@@ -8,7 +8,10 @@ import time
 import logging
 import inotify._inotify as inotify
 import threading
-import Queue
+try:
+  import Queue as queue
+except:
+  import queue
 
 from hltdconf import *
 from aUtils import *
@@ -31,7 +34,7 @@ import socket
 #silence HTTP connection info from requests package
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-GENERICJSON,SUMMARYJSON = range(2) #injected JSON range
+GENERICJSON,SUMMARYJSON = list(range(2)) #injected JSON range
 
 jsonSerializer = JSONSerializer()
 
@@ -391,11 +394,11 @@ class elasticBandBU:
 
             document['id']=doc_id
             try:
-              document['activeRunList'] = map(int,document['activeRuns'])
+              document['activeRunList'] = list(map(int,document['activeRuns']))
             except:
               pass
             try:
-              document['activeRuns'] = map(str,document['activeRuns'])
+              document['activeRuns'] = list(map(str,document['activeRuns']))
             except:
               pass
             document['appliance']=self.host
@@ -566,7 +569,7 @@ class elasticCollectorBU():
                                 self.es.elasticize_runend_time(endtime)
                         break
                     self.process()
-                except (KeyboardInterrupt,Queue.Empty) as e:
+                except (KeyboardInterrupt,queue.Empty) as e:
                     self.emptyQueue.set()
                 except (ValueError,IOError) as ex:
                     self.logger.exception(ex)
@@ -667,7 +670,7 @@ class elasticBoxCollectorBU():
                         self.infile = fileHandler(event.fullpath)
                         self.process()
 
-                except (KeyboardInterrupt,Queue.Empty) as e:
+                except (KeyboardInterrupt,queue.Empty) as e:
                     self.emptyQueue.set()
                 except ValueError as ex:
                     self.logger.exception(ex)
@@ -722,12 +725,12 @@ class BoxInfoUpdater(threading.Thread):
             boxesMask = inotify.IN_CLOSE_WRITE
             self.logger.info("starting elastic for "+boxesDir)
 
-            self.eventQueue = Queue.Queue()
+            self.eventQueue = queue.Queue()
             self.mr = MonitorRanger()
             self.mr.setEventQueue(self.eventQueue)
             self.mr.register_inotify_path(boxesDir,boxesMask)
 
-        except Exception,ex:
+        except Exception as ex:
             self.logger.exception(ex)
 
     def run(self):
@@ -741,7 +744,7 @@ class BoxInfoUpdater(threading.Thread):
 
             self.mr.start_inotify()
             self.ec.start()
-        except Exception,ex:
+        except Exception as ex:
             self.logger.exception(ex)
 
     def stop(self):
@@ -756,9 +759,9 @@ class BoxInfoUpdater(threading.Thread):
             if self.ec is not None:
                 self.ec.stop()
             self.join()
-        except RuntimeError,ex:
+        except RuntimeError as ex:
             pass
-        except Exception,ex:
+        except Exception as ex:
             self.logger.exception(ex)
 
 class RunCompletedChecker(threading.Thread):
@@ -811,7 +814,7 @@ class RunCompletedChecker(threading.Thread):
                             self.logger.warning('run index complete flag was not written by all FUs, giving up checks after 10 minutes.')
                             check_es_complete=False
                             continue
-                except Exception,ex:
+                except Exception as ex:
                     self.logger.error('Error in run completition check')
                     self.logger.exception(ex)
                     check_es_complete=False
@@ -847,7 +850,7 @@ if __name__ == "__main__":
     sys.stderr = stdErrorLog()
     sys.stdout = stdOutLog()
 
-    eventQueue = Queue.Queue()
+    eventQueue = queue.Queue()
 
     runnumber = sys.argv[1]
     watchdir = conf.watch_directory
@@ -867,7 +870,7 @@ if __name__ == "__main__":
     try:
         logger.info("try create input mon dir " + monDir)
         os.mkdir(monDir)
-    except OSError,ex:
+    except OSError as ex:
         logger.info(ex)
         pass
 
@@ -906,7 +909,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         logger.exception(e)
-        print traceback.format_exc()
+        print(traceback.format_exc())
         logger.error("when processing files from directory "+mainDir)
 
     try:checkThread.join()

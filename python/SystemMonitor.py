@@ -297,7 +297,7 @@ class system_monitor(threading.Thread):
                         current_runnumber = self.runList.getLastRun().runnumber
                     except:
                         current_runnumber=0
-                    for key in self.boxInfo.FUMap.keys():
+                    for key in self.boxInfo.FUMap:
                         if key==selfhost:continue
                         try:
                             edata,etime,lastStatus = self.boxInfo.FUMap[key]
@@ -410,7 +410,7 @@ class system_monitor(threading.Thread):
                           except:
                             num_hlt_errors_lastrun = 0.
                         #second pass
-                        for key in self.boxInfo.FUMap.keys():
+                        for key in self.boxInfo.FUMap:
                             if key==selfhost:continue
                             try:
                                 edata,etime,lastStatus = self.boxInfo.FUMap[key]
