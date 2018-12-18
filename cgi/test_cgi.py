@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 import cgi
 cgi.test()
 #print "Content-Type: text/html"     # HTML is following
