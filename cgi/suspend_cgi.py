@@ -2,9 +2,9 @@
 import cgi
 import os
 form = cgi.FieldStorage()
-print "Content-Type: text/html"     # HTML is following
-print
-print "<TITLE>CGI script suspend</TITLE>"
+print("Content-Type: text/html")     # HTML is following
+print()
+print("<TITLE>CGI script suspend</TITLE>")
 
 portsuffix=""
 if "port" in form:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 import cgi
 import os
-print "Content-Type: text/html"     # HTML is following
-print                               # blank line, end of headers
-print os.listdir(os.getcwd()+'/resources/idle')
+print("Content-Type: text/html")     # HTML is following
+print()                               # blank line, end of headers
+print(os.listdir(os.getcwd()+'/resources/idle'))
