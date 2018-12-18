@@ -73,7 +73,7 @@ for result in cur:
     else:
       fu_data_interfaces[fu[0]+'.cms']=[fu[1]]
 
-print ','.join(sorted(list(set(fu_control_list))))
+print(','.join(sorted(list(set(fu_control_list)))))
 
 cur.close()
 con.close()

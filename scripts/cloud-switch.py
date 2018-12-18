@@ -1,7 +1,10 @@
 #!/bin/env python
 import os,sys
 import threading
-import httplib
+try:
+  from httplib import HTTPConnection
+except:
+  from http.client import HTTPConnection
 import time
 import socket
 socket.setdefaulttimeout(5)
@@ -10,9 +13,9 @@ socket.setdefaulttimeout(5)
 fu_list=[]
 
 if len(sys.argv)<3:
-  print "usage: cloud-switch.py on|off mode=file filepath"
-  print "or"
-  print "usage: cloud-switch.py on|off fulist"
+  print("usage: cloud-switch.py on|off mode=file filepath")
+  print("or")
+  print("usage: cloud-switch.py on|off fulist")
   sys.exit(1)
 
 if sys.argv[2].startswith("mode=file"):
@@ -38,7 +41,7 @@ countf = 0
 switchover_timeout = 240 #seconds
 if sys.argv[1]=="off": switchover_timeout=120
 
-print "Attempting change of cloud mode for max. ",switchover_timeout,"seconds"
+print("Attempting change of cloud mode for max. ",switchover_timeout,"seconds")
 
 failed_connerror=[]
 failed_timeout=[]
@@ -51,14 +54,14 @@ def do_cloud_onoff(fuhost,cgi,test):
 	ltimeout = switchover_timeout
 
         if test==False:
-	  conn = httplib.HTTPConnection(host=fuhost,port=9000)
+	  conn = HTTPConnection(host=fuhost,port=9000)
 	  conn.request("GET", "/cgi-bin/"+cgi)
 	  time.sleep(1)
 	  resp = conn.getresponse()
 	  conn.close()
 	while ltimeout>0:
 	    ltimeout-=1
-	    conn = httplib.HTTPConnection(host=fuhost,port=9000)
+	    conn = HTTPConnection(host=fuhost,port=9000)
 	    conn.request("GET", "/cgi-bin/cloud_mode_active_cgi.py")
 	    time.sleep(1)
 	    resp = conn.getresponse()
@@ -67,7 +70,7 @@ def do_cloud_onoff(fuhost,cgi,test):
 	    if status!=200:
 		#print "error",fuhost,status
 	        failed_connerror.append(fuhost)
-		print "failed",fuhost,status
+		print("failed",fuhost,status)
 		countf+=1
 		return status
 	    data = resp.read()
@@ -88,12 +91,12 @@ def do_cloud_onoff(fuhost,cgi,test):
 	failed_timeout.append(fuhost)
 	countf+=1
 	return -1
-    except Exception,ex:
+    except Exception as ex:
 	try:conn.close()
 	except:pass
 	failed_connerror.append(fuhost)
         countf+=1
-        print "failed",fuhost,"exception:",ex
+        print("failed",fuhost,"exception:",ex)
 	return -2
 
 t_list = []
@@ -110,7 +113,7 @@ for fu in fu_list:
     t = threading.Thread(target=do_cloud_onoff, args = [fu,'',True])
     t.start()
   else:
-    print "Please provide on or off as first argument"
+    print("Please provide on or off as first argument")
     sys.exit(1)
   #t.daemon = True
   t_list.append([fu,t])
@@ -119,28 +122,28 @@ for fu in fu_list:
 running = len(t_list)
 
 current_time = time.time()
-print "finished notification loop"
-print "total:",count1,"success:",counts,"failed:",countf
+print("finished notification loop")
+print("total:",count1,"success:",counts,"failed:",countf)
 while running:
   for tpair in t_list:
     if tpair[1]!=None:
       try:
           tpair[1].join(3)
       except:
-	  print "exception in joining thread for FU",tpair[0]
+	  print("exception in joining thread for FU",tpair[0])
       if not tpair[1].isAlive():
         tpair[1]=None
         running-=1
       new_time = time.time()
       if new_time-current_time>3:
-        print "total:",count1,"success:",counts,"failed:",countf
+        print("total:",count1,"success:",counts,"failed:",countf)
         current_time=new_time
 
-print "total:",count1,"success:",counts,"failed:",countf
+print("total:",count1,"success:",counts,"failed:",countf)
 
 if countf>0:
-  print "timeout checking:",failed_timeout
-  print "error connecting:",failed_connerror
+  print("timeout checking:",failed_timeout)
+  print("error connecting:",failed_connerror)
 else:
-	print "success: switched",sys.argv[1],"cloud on all FUs"
+	print("success: switched",sys.argv[1],"cloud on all FUs")
 

@@ -21,11 +21,11 @@ def executeServiceScript(service,commands):
 
    isHltdStatus = service == 'hltd' and 'status' in commands
    if (isHltdStatus and 'is running' in output) or (not isHltdStatus and proc.returncode==0):
-       print commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+       print(commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]')
        return 0
    else:
-      print commands + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
-      print 'command output:\n',output
+      print(commands + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]')
+      print('command output:\n',output)
       return proc.returncode
 
 
@@ -38,11 +38,11 @@ def executeServiceUnit(command,service):
 
    isHltdStatus = service == 'hltd' and 'status' == command
    if proc.returncode==0:
-       print command+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]'
+       print(command+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]')
        return 0
    else:
-      print '/usr/bin/systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]'
-      print 'command output:\n',output
+      print('/usr/bin/systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]')
+      print('command output:\n',output)
       return proc.returncode
 
 
@@ -51,11 +51,11 @@ def reconfigureScript(verbose=False):
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
-      print 'Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
+      print('Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]')
       syslog.syslog('Failed to run reconfigure script: ' + str(output))
       return 1
     elif verbose:
-      print output
+      print(output)
     return 0
 
 def reconfigureScriptForce():
@@ -63,7 +63,7 @@ def reconfigureScriptForce():
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
-      print 'Failed to run reconfigure script (force): ',output,' [  \033[1;31mFAILED\033[0;39m  ]'
+      print('Failed to run reconfigure script (force): ',output,' [  \033[1;31mFAILED\033[0;39m  ]')
       syslog.syslog('Failed to run reconfigure script (force): ' + str(output))
       return 1
     return 0
@@ -119,23 +119,23 @@ if __name__ == "__main__":
         sys.exit(rc)
 
     elif 'stop' == cmd:
-        print "stop FFF called"
+        print("stop FFF called")
         sys.exit(0)
 
     #non-systemd commands:
     elif 'restartUnblacklisted' == cmd:
         if isBlacklisted():
-            print "Machine is blacklisted. Skipping reconfigure/restart of services"
+            print("Machine is blacklisted. Skipping reconfigure/restart of services")
             sys.exit(1)
         else:
             proc = Popen(['/usr/bin/systemctl', 'restart', 'fff'], stdout=PIPE, stderr=PIPE, shell=False)
             output = proc.communicate()[0]
             if proc.returncode!=0:
-                print output
+                print(output)
                 sys.exit(proc.returncode)
 
     elif 'restart' == cmd:
-        print "Use: /usr/bin/systemctl restart fff"
+        print("Use: /usr/bin/systemctl restart fff")
 
     elif 'status' == cmd:
         #old style status (less verbose than systemctl status)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             proc = Popen(['python2','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
             output = proc.communicate()[0]
             if rc==0:
-                print "FFF services are disabled"
+                print("FFF services are disabled")
             sys.exit(rc)
 
     elif 'restoreUnblacklisted' == cmd:
@@ -170,31 +170,31 @@ if __name__ == "__main__":
                 reenableServices()
                 rc=executeServiceUnit('restart','fff')
                 if rc==0:
-                    print "FFF services are restored"
+                    print("FFF services are restored")
             sys.exit(rc)
 
     elif 'disableBoot' == cmd:
         disableServices()
-        print "FFF services are disabled at boot"
+        print("FFF services are disabled at boot")
 
     elif 'enableBoot' == cmd:
         reenableServices()
-        print "FFF services are enabled at boot"
+        print("FFF services are enabled at boot")
 
     elif 'checkBlacklist' == cmd:
         if isBlacklisted():
-            print "Host is blacklisted"
+            print("Host is blacklisted")
             sys.exit(1)
         else:
-            print "Host is not blacklisted"
+            print("Host is not blacklisted")
             sys.exit(0)
 
     else:
-        print "Unknown command"
+        print("Unknown command")
         sys.exit(1)
 
   else:
-      print "usage: %s start|stop|status|configure|enableBoot|disableBoot|restartUnblacklisted|disableBlacklisted|restoreUnblacklisted" % sys.argv[0]
+      print("usage: %s start|stop|status|configure|enableBoot|disableBoot|restartUnblacklisted|disableBlacklisted|restoreUnblacklisted" % sys.argv[0])
       sys.exit(1)
 
 sys.exit(0)

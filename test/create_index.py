@@ -17,11 +17,11 @@ if len(sys.argv)>=4:
   server_url=sys.argv[2]
   index_name=sys.argv[3]
 else:
-  print "Parameters: command[create,alias,mapping] server url, index.alias name (target index)"
-  print "  COMMANDS:"
-  print "    create: create index"
-  print "    alias: create index *_read and *_write aliases (optional parameter: target index)"
-  print "    create missing document mappings for the index"
+  print("Parameters: command[create,alias,mapping] server url, index.alias name (target index)")
+  print("  COMMANDS:")
+  print("    create: create index")
+  print("    alias: create index *_read and *_write aliases (optional parameter: target index)")
+  print("    create missing document mappings for the index")
   sys.exit(1)
 
 if server_url.startswith('http://')==False:
@@ -63,11 +63,11 @@ if command=='alias':
   if status1!=200:
     alias_settings["actions"].append({"add": {"index": target_index, "alias": alias_write}})
   else:
-    print alias_write,"already exists"
+    print(alias_write,"already exists")
   if status2!=200:
     alias_settings["actions"].append({"add": {"index": target_index, "alias": alias_read}})
   else:
-    print alias_read,"already exists"
+    print(alias_read,"already exists")
   if len(alias_settings["actions"])>0:
     es.indices.update_aliases(aliases_settings)
 
@@ -78,20 +78,20 @@ if command=='mapping':
             doc = {key:doc}
             res = requests.get(server_url+'/'+index_name+'/'+key+'/_mapping')
             if res.status_code==404:
-                print "index doesn't exist. Try to create it first?"
+                print("index doesn't exist. Try to create it first?")
                 break
             #only update if mapping is empty
             if res.status_code==200:
               if res.content.strip()=='{}':
                 result = requests.post(server_url+'/'+index_name+'/'+key+'/_mapping',json.dumps(doc))
                 if result.status_code==200:
-                    print "created document mapping for '"+key+"'"
+                    print("created document mapping for '"+key+"'")
                 else:
-                    print "Failed to create mapping for",key
+                    print("Failed to create mapping for",key)
               else:
-                print "document mapping for '"+key+"' already exists"
+                print("document mapping for '"+key+"' already exists")
         except Exception as ex:
-            print ex
+            print(ex)
             pass
 
 

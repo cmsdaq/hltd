@@ -12,7 +12,7 @@ sys.modules['mapping'] = __import__('mapping2')
 
 import mapping
 
-print elasticbu.mapping
+print(elasticbu.mapping)
 
 #conf=initConf('main')
 #self.es = elasticBandBU(self.conf,0,'',False,None,None)

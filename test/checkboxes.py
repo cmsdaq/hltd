@@ -26,7 +26,7 @@ for f in files:
 	    js = json.load(fp)
 	    if f in blist:
               count_bl+=1
-	      if js['used']>0 or js['cloud']>0:print "BL warning U:",js['used'],"C:",js['cloud']
+	      if js['used']>0 or js['cloud']>0:print("BL warning U:",js['used'],"C:",js['cloud'])
 	    else:
 	      if js['used']>0:
                 count_used+=1
@@ -35,6 +35,6 @@ for f in files:
 	      if js['cloud']>0:
 	        count_cloud+=1
 
-print "stats T:",count_total,"U:",count_used,"I:",count_idle,"C:",count_cloud,"B:",count_bl
+print("stats T:",count_total,"U:",count_used,"I:",count_idle,"C:",count_cloud,"B:",count_bl)
 		    
 	  

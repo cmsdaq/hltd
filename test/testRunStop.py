@@ -19,7 +19,7 @@ def lineSearch(logfile,*args):
     if foundAll == True:
       return line
     if searchTimeAccum >= searchTimeout:
-      print "Error: 10s timeout waiting hlt to log a line containing all of: " + str(args)
+      print("Error: 10s timeout waiting hlt to log a line containing all of: " + str(args))
       sys.exit(-1)
 
 
@@ -37,7 +37,7 @@ EoRDirPrefix = 'end'
 menu_dir = testBuDir+'/hlt'
 cmssw_config = menu_dir+'/HltConfig.py'
 
-print "test script 1! killing all cmssw and restarting hltd"
+print("test script 1! killing all cmssw and restarting hltd")
 os.system("killall hltd")
 os.system("killall cmsRun")
 time.sleep(1)
@@ -46,7 +46,7 @@ os.system("/etc/init.d/hltd restart")
 try:
   shutil.rmtree(menu_dir)
 except OSError as oserror:
-  print "no old dir to delete.OK"
+  print("no old dir to delete.OK")
 
 os.mkdir(menu_dir)
 
@@ -64,21 +64,21 @@ fscram.close()
 try:
   shutil.rmtree(testBuDir+'/'+RunDirPrefix+str(testRunNumber))
 except OSError as oserror:
-  print "no old dir to delete.OK"
+  print("no old dir to delete.OK")
 try:
   shutil.rmtree(testBuDir+'/'+RunDirPrefix+str(testRunNumber2))
 except OSError as oserror:
-  print "no old dir to delete.OK"
+  print("no old dir to delete.OK")
 
 try:
   os.remove(testDataDir+'/'+EoRDirPrefix+str(testRunNumber))
 except OSError as oserror:
-  print "no old file to delete.OK"
+  print("no old file to delete.OK")
 
 try:
   os.remove(testDataDir+'/'+EoRDirPrefix+str(testRunNumber2))
 except OSError as oserror:
-  print "no old file to delete.OK"
+  print("no old file to delete.OK")
 
 
 
@@ -94,11 +94,11 @@ logfile.seek(0,2)#goto file end
 #    break
 
 #fire up a new run by creating a data dir (avoiding cgi here)
-print "starting run for hltd"
+print("starting run for hltd")
 try:
   shutil.rmtree(testDataDir+'/'+RunDirPrefix+str(testRunNumber))
 except OSError as oserror:
-  print "no old dir to delete.OK"
+  print("no old dir to delete.OK")
 
 time.sleep(0.5)
 os.mkdir(testDataDir+'/'+RunDirPrefix+str(testRunNumber))
@@ -106,47 +106,47 @@ os.mkdir(testDataDir+'/'+RunDirPrefix+str(testRunNumber))
 #wait until hltd reacts
 time.sleep(0.5)
 
-print "created data dir"
+print("created data dir")
 
 #look at the hltd log
 retval = lineSearch(logfile,"started process")
-print "hltd printed line: " + retval
+print("hltd printed line: " + retval)
 
 time.sleep(1)
 #signal EoR
-print "writing EoR file"
+print("writing EoR file")
 eorFile = open(testDataDir+'/'+EoRDirPrefix+str(testRunNumber),"w")
 eorFile.close()
 
 time.sleep(0.3)
 
 retval = lineSearch(logfile,"end run")
-print "hltd printed line: " + retval
+print("hltd printed line: " + retval)
 
 time.sleep(2)
 
 
 #second set of test run dirs
 os.mkdir(testBuDir+'/'+RunDirPrefix+str(testRunNumber2))
-print "starting run " + str(testRunNumber2) +" for hltd"
+print("starting run " + str(testRunNumber2) +" for hltd")
 try:
   shutil.rmtree(testDataDir+'/'+RunDirPrefix+str(testRunNumber2))
 except OSError as oserror:
-  print "no old dir to delete.OK"
+  print("no old dir to delete.OK")
 time.sleep(0.1)
 os.mkdir(testDataDir+'/'+RunDirPrefix+str(testRunNumber2))
 
 time.sleep(1)
 logfile.seek(0,2)
 
-print "running killall cmsRun"
+print("running killall cmsRun")
 os.system("killall cmsRun")
 
 time.sleep(1)
 
-print "waiting for next..."
+print("waiting for next...")
 retval = lineSearch(logfile,"started process")
-print "hltd printed line: " + retval
+print("hltd printed line: " + retval)
 
 
 ############################

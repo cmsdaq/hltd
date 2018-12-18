@@ -62,14 +62,14 @@ if len(sys.argv)>1:
                 connurl='http://es-vm-local.cern.ch:9200'
 
 if printHelp==True:
-    print "Description: displays live HLT CMSSW logs injected in es-local cluster"
-    print "Usage: . logprint.py --mode=%SYS [-c=%URL -l=%[DEBUG,INFO,WARNING,ERROR,FATAL] -r=%[-1,0,...] --black --light]"
-    print " --mode=cdaq,daq2val,minidaq,vm2. discovery of runs the central index (MANDATORY)"
-    print " -l: log level threshold (default: INFO)"
-    print " -r: DEBUG/INFO repeat suppression threshold (default: 100, disable: -1)"
-    print " --black: color scheme for black background terminal (default: disabled)"
-    print " --light: your terminal background color (default: white)"
-    print " --help: print this info and quit"
+    print("Description: displays live HLT CMSSW logs injected in es-local cluster")
+    print("Usage: . logprint.py --mode=%SYS [-c=%URL -l=%[DEBUG,INFO,WARNING,ERROR,FATAL] -r=%[-1,0,...] --black --light]")
+    print(" --mode=cdaq,daq2val,minidaq,vm2. discovery of runs the central index (MANDATORY)")
+    print(" -l: log level threshold (default: INFO)")
+    print(" -r: DEBUG/INFO repeat suppression threshold (default: 100, disable: -1)")
+    print(" --black: color scheme for black background terminal (default: disabled)")
+    print(" --light: your terminal background color (default: white)")
+    print(" --help: print this info and quit")
 
 if default:
     quit=False
@@ -80,9 +80,9 @@ if default:
 if quit:
     sys.exit(0)
 elif printHelp==True:
-    print "\n Starting logger using default values..."
+    print("\n Starting logger using default values...")
 
-print "connecting through",connurl
+print("connecting through",connurl)
 
 #url =  'http://localhost:9200/run*/cmsswlog/_search'
 urlend='/cmsswlog/_search'
@@ -164,8 +164,8 @@ lastEmpty=True
 
 counter=0
 
-print "current UTC time is",datetime.datetime.fromtimestamp(t_now-tzdeltaSec).strftime('%Y-%m-%d %H:%M:%S %Z')
-print "loop start...."
+print("current UTC time is",datetime.datetime.fromtimestamp(t_now-tzdeltaSec).strftime('%Y-%m-%d %H:%M:%S %Z'))
+print("loop start....")
 
 
 
@@ -195,7 +195,7 @@ while True:
     tfuture3 = datetime.datetime.utcnow().isoformat()
 
     if lastEmpty==False:
-        print "\n================\n"
+        print("\n================\n")
 
     time.sleep(sleept)
 
@@ -208,7 +208,7 @@ while True:
     resp = requests.post(urlcustom, q)
 
     if resp.status_code!=200:
-        print "query",urlcustom,q,"returned with status code",resp.status_code
+        print("query",urlcustom,q,"returned with status code",resp.status_code)
         sys.exit(2)
 
     data = json.loads(resp.content)
@@ -218,7 +218,7 @@ while True:
    
     #allow suppressed messages every 60 seconds
     if counter%(60/sleept)==0:
-        for k in suppressionMap.keys():
+        for k in suppressionMap:
             if suppressionMap[k]>100:
                 suppressionMap[k]=99
             elif suppressionMap[k]>0:
@@ -343,26 +343,26 @@ while True:
             str2+='\x1b[0m'
             if sevorig=='INFO':
                 if termWhite:
-                    print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[47m'+ev['message']+'\x1b[0m'
+                    print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[47m'+ev['message']+'\x1b[0m')
                 else:
-                    print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[41m'+ev['message']+'\x1b[0m'
+                    print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[41m'+ev['message']+'\x1b[0m')
             elif sevorig=='WARNING':
-                print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[37;1;45m'+ev['message']+'\x1b[0m'
+                print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[37;1;45m'+ev['message']+'\x1b[0m')
             elif sevorig=='ERROR':
-                print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[37;1;40m'+ev['message']+'\x1b[0m'
+                print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[37;1;40m'+ev['message']+'\x1b[0m')
             elif sevorig=='FATAL':
-                print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[31;1;40m'+ev['message']+'\x1b[0m'
+                print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  \x1b[31;1;40m'+ev['message']+'\x1b[0m')
             else:#debug
-                print severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  '+ev['message']
+                print(severity + runstring +' '+msgtime+' '+host+' '+pidstr+' : ' + str2 + '\n  '+ev['message'])
 
             if repeats==repeatsMax and (sevorig=="INFO" or sevorig=="DEBUG"):
                 try:
                     suppressionStatus = alreadySuppressed[ev['lexicalId']]
                 except:
-                    print "\x1b[1;36;46m[Printed message has reached maximum repeat threshold (",str(repeatsMax),") and will be suppressed for this session!]\x1b[0m"
+                    print("\x1b[1;36;46m[Printed message has reached maximum repeat threshold (",str(repeatsMax),") and will be suppressed for this session!]\x1b[0m")
             if addSpace:
-                print ""
+                print("")
         #print json.dumps(data['hits']['hits'],indent=1)
-    except Exception,ex:
+    except Exception as ex:
       #print ex
       pass

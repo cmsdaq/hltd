@@ -6,7 +6,10 @@ import os,signal
 import logging
 import pyinotify
 import threading
-import Queue
+try:
+  import Queue as queue
+except:
+  import queue
 
 import elasticBand
 import hltdconf
@@ -41,7 +44,7 @@ class killer():
                     self.infile = fileHandler(event.pathname)
                     self.emptyQueue.clear()
                     self.process() 
-                except (KeyboardInterrupt,Queue.Empty) as e:
+                except (KeyboardInterrupt,queue.Empty) as e:
                     self.emptyQueue.set() 
             else:
                 time.sleep(0.5)
@@ -59,7 +62,7 @@ class killer():
             time.sleep(0.5)            
             pid = int(self.infile.pid[3:])
             os.kill(pid,signal.SIGKILL)
-            print "killed %r for %r " %(pid,self.infile.filepath)
+            print("killed %r for %r " %(pid,self.infile.filepath))
             self.stop()
 
         
@@ -82,7 +85,7 @@ if __name__ == "__main__":
 
     #signal.signal(signal.SIGINT, signalHandler)
     
-    eventQueue = Queue.Queue()
+    eventQueue = queue.Queue()
 
     conf=hltdconf.hltdConf('/etc/hltd.conf')
     dirname = sys.argv[1]
@@ -112,11 +115,11 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt as e:
         logger.exception(e)
-        print traceback.format_exc()
+        print(traceback.format_exc())
         logger.error("when processing files from directory "+dirname)
 
-    print "Closing notifier"
+    print("Closing notifier")
     notifier.stop()
 
-    print "Quit"
+    print("Quit")
     sys.exit(0)

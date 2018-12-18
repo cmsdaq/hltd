@@ -13,7 +13,7 @@ import syslog
 
 def preStartHLTD():
     if os.getuid() != 0:
-      print "Must be root user to do that",':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]'
+      print("Must be root user to do that",':\t\t\t\t [  \033[1;31mFAILED\033[0;39m  ]')
       sys.exit(1)
     #if new version, resource accounting needs to run
     if os.path.exists('/opt/hltd/scratch/new-version'):
@@ -59,11 +59,11 @@ def suspendRemoteClientsMaybe(instance,force):
                             shutdown_found=True
                             break
         if multiuser_inactive and not shutdown_found:
-            print "shutdown.target not found by 'systemctl list-units --type=target --all'"
+            print("shutdown.target not found by 'systemctl list-units --type=target --all'")
             syslog.syslog("shutdown.target not found")
 
     except Exception as ex:
-        print "/usr/bin/systemctl list-units --type=target --all",std_out,"exception:",ex
+        print("/usr/bin/systemctl list-units --type=target --all",std_out,"exception:",ex)
         syslog.syslog("hltd-"+str(instance)+":Exception checking if shutdown.target is active:" + str(std_out) + " exception: "+str(ex))
 
     try:
@@ -73,7 +73,7 @@ def suspendRemoteClientsMaybe(instance,force):
             if stopFUs(instance)==False:
                 syslog.syslog("Unable to trigger remount on some FUs during shutdown")
     except Exception as ex:
-        print ex
+        print(ex)
         syslog.syslog("hltd-"+str(instance)+" exception: "+str(ex))
 
 if __name__ == "__main__":
@@ -115,11 +115,11 @@ if __name__ == "__main__":
                   suspendRemoteClientsMaybe(instance,True)
 
             else:
-                print "Unknown command"
+                print("Unknown command")
                 sys.exit(2)
 
         else:
-            print "usage: %s start|stop|restart|status all|main|instance" % sys.argv[0]
+            print("usage: %s start|stop|restart|status all|main|instance" % sys.argv[0])
             sys.exit(2)
 
 sys.exit(0)
