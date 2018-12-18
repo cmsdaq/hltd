@@ -1,0 +1,8 @@
+*.egg-info
+MANIFEST.in
+build/
+dist/
+setup.cfg
+venv/
+*.pyc
+.idea

@@ -1,0 +1,126 @@
+CHANGES
+=======
+
+0.4.8
+-----
+
+* Added missing pbr dependency
+
+0.4.7
+-----
+
+* travis: ci cleanups
+
+0.4.6
+-----
+
+* 0.4.6 release
+* Updated travis credentials for release
+* fixes #13 wrong self in callInfoFromWSDL()
+* Migrated packaging to pbr
+* Fixed linting
+* Remove unneeded 'self' from callInfoFromWSDL function
+* fixes #13 wrong self in callInfoFromWSDL()
+* Migrated packaging to pbr
+* Fixed linting
+* Remove unneeded 'self' from callInfoFromWSDL function
+
+0.4.5
+-----
+
+* Enabled py36 target and added B001 and B002 exceptions
+* travis auto-releasing
+* Fixed several bugs reported by linter (flake8)
+* Changed badge to reflect develop branch instead of master
+* py3 compatibility work (incomplete)
+* Start of v0.4.5: adopting git flow and flake8
+
+0.4.4
+-----
+
+* Updated travis scripts in order to auto-release new version is all tests went OK
+* Added BSD copyright file
+* Update README.rst
+* Update README.rst
+* Switched to new travis infrastructure and removed flake8 target
+* v0.4.4 which finally brings nothing more than Python 3 compatibility
+* fixing test\_wstools\_net.py
+* removing test\_wstools, redundant with test\_wdsl
+* Revert "trying with abtsratc to tests detected by nose"
+* Revert "trying with \_\_test\_\_ to remove tests detected by nose"
+* Revert "trying with \_\_test\_\_ to remove tests detected by nose"
+* trying with \_\_test\_\_ to remove tests detected by nose
+* trying with \_\_test\_\_ to remove tests detected by nose
+* trying with abtsratc to tests detected by nose
+* trying new time to tests detected by nose
+* make test\_wstools detected by nose
+* test\_wsdl is now the abstract test class
+* removing test\_t1, redundant with test\_wstools
+* removing useless tar.gz, adding two new schemas from OVH API for testing
+* Revert "remove import string"
+* Revert "fixing join as function parameter"
+* Revert "fixing others join(s) as function parameter"
+* Revert " replace split/join by replace in string operations"
+* Revert "forgot join conversion"
+* Revert "forgot again join conversion"
+* forgot again join conversion
+* forgot join conversion
+*  replace split/join by replace in string operations
+* fixing others join(s) as function parameter
+* fixing join as function parameter
+* remove import string
+* more special imports for python3 compatibility
+* urllib and urlparse imports for python3 compatibility
+* fixing other malformed exceptions
+* fixing bad formed exception in Utility
+* fixing import for python3 in WSDLTools
+* handling StringIO import for python 2 and 3
+* removing print
+* 2to3 c14n
+
+0.4.3
+-----
+
+* New release, just to override the old one
+
+0.4.2
+-----
+
+* Added script to run tests
+* 	modified:   release.sh 	modified:   setup.py 	modified:   tox
+* Added option to install/upgrade required virtualenv version 
+* Removed utils dependency
+* Update .travis.yml
+* Added travis-ci.org config file
+* Added RELEASE tag and $VERSION tags to the releases
+
+0.4.1
+-----
+
+* Added ~\* ignore to .gitignore
+* Logging changes to log errors properly
+* Removed svn comments
+* Cleaned up the code, no bug fixes but added tox and improved the release script
+* fixes for version 0.4, replaced prints with logger.debug() and pep8
+* version 0.4 pep8 fixes and replaced few prints with logging.debug() calls
+* Documented new URLs
+* regexp was too restrictive. Some SOAP response could not be validated cause of tag like <my\_xml\_response>. Instead is better to search for a pattern were \_x is specific followed by 4 hexdigits. All other \_x matches should be ignored
+* tuple subclasses don't get \_\_init\_\_, they get \_\_new\_\_
+* Remove unneeded print
+* Add Utility.DOM.looseNamespaces
+* credits
+* Back to development: 0.4
+* Preparing release 0.3
+* Preparing release 0.3
+* Back to development: 0.4
+* Preparing release 0.3
+* proper packaging, stage3
+* proper packaging, stage3
+* proper packaging, stage3
+* proper packaging, stage3
+* proper packaging, stage2
+* proper packaging, stage1
+* Rename .cvsignore to .gitignore
+* Bug fix in the File attachment
+* Added binary attachment support (client only)
+* M    XMLSchema.py -- fix for bug report "[ 2586279 ] annotation IndexError"
