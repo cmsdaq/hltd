@@ -5,7 +5,7 @@ import glob
 import os
 import subprocess
 import sys
-print 'cacca'
+print('cacca')
 # Check our environment
 # - Need to be on linux
 # - Need kernel 2.6.26+
@@ -22,8 +22,8 @@ if kvers < '2.6.26' and not os.environ.get("PRCTL_SKIP_KERNEL_CHECK",False):
     sys.stderr.write("This module requires linux 2.6.26 or newer\n")
 #    sys.exit(1)
 
-print sys.version_info
-print 'cacca'
+print(sys.version_info)
+print('cacca')
 
 if sys.version_info[:2] < (2,5):
     sys.stderr.write("This module requires python 2.5 or newer\n")

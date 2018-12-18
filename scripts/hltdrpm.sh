@@ -45,7 +45,7 @@ fi
 
 if [ $ASK = "1" ]; then
 
-echo "Environment - OBSOLETE (prod,vm) (press enter for \"${lines[0]}\"):"
+echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python36 or python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -158,8 +158,23 @@ then
     revsuffix=${lines[1]}
 fi
 
+
+pythonlink=${lines[0]}
+while ! [ "$pythonlink" = "" ]
+do
+  pythonlinklast=$pythonlink
+  readlink /usr/bin/$pythonlink > $SCRIPTDIR/pytmp | true
+  pythonlink=`cat $SCRIPTDIR/pytmp`
+  rm -rf $SCRIPTDIR/pytmp
+  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+done
+pythonlinklast=`basename $pythonlinklast`
+echo "will use python version: $pythonlinklast"
+
 #other parameters
-env=${lines[0]}
+#env=${lines[0]}
+#pythonver=${lines[0]}
+pythonver=$pythonlinklast
 centrales=${lines[2]}
 locales=${lines[3]}
 eqset=${lines[7]}
@@ -173,7 +188,8 @@ hltdloglevel=${lines[13]}
 #write down parameters in db.jsn
 cat > $SCRIPTDIR/temp_db.jsn <<EOF
 {
-  "env":"${env}",
+  "env":"prod",
+  "pythonver":"${pythonver}"
   "revsuffix":"${revsuffix}",
   "centrales":"${centrales}",
   "locales":"${locales}",
@@ -204,18 +220,17 @@ done
 chmod 500 $SCRIPTDIR/$PARAMCACHE
 
 #determine VM or PROD RPM build (TODO: autodetect in rpm script based on hostname prefix)
-if [ ${lines[0]} == "prod" ]; then
-  PACKAGENAME="hltd"
-elif [ ${lines[0]} == "vm" ]; then
-  PACKAGENAME="hltd-vm"
-else
-  echo "Environment ${lines[0]} not supported. Available: prod or vm"
-  exit 1
-fi
+#if [ ${lines[0]} == "prod" ]; then
+PACKAGENAME="hltd"
+#elif [ ${lines[0]} == "vm" ]; then
+#  PACKAGENAME="hltd-vm"
+#else
+#  echo "Environment ${lines[0]} not supported. Available: prod or vm"
+#  exit 1
+#fi
 
 
 alias python=`readlink /usr/bin/python2`
-python_dir=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 
@@ -234,9 +249,18 @@ TOPDIR=$PWD
 echo "working in $PWD"
 #ls
 
+pypkgprefix="python"
+pkgsuffix=""
+pkgobsoletes=""
+if [ $pythonver = "python3.6" ] || [ $pythonver = "python36" ]; then
+  pypkgprefix="python36"
+  pypkgsuffix="-python36"
+  pkgobsoletes=", hltd"
+fi
+
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
-Name: $PACKAGENAME
+Name: $PACKAGENAME$pkgsuffix
 Version: 2.4.0
 Release: 0
 Summary: hlt daemon
@@ -264,8 +288,8 @@ Provides:/opt/fff/init.d/fff
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
-Requires:hltd-libs >= 2.4.0,SOAPpy,jsonMerger,python-psutil,python-dateutil,cx_Oracle
-Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0
+Requires:hltd-libs$pkgsuffix >= 2.4.0,SOAPpy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
+Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
 
 %description
@@ -322,8 +346,14 @@ cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
 cp $BASEDIR/scripts/postinstall.sh %{buildroot}/opt/fff/postinstall.sh
-cp $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
+mv $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
 cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
+
+echo "modifying python executable specification to ${pythonver}"
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd.python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 
 touch opt/hltd/scratch/new-version
 

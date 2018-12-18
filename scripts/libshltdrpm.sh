@@ -1,9 +1,5 @@
 #!/bin/bash -e
 
-alias python=`readlink /usr/bin/python2`
-python_dir=`readlink /usr/bin/python2`
-python_version=${python_dir:6}
-
 # set the RPM build architecture
 BUILD_ARCH=x86_64
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -19,6 +15,31 @@ mkdir  /tmp/hltd-libs-build-tmp-area
 cd     /tmp/hltd-libs-build-tmp-area
 TOPDIR=$PWD
 
+if ! [ -z $1 ]; then
+  rl=$1
+  if ! [ -f /usr/bin/$rl ]; then
+    echo "not found: $1"
+    exit 1
+  fi
+else
+  rl="python"
+fi 
+pythonlink=$rl
+
+while ! [ "$pythonlink" = "" ]
+do
+  pythonlinklast=$pythonlink
+  readlink /usr/bin/$pythonlink > pytmp | true
+  pythonlink=`cat pytmp`
+  rm -rf pytmp
+  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+done
+pythonlinklast=`basename $pythonlinklast`
+echo "will compile packages for :$pythonlinklast"
+pyexec=$pythonlinklast
+python_dir=$pythonlinklast
+python_version=${python_dir:6}
+
 mkdir -p $TOPDIR/opt/hltd
 cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 
@@ -33,12 +54,13 @@ cd $TOPDIR
 #cd opt/hltd/lib/urllib3-1.10/
 #urllib3 1.24.1 (renamed urllib3_hltd)
 cd opt/hltd/lib/urllib3-1.24.1/
-python ./setup.py -q build
-python - <<'EOF'
+$pyexec ./setup.py -q build
+$pyexec - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/urllib3_hltd",quiet=True)
 EOF
-python -O - <<'EOF'
+
+$pyexec -O - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/urllib3_hltd",quiet=True)
 EOF
@@ -47,12 +69,12 @@ cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urlli
 cd $TOPDIR
 #elasticsearch-py
 cd opt/hltd/lib/elasticsearch-py-5.5.5/
-python ./setup.py -q build
-python - <<'EOF'
+$pyexec ./setup.py -q build
+$pyexec - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
 EOF
-python -O - <<'EOF'
+$pyexec -O - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
 EOF
@@ -63,20 +85,20 @@ cd $TOPDIR
 #_zlibextras library
 cd opt/hltd/lib/python-zlib-extras-0.2/
 rm -rf build
-python ./setup.py -q build
-cp -R build/lib.linux-x86_64-${python_version}/_zlibextras.so $TOPDIR/usr/lib64/$python_dir/site-packages/
+$pyexec ./setup.py -q build
+cp -R build/lib.linux-x86_64-${python_version}/_zlibextras*.so $TOPDIR/usr/lib64/$python_dir/site-packages/
 
 
 cd $TOPDIR
 #python-prctl
 cd opt/hltd/lib/python-prctl/
-./setup.py -q build
-#python - <<'EOF'
-python - <<EOF
+$pyexec ./setup.py -q build
+#pyexec - <<'EOF'
+$pyexec - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
-python -O - <<EOF
+$pyexec -O - <<EOF
 import py_compile
 py_compile.compile("build/lib.linux-x86_64-${python_version}/prctl.py")
 EOF
@@ -104,12 +126,12 @@ EOF
 
 cd $TOPDIR
 cd opt/hltd/lib/python-inotify-0.5/
-./setup.py -q build
-python - <<'EOF'
+$pyexec ./setup.py -q build
+$pyexec - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
 EOF
-python -O - <<'EOF'
+$pyexec -O - <<'EOF'
 import compileall
 compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
 EOF
@@ -143,18 +165,27 @@ EOF
 
 cd $TOPDIR
 cd opt/hltd/lib/python-procname/
-./setup.py -q build
-cp build/lib.linux-x86_64-${python_version}/procname.so $TOPDIR/usr/lib64/$python_dir/site-packages
+$pyexec ./setup.py -q build
+cp build/lib.linux-x86_64-${python_version}/procname*.so $TOPDIR/usr/lib64/$python_dir/site-packages
 
 cd $TOPDIR
 rm -rf opt
 
+pkgname="hltd-libs"
+pypkgprefix="python"
+
+if [ $python_dir = "python3.6" ]; then
+  pypkgprefix="python36"
+  pkgname="hltd-libs-python36"
+fi
+
+
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
-Name: hltd-libs
+Name: ${pkgname}
 Version: 2.4.0
 Release: 0
-Summary: hlt daemon
+Summary: hlt daemon libraried ${python_dir}
 License: gpl
 Group: DAQ
 Packager: smorovic
@@ -164,7 +195,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:python,libcap,python-six >= 1.9,python-simplejson >= 3.3.1,python-requests
+Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,$pypkgprefix}-requests
 
 %description
 fff hlt daemon libraries
@@ -183,12 +214,13 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 %files
 %defattr(-, root, root, -)
 /usr/lib64/$python_dir/site-packages/*prctl*
-/usr/lib64/$python_dir/site-packages/*_zlibextras.so
+/usr/lib64/$python_dir/site-packages/_zlibextras*.so
 /usr/lib64/$python_dir/site-packages/python_inotify*
 /usr/lib64/$python_dir/site-packages/inotify
 /usr/lib64/$python_dir/site-packages/elasticsearch5
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
-/usr/lib64/$python_dir/site-packages/procname.so
+/usr/lib64/$python_dir/site-packages/procname*.so
+/usr/lib64/$python_dir/site-packages/__pycache__
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
 rpmbuild --define "_topdir `pwd`/RPMBUILD" -bb hltd-libs.spec

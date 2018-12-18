@@ -1,5 +1,3 @@
-#!/bin/env python
-
 central_es_settings_runindex = {
             "analysis":{
                 "analyzer": {

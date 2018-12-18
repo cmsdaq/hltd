@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/env python
 import cgi
 form = cgi.FieldStorage()
 if "run" not in form:

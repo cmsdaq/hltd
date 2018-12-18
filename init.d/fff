@@ -47,7 +47,7 @@ def executeServiceUnit(command,service):
 
 
 def reconfigureScript(verbose=False):
-    proc = Popen(['python2','/opt/fff/setupmachine.py','configure'], stdout=PIPE, stderr=PIPE)
+    proc = Popen(['/opt/fff/setupmachine.py','configure'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
@@ -59,7 +59,7 @@ def reconfigureScript(verbose=False):
     return 0
 
 def reconfigureScriptForce():
-    proc = Popen(['python2','/opt/fff/setupmachine.py','forceConfigure'], stdout=PIPE, stderr=PIPE)
+    proc = Popen(['/opt/fff/setupmachine.py','forceConfigure'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
             rc=executeServiceUnit('stop','fff')
             disableServices()
             #prevent from being manually started by setting disabled in hltd.conf
-            proc = Popen(['python2','/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
+            proc = Popen(['/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
             output = proc.communicate()[0]
             if rc==0:
                 print("FFF services are disabled")

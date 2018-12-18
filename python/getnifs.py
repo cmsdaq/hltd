@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/bin/env python
 
 # Based on https://gist.github.com/provegard/1536682, which was
 # Based on getifaddrs.py from pydlnadms [http://code.google.com/p/pydlnadms/].
