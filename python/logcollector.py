@@ -767,9 +767,9 @@ class CMSSWLogCollector(object):
     def getDirSize(self,dir):
         try:
             p = subprocess.Popen("du -s " + str(dir), shell=True, stdout=subprocess.PIPE)
-            p.wait()
-            std_out=p.stdout.read()
-            out = std_out.split('\t')[0]
+            raw_stdout=p.communicate()[0]
+            if not isinstance(raw_stdout,str): raw_stdout = raw_stdout.decode("utf-8")
+            out = raw_stdout.split('\t')[0]
             self.logger.info("size of directory "+str(dir)+" is "+str(out)+ " kB")
             return int(out)
         except Exception as ex:

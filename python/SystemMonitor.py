@@ -96,9 +96,11 @@ class system_monitor(threading.Thread):
 
             #find boot time so that machine reboot can be detected through the mount point
             try:
-                p = subprocess.Popen("/usr/bin/stat -c %z /proc/", shell=True, stdout=subprocess.PIPE)
-                p.wait()
-                self.boot_id = p.stdout.read().strip('\n')
+                p = subprocess.Popen(["/usr/bin/stat", "-c", "%z", "/proc/"], shell=False, stdout=subprocess.PIPE)
+                raw_stdout=p.communicate()[0]
+                if not isinstance(raw_stdout,str): raw_stdout = raw_stdout.decode("utf-8")
+                self.boot_id=raw_stdout.strip("\n")
+                #self.boot_id = p.stdout.read().strip('\n')
             except:
                 self.boot_id = "empty"
 
@@ -494,10 +496,11 @@ class system_monitor(threading.Thread):
                             d_total =  (dirstat.f_blocks*dirstat.f_bsize)>>20
                         else:
                             p = subprocess.Popen("du -s --exclude " + ES_DIR_NAME + " --exclude mon --exclude open " + str(conf.watch_directory), shell=True, stdout=subprocess.PIPE)
-                            p.wait()
+                            
+                            raw_stdout=p.communicate()[0]
+                            if not isinstance(raw_stdout,str): raw_stdout = raw_stdout.decode("utf-8")
                             try:
-                              std_out=p.stdout.read()
-                              out = std_out.split('\t')[0]
+                              out = raw_stdout.split('\t')[0]
                               d_used = int(out)>>10
                             except:
                               d_used=0
@@ -688,9 +691,11 @@ class system_monitor(threading.Thread):
       try:
         #obtain cpu frequencies and get avg (in GHz)
         #TODO:replace shell script call with info from Intel MSR
-        p = subprocess.Popen('/usr/bin/cpufreq-info | grep "current CPU"', shell=True, stdout=subprocess.PIPE)
-        p.wait()
-        std_out=p.stdout.readlines()
+        #p = subprocess.Popen('/usr/bin/cpupower frequency-info | grep "current CPU"', shell=True, stdout=subprocess.PIPE)
+        p = subprocess.Popen(['/usr/bin/cpupower', 'frequency-info'], shell=False, stdout=subprocess.PIPE)
+        raw_stdout=p.communicate()[0]
+        if not isinstance(raw_stdout,str): raw_stdout = raw_stdout.decode("utf-8")
+        std_out=[ x for x in raw_stdout.split("\n") if x.startswith("current CPU") ]
         for stdl in std_out:
           avg+=float(stdl.strip().split()[4])*1000
           avg_c+=1
@@ -932,6 +937,10 @@ class system_monitor(threading.Thread):
             except:
                 self.logger.info("Interrupted ESBox thread - ending")
                 break
+
+        eb.stopping=True
+        eb.threadEvent.set()
+        self.logger.info("deleting elasticBandBU")
         del eb
 
 
@@ -959,7 +968,6 @@ class system_monitor(threading.Thread):
         if self.statThread:
             self.statThread.join()
         if self.esBoxThread:
-            if self.eb:self.eb.stop()
             self.esBoxThread.join()
 
 

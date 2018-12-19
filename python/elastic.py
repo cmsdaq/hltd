@@ -209,9 +209,10 @@ if __name__ == "__main__":
 
     #find out total number of logical cores
     pnproc = subprocess.Popen("nproc",shell=True, stdout=subprocess.PIPE)
-    pnproc.wait()
+    out=pnproc.communicate()[0]
+    if not isinstance(out,str): out = out.decode("utf-8")
     try:
-        nlogical = int(pnproc.stdout.read())
+        nlogical = int(out)
     except:
         logger.warning('unable to run nproc command')
         nlogical=0

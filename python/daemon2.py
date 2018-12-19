@@ -324,7 +324,8 @@ class Daemon2:
 
 
         process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
-        out = process.communicate()[0]
+        out=process.communicate()[0]
+        if not isinstance(out,str): out = out.decode("utf-8")
         mounts = re.findall('/'+bu_base_dir+'[0-9]+',out) + re.findall('/'+bu_base_dir+'-CI/',out)
         mounts = sorted(list(set(mounts)))
         for mpoint in mounts:

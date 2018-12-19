@@ -35,7 +35,7 @@ do
   #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
 done
 pythonlinklast=`basename $pythonlinklast`
-echo "will compile packages for :$pythonlinklast"
+echo "will compile packages for: $pythonlinklast"
 pyexec=$pythonlinklast
 python_dir=$pythonlinklast
 python_version=${python_dir:6}

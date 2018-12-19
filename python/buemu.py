@@ -60,6 +60,7 @@ class BUEmu:
                                             preexec_fn=preexec_function,
                                             close_fds=True
                                             )
+            self.process.wait()
         except Exception as ex:
             logging.error("Error in forking BU emulator process")
             logging.exception(ex)

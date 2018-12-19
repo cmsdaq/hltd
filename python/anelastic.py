@@ -1184,8 +1184,8 @@ class DQMMerger(threading.Thread):
         self.source=source
         try:
             mergeEnabled = True
-            p = subprocess.Popen('fastHadd',shell=True,stdout=subprocess.PIPE)
-            p.wait()
+            p = subprocess.Popen('/usr/bin/fastHadd',shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            p.communicate()
             if p.returncode!=1 and p.returncode!=0:
                 self.logger.error('fastHadd exit code:'+str(p.returncode))
                 mergeEnabled=False

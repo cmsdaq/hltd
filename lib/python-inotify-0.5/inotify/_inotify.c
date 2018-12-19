@@ -573,7 +573,7 @@ PyObject *read_events(PyObject *self, PyObject *args)
 	    evt->cookie = Py_None;
 	}
 	if (in->len)
-	    evt->name = PyBytes_FromString(in->name);
+	    evt->name = PyUnicode_FromString(in->name);
 	else {
 	    Py_INCREF(Py_None);
 	    evt->name = Py_None;

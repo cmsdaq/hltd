@@ -41,6 +41,8 @@ bw_cnt = 0
 #    def write(self, message):
 #        self.logger.error(message)
 
+def decodecstr(raw):return ( raw if isinstance(raw,str) else raw.decode("utf-8") )
+
 
     #on notify, put the event file in a queue
 class MonitorRanger:
@@ -830,7 +832,8 @@ class fileHandler(object):
                 for fid in self.inputData:
                     command_args.append(fid)
                 p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-                p_out,p_err=p.communicate()
+                p_out,p_err = map(decodecstr,p.communicate())
+                #p_out,p_err = map(str,p.communicate())
                 if p.returncode!=0:
                     self.logger.error('jsonMerger returned with exit code '+str(p.returncode)+' and response: ' + str(p_out) + '. Merging parameters given:'+str(command_args))
                     return False
@@ -861,7 +864,7 @@ class fileHandler(object):
         outputName,outputExt = os.path.splitext(self.basename)
         outputName+='.pb'
         fullOutputPath = os.path.join(outDir,outputName)
-        command_args = ["fastHadd","add","-o",fullOutputPath]
+        command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
 
         totalEvents = self.getFieldByName("Processed")+self.getFieldByName("ErrorEvents")
 
@@ -908,7 +911,7 @@ class fileHandler(object):
               hasError=True
           else:
             p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-            p_out,p_err = p.communicate()
+            p_out,p_err = map(decodecstr,p.communicate())
             time_delta = time.time()-time_start
             if p.returncode!=0:
                 if len(p_out)>100: p_out = p_out[:100]

@@ -38,6 +38,7 @@ def suspendRemoteClientsMaybe(instance,force):
     try:
         p = Popen("/usr/bin/systemctl list-units --type=target --all", shell=True, stdout=PIPE)
         std_out=p.communicate()[0]
+        if not isinstance(std_out,str): std_out = std_out.decode("utf-8")
         std_out_lns = std_out.split('\n')
         multiuser_inactive=False
         shutdown_found=False

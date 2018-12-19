@@ -40,7 +40,7 @@ class MountManager:
         try:
             self.logger.info('calling umount of '+point)
             p = subprocess.Popen(["umount",point], shell=False, stdout=subprocess.PIPE)
-            p.wait()
+            p.communicate()
             #subprocess.check_call(['umount',point])
             code = p.returncode
         except subprocess.CalledProcessError as err:
@@ -71,7 +71,7 @@ class MountManager:
         try:
             self.logger.info("trying umount -f of "+point)
             p = subprocess.Popen(["umount","-f",point], shell=False, stdout=subprocess.PIPE)
-            p.wait()
+            p.communicate()
             #subprocess.check_call(['umount','-f',point])
             code = p.returncode
         except subprocess.CalledProcessError as err:
@@ -115,7 +115,8 @@ class MountManager:
         return True
       try:
         process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
-        out = process.communicate()[0]
+        out=process.communicate()[0]
+        if not isinstance(out,str): out = out.decode("utf-8")
         mounts = re.findall('/'+self.conf.bu_base_dir+'[0-9]+',out) + re.findall('/'+self.conf.bu_base_dir+'-CI/',out)
 
         mounts = sorted(list(set(mounts)))
@@ -330,9 +331,10 @@ class MountManager:
       loop_size=0
       try:
         p = subprocess.Popen("mount", shell=False, stdout=subprocess.PIPE)
-        p.wait()
-        std_out=p.stdout.read().split("\n")
-        for l in std_out:
+        out=proc.communicate()[0]
+        if not isinstance(out,str): out = out.decode("utf-8")
+        std_out_list=out.split("\n")
+        for l in std_out_list:
             try:
                 ls = l.strip()
                 toks = l.split()

@@ -865,17 +865,22 @@ class RunRanger:
             self.logger.info('restart event')
 
             if conf.role=='bu':
-                process = subprocess.Popen(['/opt/hltd/scripts/appliancefus.py'],stdout=subprocess.PIPE)
-                out = process.communicate()[0].split('\n')[0]
+              process = subprocess.Popen(['/opt/hltd/scripts/appliancefus.py'],stdout=subprocess.PIPE)
+              raw_str=process.communicate()[0]
+              if not isinstance(raw_str,str): raw_str = raw_str.decode("utf-8")
+              out_arr = raw_str.split('\n')
+              if len(out_arr):
+                out = out_arr[0]
                 fus=[]
                 if process.returncode==0:fus = out.split(',')
                 else:
                   dirlist = os.listdir(os.path.join(conf.watch_directory,'appliance','boxes'))
+                  this_machine=os.uname()[1]
                   for machine in dirlist:
-                    if machine == os.uname()[1]:continue
+                    if machine == this_machine:continue
                     fus.append(machine)
 
-                def contact_restart(host):
+              def contact_restart(host):
                   host_short = host.split('.')[0]
                   #get hosts from cached ip if possible to avoid hammering DNS
                   try:
@@ -906,15 +911,15 @@ class RunRanger:
                   except Exception as ex:
                     self.logger.warning('problem contacting host' + str(host) + ' ' + str(ex))
 
-                fu_threads = []
-                for fu in fus:
-                    if not len(fu):continue
-                    fu_thread = threading.Thread(target=contact_restart,args=[fu])
-                    fu_threads.append(fu_thread)
-                    fu_thread.start()
-                for fu_thread in fu_threads:
-                    fu_thread.join()
-                  
+              fu_threads = []
+              for fu in fus:
+                  if not len(fu):continue
+                  fu_thread = threading.Thread(target=contact_restart,args=[fu])
+                  fu_threads.append(fu_thread)
+                  fu_thread.start()
+              for fu_thread in fu_threads:
+                  fu_thread.join()
+                
             #some time to allow cgi return
             time.sleep(1)
             os.remove(fullpath)

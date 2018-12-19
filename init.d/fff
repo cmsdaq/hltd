@@ -17,15 +17,16 @@ def executeServiceScript(service,commands):
    arr.append(commands)
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
+   if not isinstance(output,str): output = output.decode("utf-8")
    time.sleep(.1)
 
    isHltdStatus = service == 'hltd' and 'status' in commands
-   if (isHltdStatus and 'is running' in output) or (not isHltdStatus and proc.returncode==0):
+   if (isHltdStatus and 'is running' in str(output)) or (not isHltdStatus and proc.returncode==0):
        print(commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]')
        return 0
    else:
       print(commands + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]')
-      print('command output:\n',output)
+      print('command output:\n',str(output))
       return proc.returncode
 
 
@@ -34,6 +35,7 @@ def executeServiceUnit(command,service):
    arr = ['/usr/bin/systemctl',command,service]
    proc = Popen(arr, stdout=PIPE)
    output = proc.communicate()[0]
+   if not isinstance(output,str): output = output.decode("utf-8")
    #time.sleep(.1)
 
    isHltdStatus = service == 'hltd' and 'status' == command
@@ -42,20 +44,21 @@ def executeServiceUnit(command,service):
        return 0
    else:
       print('/usr/bin/systemctl ' + command + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]')
-      print('command output:\n',output)
+      print('command output:\n',str(output))
       return proc.returncode
 
 
 def reconfigureScript(verbose=False):
     proc = Popen(['/opt/fff/setupmachine.py','configure'], stdout=PIPE, stderr=PIPE)
     output = proc.communicate()[0]
+    if not isinstance(output,str): output = output.decode("utf-8")
 
     if proc.returncode!=0:
-      print('Failed to run reconfigure script: ',output,' [  \033[1;31mFAILED\033[0;39m  ]')
+      print('Failed to run reconfigure script: ',str(output),' [  \033[1;31mFAILED\033[0;39m  ]')
       syslog.syslog('Failed to run reconfigure script: ' + str(output))
       return 1
     elif verbose:
-      print(output)
+      print(str(output))
     return 0
 
 def reconfigureScriptForce():
@@ -63,7 +66,7 @@ def reconfigureScriptForce():
     output = proc.communicate()[0]
 
     if proc.returncode!=0:
-      print('Failed to run reconfigure script (force): ',output,' [  \033[1;31mFAILED\033[0;39m  ]')
+      print('Failed to run reconfigure script (force): ',str(output),' [  \033[1;31mFAILED\033[0;39m  ]')
       syslog.syslog('Failed to run reconfigure script (force): ' + str(output))
       return 1
     return 0
@@ -130,8 +133,9 @@ if __name__ == "__main__":
         else:
             proc = Popen(['/usr/bin/systemctl', 'restart', 'fff'], stdout=PIPE, stderr=PIPE, shell=False)
             output = proc.communicate()[0]
+            if not isinstance(output,str): output = output.decode("utf-8")
             if proc.returncode!=0:
-                print(output)
+                print(str(output))
                 sys.exit(proc.returncode)
 
     elif 'restart' == cmd:
@@ -159,6 +163,7 @@ if __name__ == "__main__":
             #prevent from being manually started by setting disabled in hltd.conf
             proc = Popen(['/opt/fff/setupmachine.py','disable'], stdout=PIPE, stderr=PIPE, shell=False)
             output = proc.communicate()[0]
+            if not isinstance(output,str): output = output.decode("utf-8")
             if rc==0:
                 print("FFF services are disabled")
             sys.exit(rc)

@@ -247,7 +247,8 @@ class StateInfo:
     def ignite_cloud(self):
         try:
             proc = subprocess.Popen([conf.cloud_igniter_path,'start'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            out = proc.communicate()[0]
+            out=proc.communicate()[0]
+            if not isinstance(out,str): out = out.decode("utf-8")
             if proc.returncode==0:
                 return True
             else:
@@ -267,7 +268,8 @@ class StateInfo:
     def extinguish_cloud(self,repeat=False):
         try:
             proc = subprocess.Popen([conf.cloud_igniter_path,'stop'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            out = proc.communicate()[0]
+            out=proc.communicate()[0]
+            if not isinstance(out,str): out = out.decode("utf-8")
             if proc.returncode in [0,1]:
                 return True
             else:
@@ -299,7 +301,8 @@ class StateInfo:
     def cloud_status(self,reportExitCodeError=True):
         try:
             proc = subprocess.Popen([conf.cloud_igniter_path,'status'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            out = proc.communicate()[0]
+            out=proc.communicate()[0]
+            if not isinstance(out,str): out = out.decode("utf-8")
             if proc.returncode >1 and proc.returncode != 14:
                 if reportExitCodeError:
                     logger.error("cloud igniter status returned error code "+str(proc.returncode) + " output: "+str(out))
