@@ -2,7 +2,7 @@
 import os,sys
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')
-#from daemon2 import Daemon2
+from daemon2 import Daemon2
 from hltdconf import initConf
 from subprocess import Popen,check_call
 from subprocess import PIPE
@@ -77,6 +77,13 @@ def suspendRemoteClientsMaybe(instance,force):
         print(ex)
         syslog.syslog("hltd-"+str(instance)+" exception: "+str(ex))
 
+def tryEmergencyUmount(instance):
+    print("Running post-stop emergencyUmount check")
+    daemon = Daemon2('hltd',instance)
+    daemon.emergencyUmount()
+
+
+
 if __name__ == "__main__":
 
     if len(sys.argv) <=2 or sys.argv[2]=="all":
@@ -104,6 +111,7 @@ if __name__ == "__main__":
                 #TODO: command should probably be handled using a special service which "fff" and "hltd" are part of
                 sys.stdout.write('Post-stopping hltd instance '+instance+'\n')
                 suspendRemoteClientsMaybe(instance,False)
+                tryEmergencyUmount(instance)
 
             elif 'stop-appliance' == sys.argv[1]:
                 try:

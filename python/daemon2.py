@@ -315,14 +315,17 @@ class Daemon2:
         bu_base_dir=None#/fff/BU0?
         ramdisk_subdirectory = 'ramdisk'
         output_subdirectory = 'output'
+        role = None
+
 
         for sec in cfg.sections():
             for item,value in cfg.items(sec):
                 if item=='ramdisk_subdiretory':ramdisk_subdirectory=value
                 if item=='output_subdirectory':output_subdirectory=value
                 if item=='bu_base_dir':bu_base_dir=value
+                if item=='role':role=value
 
-
+        if not role or role=='bu':return
         process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
         out=process.communicate()[0]
         if not isinstance(out,str): out = out.decode("utf-8")
