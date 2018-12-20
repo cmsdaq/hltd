@@ -832,8 +832,8 @@ class RunCompletedChecker(threading.Thread):
 
 if __name__ == "__main__":
 
-    import procname
-    procname.setprocname('elasticbu')
+    import setproctitle
+    setproctitle.setproctitle('elasticbu')
 
     conf=initConf(sys.argv[2])
 

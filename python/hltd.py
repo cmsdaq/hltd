@@ -639,8 +639,8 @@ class hltd(Daemon2,object):
         pass
 
 if __name__ == "__main__":
-    import procname
-    procname.setprocname('hltd')
+    import setproctitle
+    setproctitle.setproctitle('hltd')
     p_instance = "main"
     do_forking = False
     if len(sys.argv)>1:

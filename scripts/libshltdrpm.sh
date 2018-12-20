@@ -22,8 +22,17 @@ if ! [ -z $1 ]; then
     exit 1
   fi
 else
-  rl="python"
+  #take what is used for hltd
+  PARAMCACHE="paramcache"
+  rl="python3.4"
+  if [ -f $SCRIPTDIR/$PARAMCACHE ];
+  then
+    readarray lines < $SCRIPTDIR/$PARAMCACHE
+    #first line:
+    rl=`echo -n ${lines[$i]} | tr -d "\n"`
+  fi
 fi 
+
 pythonlink=$rl
 
 while ! [ "$pythonlink" = "" ]
@@ -164,9 +173,10 @@ EOF
 
 
 cd $TOPDIR
-cd opt/hltd/lib/python-procname/
+cd opt/hltd/lib/setproctitle-1.1.10
 $pyexec ./setup.py -q build
-cp build/lib.linux-x86_64-${python_version}/procname*.so $TOPDIR/usr/lib64/$python_dir/site-packages
+cp build/lib.linux-x86_64-${python_version}/setproctitle*.so $TOPDIR/usr/lib64/$python_dir/site-packages/
+PROC_FILES="/usr/lib64/${python_dir}/site-packages/setproctitle*.so"
 
 SOAPPY_FILES=""
 WSTOOLS_FILES=""
@@ -185,8 +195,10 @@ if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
 
 fi
 
-
-
+PYCACHE_FILES=""
+if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+PYCACHE_FILES="/usr/lib64/$python_dir/site-packages/__pycache__"
+fi
 cd $TOPDIR
 rm -rf opt
 
@@ -240,16 +252,17 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root, -)
-/usr/lib64/$python_dir/site-packages/*prctl*
 /usr/lib64/$python_dir/site-packages/_zlibextras*.so
 /usr/lib64/$python_dir/site-packages/python_inotify*
 /usr/lib64/$python_dir/site-packages/inotify
 /usr/lib64/$python_dir/site-packages/elasticsearch5
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
-/usr/lib64/$python_dir/site-packages/procname*.so
-/usr/lib64/$python_dir/site-packages/__pycache__
+/usr/lib64/$python_dir/site-packages/*prctl*
+${PROC_FILES}
 ${SOAPPY_FILES}
 ${WSTOOLS_FILES}
+${PYCACHE_FILES}
+
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
 rpmbuild --define "_topdir `pwd`/RPMBUILD" -bb hltd-libs.spec

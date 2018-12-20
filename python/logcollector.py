@@ -1065,8 +1065,8 @@ def registerSignal(eventRef):
 
 if __name__ == "__main__":
 
-    import procname
-    procname.setprocname('logcol')
+    import setproctitle
+    setproctitle.setproctitle('logcol')
 
     conf=initConf(sys.argv[1])
 

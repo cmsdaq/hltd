@@ -162,8 +162,8 @@ class elasticCollector():
 
 if __name__ == "__main__":
 
-    import procname
-    procname.setprocname('elastic')
+    import setproctitle
+    setproctitle.setproctitle('elastic')
 
     conf=initConf()
 

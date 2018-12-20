@@ -3,7 +3,7 @@
 import os
 import sys
 import SOAPpy
-import procname
+import setproctitle
 sys.path.append('/opt/hltd/python')
 #sys.path.append('/opt/hltd/lib')
 import demote
@@ -62,7 +62,7 @@ class Soap2file(Daemon2):
 if __name__ == "__main__":
 
     daemon = Soap2file()
-    procname.setprocname('soap2file')
+    setproctitle.setproctitle('soap2file')
 
     if len(sys.argv)>1 and sys.argv[1]=='stop':
         sys.stdout.write("Stopping soap2file:")

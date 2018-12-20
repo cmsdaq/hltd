@@ -1238,8 +1238,8 @@ class DQMMerger(threading.Thread):
 
 if __name__ == "__main__":
 
-    import procname
-    procname.setprocname('anelastic')
+    import setproctitle
+    setproctitle.setproctitle('anelastic')
 
     conf=initConf()
 
