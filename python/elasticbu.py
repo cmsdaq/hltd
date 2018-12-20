@@ -497,10 +497,10 @@ class elasticBandBU:
                   return False
  
             except TransportError as ex: #TODO (transport error)
-                if name=='run' and ex[0]==409: #create failed because overwrite was forbidden
-                    return (False,ex[0])
+                if name=='run' and ex.status_code==409: #create failed because overwrite was forbidden
+                    return (False,ex.status_cude)
 
-                if ex[0]==429:
+                if ex.status_code==429:
                   if attempts<10 and not is_box:
                     self.logger.warning('elasticsearch HTTP error 429'+str(ex)+'. retrying..')
                     time.sleep(.1)

@@ -6,7 +6,10 @@ import os
 import logging
 import inotify._inotify as inotify
 import threading
-import Queue
+try:
+  import Queue as queue
+except:
+  import queue
 
 import elasticBand
 
@@ -43,7 +46,7 @@ class elasticCollector():
                     self.infile = fileHandler(event.fullpath)
                     self.emptyQueue.clear()
                     self.process()
-                except (KeyboardInterrupt,Queue.Empty) as e:
+                except (KeyboardInterrupt,queue.Empty) as e:
                     self.emptyQueue.set()
                 except Exception as ex:
                     self.logger.exception(ex)
@@ -84,7 +87,7 @@ class elasticCollector():
                     else:
                         if not os.path.exists(self.inputMonDir+'/microstatelegend.jsn') and os.path.exists(self.inputMonDir):
                             self.infile.moveFile(self.inputMonDir+'/microstatelegend.jsn',silent=True,createDestinationDir=False)
-                except Exception,ex:
+                except Exception as ex:
                     logger.error(ex)
                     pass
             elif filetype in [PATHLEGEND]:# and self.movedPathLegend == False:
@@ -95,14 +98,14 @@ class elasticCollector():
                     else:
                         if not os.path.exists(self.inputMonDir+'/pathlegend.jsn') and os.path.exists(self.inputMonDir):
                             self.infile.moveFile(self.inputMonDir+'/pathlegend.jsn',silent=True,createDestinationDir=False)
-                except Exception,ex:
+                except Exception as ex:
                     logger.error(ex)
                     pass
             elif filetype in [INPUTLEGEND]:
                 try:
                     if not os.path.exists(self.inputMonDir+'/inputlegend.jsn') and os.path.exists(self.inputMonDir):
                         self.infile.moveFile(self.inputMonDir+'/inputlegend.jsn',silent=True,createDestinationDir=False)
-                except Exception,ex:
+                except Exception as ex:
                     logger.error(ex)
                     pass
             elif filetype == INI:
@@ -110,7 +113,7 @@ class elasticCollector():
                 try:
                     if not os.path.exists(destname):
                         infile.moveFile(destname,silent=True,createDestinationDir=False)
-                except Exception,ex:
+                except Exception as ex:
                     logger.error(ex)
                     pass
 
@@ -183,7 +186,7 @@ if __name__ == "__main__":
 
     #signal.signal(signal.SIGINT, signalHandler)
 
-    eventQueue = Queue.Queue()
+    eventQueue = queue.Queue()
 
     dirname = sys.argv[2]
     inmondir = sys.argv[3]
@@ -250,7 +253,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         logger.exception(e)
-        print traceback.format_exc()
+        print(traceback.format_exc())
         logger.error("when processing files from directory "+dirname)
 
     logging.info("Closing notifier")

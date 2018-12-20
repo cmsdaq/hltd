@@ -180,7 +180,11 @@ class OnlineResource:
                                             preexec_fn=preexec_function,
                                             close_fds=True
                                             )
-            self.logger.info("arg array "+str(new_run_args).translate(None, "'")+' started with pid '+str(self.process.pid))
+            try: #python2
+              args_str=str(new_run_args).translate(None, "'")
+            except: #python3
+              args_str=str(new_run_args).translate(str.maketrans('','',"'"))
+            self.logger.info("arg array "+args_str+' started with pid '+str(self.process.pid))
         except Exception as ex:
             self.logger.warning("OnlineResource: exception encountered in forking hlt slave")
             self.logger.warning(ex)

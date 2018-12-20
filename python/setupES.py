@@ -116,7 +116,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                 if c_res!={'acknowledged':True}:
                     printout("Result of index " + create_index_name + " create request: " + str(c_res),doPrint,True )
             except TransportError as ex:
-                if ex[1]=='index_already_exists_exception':
+                if ex.error=='index_already_exists_exception':
                     #this is for index pre-creator
                     printout("Attempting to intialize already existing index "+create_index_name,doPrint,True)
                     try:

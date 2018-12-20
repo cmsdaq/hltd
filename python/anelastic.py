@@ -453,7 +453,7 @@ class LumiSectionRanger:
             self.stop(timeout=30)
 
     def checkClosure(self,checkEmpty=True):
-        for key in LSHandlerList:
+        for key in self.LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 if not checkEmpty and self.LSHandlerList[key].emptyLS:continue
                 return False
@@ -461,14 +461,14 @@ class LumiSectionRanger:
 
     def getOpenLumis(self):
         openLumis=[]
-        for key in LSHandlerList:
+        for key in self.LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 openLumis.append(key)
         return openLumis
 
     def getNumOpenLumis(self):
         openLumis=0
-        for key in LSHandlerList:
+        for key in self.LSHandlerList:
             if not self.LSHandlerList[key].closed.isSet():
                 openLumis+=1
         return openLumis
