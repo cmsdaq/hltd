@@ -58,6 +58,8 @@ mkdir -p usr/lib64/$python_dir/site-packages/inotify
 mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch5
 mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
+mkdir -p usr/share/hltd-libs-$python_dir
+
 cd $TOPDIR
 #urllib3 1.10 (renamed urllib3_hltd)
 #cd opt/hltd/lib/urllib3-1.10/
@@ -177,6 +179,7 @@ cd opt/hltd/lib/setproctitle-1.1.10
 $pyexec ./setup.py -q build
 cp build/lib.linux-x86_64-${python_version}/setproctitle*.so $TOPDIR/usr/lib64/$python_dir/site-packages/
 PROC_FILES="/usr/lib64/${python_dir}/site-packages/setproctitle*.so"
+cp COPYRIGHT $TOPDIR/usr/share/hltd-libs-$python_dir/setproctitle-COPYRIGHT
 
 SOAPPY_FILES=""
 WSTOOLS_FILES=""
@@ -252,6 +255,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root, -)
+/usr/share/hltd-libs-$python_dir
 /usr/lib64/$python_dir/site-packages/_zlibextras*.so
 /usr/lib64/$python_dir/site-packages/python_inotify*
 /usr/lib64/$python_dir/site-packages/inotify
