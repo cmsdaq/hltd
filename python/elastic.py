@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     dirname = sys.argv[2]
     inmondir = sys.argv[3]
-    expected_processes = int(sys.argv[4])
+    expected_processes = int(float(sys.argv[4]))
     indexSuffix = conf.elastic_cluster
     update_modulo=conf.fastmon_insert_modulo
     rundirname = os.path.basename(os.path.normpath(dirname))

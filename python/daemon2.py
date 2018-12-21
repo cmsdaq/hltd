@@ -20,11 +20,15 @@ class stdOutLog:
         self.logger = logging.getLogger(self.__class__.__name__)
     def write(self, message):
         self.logger.debug(message)
+    def flush(self):
+        return
 class stdErrorLog:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
     def write(self, message):
         self.logger.error(message)
+    def flush(self):
+        return
 
 
 class Daemon2:

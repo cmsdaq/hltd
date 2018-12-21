@@ -326,7 +326,7 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
         doc_id=infile.basename
-        #doc_pars = {"parent":str(self.runnumber)}
+        doc_pars = {"parent":str(self.runnumber)}
         return self.index_documents('stream_label',[document],params=doc_pars,bulk=False)
 
     def elasticize_runend_time(self,endtime):
@@ -477,12 +477,13 @@ class elasticBandBU:
                 return True
 
             except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:
+                self.logger.warning("detected connection problem: "+str(ex))
                 if attempts>100 and self.runMode:
                     raise(ex)
                 if is_box or attempts<=1:
-                    self.logger.warning('elasticsearch connection error' + str(ex)+'. retry.')
+                    self.logger.warning('elasticsearch connection error: ' + str(ex)+'. retry.')
                 elif (attempts-2)%10==0:
-                    self.logger.error('elasticsearch connection error' + str(ex)+'. retry.')
+                    self.logger.error('elasticsearch connection error:' + str(ex)+'. retry.')
                 if self.stopping:return False
                 ip_url=getURLwithIP(self.es_server_url,self.nsslock)
                 self.es = Elasticsearch(ip_url,timeout=20)
