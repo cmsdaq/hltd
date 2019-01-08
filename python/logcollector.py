@@ -23,6 +23,7 @@ import logging
 import collections
 import subprocess
 import requests
+from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
 
@@ -797,13 +798,16 @@ class HLTDLogIndex():
         self.index_name = 'hltdlogs_'+conf.elastic_runindex_name+"_write" #using write alias
 
         attempts=10
+        s = requests.Session()
+        s.mount('http://', HTTPAdapter(max_retries=0))
+
         while True:
             try:
                 self.logger.info('writing to elastic index '+self.index_name)
                 ip_url=getURLwithIP(es_server_url)
                 self.es = Elasticsearch(ip_url,timeout=5)
                 #update in case of new documents added to mapping definition
-                self.updateMappingMaybe(ip_url)
+                self.updateMappingMaybe(s,ip_url)
                 break
 
             except (ElasticsearchException,RequestsConnectionError,RequestsTimeout) as ex:
@@ -815,6 +819,7 @@ class HLTDLogIndex():
                 attempts-=1
                 self.threadEvent.wait(2)
                 continue
+        s.close()
 
     def elasticize_log(self,type,severity,timestamp,run,msg):
         document= {}
@@ -865,13 +870,14 @@ class HLTDLogIndex():
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
-    def updateMappingMaybe(self,ip_url):
+    def updateMappingMaybe(self,session,ip_url):
+
         for key in mappings.central_hltdlogs_mapping:
             doc = mappings.central_hltdlogs_mapping[key]
-            res = requests.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping')
+            res = session.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200 and res.content.strip()=='{}':
-                requests.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                session.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
 
 class HLTDLogParser(threading.Thread):
     def __init__(self,dir,file,loglevel,esHandler,skipToEnd):

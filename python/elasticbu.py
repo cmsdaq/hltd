@@ -26,6 +26,7 @@ from elasticBand import bulk_index
 
 import csv
 import requests
+from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
 import simplejson as json
@@ -144,12 +145,16 @@ class elasticBandBU:
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
             if isinstance(ret,tuple) and ret[1]==409:
                 #run document was already created by another BU. In that case increase atomically active BU counter
-                self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,params={retry_on_conflict:300},bulk=False,update_only=True)
+                self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,params={"retry_on_conflict":300},bulk=False,update_only=True)
 
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
         connectionAttempts=0
         retry=False
+
+        s = requests.Session()
+        s.mount('http://', HTTPAdapter(max_retries=0))
+
         while True:
             if self.stopping:break
             connectionAttempts+=1
@@ -159,7 +164,8 @@ class elasticBandBU:
                     self.es = Elasticsearch(self.ip_url,timeout=20)
 
                 #check if index alias exists
-                if requests.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
+
+                if s.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
                     self.logger.info('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.ip_url )
                     self.createDocMappingsMaybe(alias_write,mapping)
                     break
@@ -197,16 +203,27 @@ class elasticBandBU:
                 retry=True
                 continue
 
+            except Exception as ex:
+                self.logger.error("unknown exception when updating index mappings:")
+                self.logger.exception(es)
+
+        s.close()
+
     def createDocMappingsMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
+
+        s = requests.Session()
+        s.mount('http://', HTTPAdapter(max_retries=0))
+
         for key in mapping:
             doc = {key:mapping[key]}
-            res = requests.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping')
+
+            res = s.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200:
                 if res.content.strip()=='{}':
                     self.logger.info('inserting new mapping for '+str(key))
-                    requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                    s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -218,11 +235,12 @@ class elasticBandBU:
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
                                 self.logger.info('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
-                                requests.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                                s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
                                 if res.status_code!=200: self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content)
                                 break
             else:
                 self.logger.warning('requests error code '+res.status_code+' in mapping request')
+        s.close()
 
     def read_line(self,fullpath):
         with open(fullpath,'r') as fp:
@@ -335,7 +353,7 @@ class elasticBandBU:
         #first update: endtime field
         self.index_documents('run',[{"doc":{"endTime":endtime}}],doc_id,bulk=False,update_only=True)
         #second update:decrease atomically active BU counter
-        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,params={retry_on_conflict:300})
+        self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,params={"retry_on_conflict":300})
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')
@@ -786,20 +804,23 @@ class RunCompletedChecker(threading.Thread):
         check_es_complete=True
         total_es_elapsed=0
 
+        s = requests.Session()
+        s.mount('http://', HTTPAdapter(max_retries=0))
+
         while self.stopping==False:
 
             if check_es_complete:
                 try:
-                    resp = requests.post(self.url, '',timeout=5)
+                    resp = s.post(self.url, '',timeout=5)
                     data = json.loads(resp.content)
                     if int(data['hits']['total']) >= len(self.runObj.online_resource_list):
                         try:
-                            respq = requests.post(self.urlsearch,self.url_query,timeout=5)
+                            respq = s.post(self.urlsearch,self.url_query,timeout=5)
                             dataq = json.loads(respq.content)
                             fm_time = str(dataq['hits']['hits'][0]['_source']['fm_date'])
                             #fill in central index completition time
                             postq = "{runNumber\":\"" + str(self.runObj.runnumber) + "\",\"completedTime\" : \"" + fm_time + "\"}"
-                            requests.post(self.conf.elastic_runindex_url+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/run',postq,timeout=5)
+                            s.post(self.conf.elastic_runindex_url+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/run',postq,timeout=5)
                             self.logger.info("filled in completition time for run "+str(self.runObj.runnumber))
                         except IndexError:
                             # 0 FU resources present in this run, skip writing completition time
