@@ -252,16 +252,19 @@ echo "working in $PWD"
 pypkgprefix="python"
 pkgsuffix=""
 pkgobsoletes=""
+soappy=",SOAPpy"
 if [ $pythonver = "python3.6" ]; then
   pypkgprefix="python36"
   pkgsuffix="-python36"
   pkgobsoletes=", hltd"
+  soappy=""
 fi
 
 if [ $pythonver = "python3.4" ]; then
   pypkgprefix="python34"
   pkgsuffix="-python34"
   pkgobsoletes=", hltd"
+  soappy=""
 fi
 
 
@@ -296,7 +299,7 @@ Provides:/opt/fff/init.d/fff
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
-Requires:hltd-libs$pkgsuffix >= 2.4.0,SOAPpy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
+Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
 Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
 
