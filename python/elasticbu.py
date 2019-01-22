@@ -19,9 +19,9 @@ from aUtils import *
 from daemon2 import stdOutLog,stdErrorLog
 import mappings
 
-from elasticsearch5 import Elasticsearch
-from elasticsearch5.serializer import JSONSerializer
-from elasticsearch5.exceptions import (ConnectionError, ConnectionTimeout,
+from elasticsearch6 import Elasticsearch
+from elasticsearch6.serializer import JSONSerializer
+from elasticsearch6.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
 from elasticBand import bulk_index
 
@@ -133,6 +133,7 @@ class elasticBandBU:
         #write run number document
         if runMode == True and self.stopping==False:
             document = {}
+            document['doc_type']='run'
             doc_id = self.runnumber
             document['runNumber'] = doc_id
             document['startTime'] = startTime
@@ -251,6 +252,7 @@ class elasticBandBU:
 
         self.logger.info(os.path.basename(fullpath))
         document = {}
+        document['doc_type']='microstatelegend'
         #document['_parent']= self.runnumber
         doc_id="microstatelegend_"+self.runnumber
         if fullpath.endswith('.jsn'):
@@ -300,6 +302,7 @@ class elasticBandBU:
     def elasticize_pathlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
         document = {}
+        document['doc_type']='pathlegend'
         #document['_parent']= self.runnumber
         doc_id="pathlegend_"+self.runnumber
         if fullpath.endswith('.jsn'):
@@ -327,6 +330,7 @@ class elasticBandBU:
     def elasticize_inputlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
         document = {}
+        document['doc_type']='inputstatelegend'
         doc_id="inputstatelegend_"+self.runnumber
         try:
             with open(fullpath,'r') as fp:
@@ -342,6 +346,7 @@ class elasticBandBU:
         #elasticize stream name information
         self.logger.info(infile.filepath)
         document = {}
+        document['doc_type']='stream_label'
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
         doc_id=infile.basename
@@ -358,6 +363,7 @@ class elasticBandBU:
 
     def elasticize_resource_summary(self,jsondoc):
         self.logger.debug('injecting resource summary document')
+        document['doc_type']='resource_summary'
         jsondoc['appliance']=self.host
         self.index_documents('resource_summary',[jsondoc],bulk=False)
 
@@ -411,6 +417,7 @@ class elasticBandBU:
             else:
                 doc_id=basename
 
+            document['doc_type']='boxinfo'
             document['id']=doc_id
             try:
               document['activeRunList'] = list(map(int,document['activeRuns']))
@@ -440,6 +447,7 @@ class elasticBandBU:
     def elasticize_fubox(self,doc):
         try:
             doc_id = self.host
+            document['doc_type']='fu-box-status'
             doc['host']=doc_id
             self.index_documents('fu-box-status',[doc],doc_id,bulk=False)
         except Exception as ex:
@@ -465,6 +473,7 @@ class elasticBandBU:
         document['id'] = doc_id
         #document['_parent']= self.runnumber
         document['appliance']=self.host
+        document['doc_type']='eols'
         documents = [document]
         doc_pars = {"parent":str(self.runnumber)}
         self.index_documents('eols',documents,doc_id,params=doc_pars,bulk=False)
@@ -482,16 +491,16 @@ class elasticBandBU:
             attempts+=1
             try:
                 if bulk:
-                    bulk_index(self.es,destination_index,name,documents)
+                    bulk_index(self.es,destination_index,documents)
                 else:
                     if doc_id:
                       if update_only:
-                        self.es.update(index=destination_index,doc_type=name,id=doc_id,body=documents[0],params=params)
+                        self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params)
                       else:
                         params["op_type"] = "create" if not overwrite else "index"
-                        self.es.index(index=destination_index,doc_type=name,body=documents[0],id=doc_id,params=params)
+                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params)
                     else:
-                      self.es.index(index=destination_index,doc_type=name,body=documents[0],params = params)
+                      self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params)
 
                 return True
 
@@ -793,10 +802,10 @@ class RunCompletedChecker(threading.Thread):
         self.runObj = runObj
         rundirstr = 'run'+ str(runObj.runnumber).zfill(conf.run_number_padding)
         self.indexPrefix = rundirstr + '_' + conf.elastic_cluster
-        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/fu-complete/_search&size=0'
+        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/doc/_search&size=0'
         self.urlclose =  'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/_close'
-        self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/fu-complete/_search?size=1'
-        self.url_query = '{  "query": { "filtered": {"query": {"match_all": {}}}}, "sort": { "fm_date": { "order": "desc" }}}'
+        self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/doc/_search?size=1'
+        self.url_query = '{  "query": { "term" {"doc_type": "fu-complete"}}, "sort": { "fm_date": { "order": "desc" }}}'
         self.stopping = False
         self.threadEvent = threading.Event()
 
