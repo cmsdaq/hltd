@@ -55,7 +55,7 @@ cp -r $BASEDIR/lib $TOPDIR/opt/hltd
 echo "Moving files to their destination"
 mkdir -p usr/lib64/$python_dir/site-packages
 mkdir -p usr/lib64/$python_dir/site-packages/inotify
-mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch5
+mkdir -p usr/lib64/$python_dir/site-packages/elasticsearch6
 mkdir -p usr/lib64/$python_dir/site-packages/urllib3_hltd
 
 mkdir -p usr/share/hltd-libs-$python_dir
@@ -79,17 +79,17 @@ cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urlli
 
 cd $TOPDIR
 #elasticsearch-py
-cd opt/hltd/lib/elasticsearch-py-5.5.5/
+cd opt/hltd/lib/elasticsearch-py-6.3.1/
 $pyexec ./setup.py -q build
 $pyexec - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch6",quiet=True)
 EOF
 $pyexec -O - <<'EOF'
 import compileall
-compileall.compile_dir("build/lib/elasticsearch5",quiet=True)
+compileall.compile_dir("build/lib/elasticsearch6",quiet=True)
 EOF
-cp -R build/lib/elasticsearch5/* $TOPDIR/usr/lib64/$python_dir/site-packages/elasticsearch5/
+cp -R build/lib/elasticsearch6/* $TOPDIR/usr/lib64/$python_dir/site-packages/elasticsearch6/
 
 
 cd $TOPDIR
@@ -259,7 +259,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/_zlibextras*.so
 /usr/lib64/$python_dir/site-packages/python_inotify*
 /usr/lib64/$python_dir/site-packages/inotify
-/usr/lib64/$python_dir/site-packages/elasticsearch5
+/usr/lib64/$python_dir/site-packages/elasticsearch6
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/*prctl*
 ${PROC_FILES}
