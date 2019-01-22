@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import syslog
 import time
+from __future__ import print_function
 
 sys.path.append('/opt/hltd/python')
 

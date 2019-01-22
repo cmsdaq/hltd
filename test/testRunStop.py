@@ -1,5 +1,6 @@
 #!/bin/env python
 import os,sys,shutil,time
+from __future__ import print_function
 
 def lineSearch(logfile,*args):
   searchTimeout = 10.

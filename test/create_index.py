@@ -3,6 +3,7 @@
 import sys
 import requests
 import json
+from __future__ import print_function
 
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')

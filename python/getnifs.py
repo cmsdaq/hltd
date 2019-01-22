@@ -5,6 +5,7 @@
 # Only tested on Linux!
 
 #taken from: https://gist.github.com/chadmiller/5157850
+from __future__ import print_function
 
 from socket import AF_INET, AF_INET6, inet_ntop
 from ctypes import (

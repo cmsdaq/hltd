@@ -1,6 +1,7 @@
 #!/bin/env python
 import cgi
 import os
+from __future__ import print_function
 RUNNUMBER_PADDING=6
 form = cgi.FieldStorage()
 print("Content-Type: text/html")     # HTML is following

@@ -1,5 +1,7 @@
 #!/bin/env python
 
+from __future__ import print_function
+
 """
 Set the database entries for the hltd bu-fu appliance.
 Tables must be empty, to avoid this in future is possibile to read the last eqset_id from DAQ_EQCFG_EQSET

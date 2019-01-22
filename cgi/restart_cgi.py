@@ -3,6 +3,7 @@ import cgi
 import time
 import os
 import subprocess
+from __future__ import print_function
 
 print("Content-Type: text/html")     # HTML is following
 print()

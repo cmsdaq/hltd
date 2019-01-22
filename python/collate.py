@@ -4,6 +4,7 @@ from ordereddict import OrderedDict
 
 import sys
 import os
+from __future__ import print_function
 
 class Aggregator:
 

@@ -1,6 +1,8 @@
 #!/bin/env python
 
 import os,sys
+from __future__ import print_function
+
 from setupmachine import getBUAddr
 dbhost__='null'
 

@@ -7,6 +7,7 @@ import shutil
 import threading
 import time
 import syslog
+from __future__ import print_function
 
 try:
   from httplib import HTTPConnection

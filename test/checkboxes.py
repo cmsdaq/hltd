@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from __future__ import print_function
 
 count_used=0
 count_idle=0

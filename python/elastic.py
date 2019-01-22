@@ -2,6 +2,7 @@
 
 import sys,traceback
 import os
+from __future__ import print_function
 
 import logging
 import inotify._inotify as inotify

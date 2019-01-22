@@ -10,6 +10,7 @@ from applianceumount import stopFUs
 from applianceumount import checkMode
 import time
 import syslog
+from __future__ import print_function
 
 def preStartHLTD():
     if os.getuid() != 0:

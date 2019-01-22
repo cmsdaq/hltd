@@ -9,6 +9,7 @@ import time
 import syslog
 import json
 import cx_Oracle
+from __future__ import print_function
 
 
 #old service command (sysV)

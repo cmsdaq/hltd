@@ -1,6 +1,7 @@
 #!/bin/env python
 import cgi
 import os
+from __future__ import print_function
 form = cgi.FieldStorage()
 
 boxesdir='appliance/boxes/'

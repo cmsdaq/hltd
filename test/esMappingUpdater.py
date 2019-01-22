@@ -1,9 +1,10 @@
 #!/bin/env python
+import sys
+from __future__ import print_function
 sys.path.append('.')
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')
 
-import sys
 from hltdconf import initConf
 import elasticbu
 

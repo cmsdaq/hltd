@@ -8,6 +8,7 @@ except:
 import sys
 import datetime
 import time
+from __future__ import print_function
 
 
 logThreshold=2 #WARNING
