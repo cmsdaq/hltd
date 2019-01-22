@@ -2,9 +2,9 @@ import os,socket,time
 import sys
 import threading
 
-from elasticsearch5 import Elasticsearch
-from elasticsearch5.serializer import JSONSerializer
-from elasticsearch5.exceptions import (ConnectionError, ConnectionTimeout,
+from elasticsearch6 import Elasticsearch
+from elasticsearch6.serializer import JSONSerializer
+from elasticsearch6.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
 
 import simplejson as json
@@ -53,14 +53,14 @@ def getCPUInfoIntel():
 
 jsonSerializer = JSONSerializer()
 
-def bulk_index(es, index, doc_type_common, documents):# query_params=None): #todo:ass kwargs
+def bulk_index(es, index, documents):# query_params=None): #todo:ass kwargs
 
         body_tmp = []
         if not documents:
             raise ValueError('No document array provided for bulk_index operation')
 
         for doc in documents:
-            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index, '_type': doc_type_common}}))
+            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index, '_type': 'doc'}}))
             body_tmp.append(jsonSerializer.dumps(doc))
 
         # Need the trailing newline.
@@ -143,6 +143,7 @@ class elasticBand():
         document = {}
         if len(stub) == 0 or stub[0]=='\n':
             return;
+        document['doc_type'] = 'prc-i-state'
         try:
             document['macro'] = int(stub[0])
             document['mini']  = int(stub[1])
@@ -174,6 +175,7 @@ class elasticBand():
         document,ret = self.imbue_jsn(infile)
         if ret<0:return
         datadict = {}
+        document['doc_type'] = 'prc-s-state'
         document['host']=self.hostname
         document['pid']=int(infile.pid[3:])
         try:document['tid']=int(infile.tid[3:])
@@ -243,6 +245,7 @@ class elasticBand():
         ls=infile.ls
         stream=infile.stream
         #removing 'stream' prefix
+        document['doc_type'] = 'prc-out'
         if stream.startswith("stream"): stream = stream[6:]
         try:
           document['din']=int(document["data"][0])
@@ -280,6 +283,7 @@ class elasticBand():
         run=infile.run
         ls=infile.ls
         stream=infile.stream
+        document['doc_type'] = 'fu-out'
         #removing 'stream' prefix
         if stream.startswith("stream"): stream = stream[6:]
         #TODO:read output jsd file to decide on the variable format
@@ -310,6 +314,7 @@ class elasticBand():
     def elasticize_prc_in(self,infile):
         document,ret = self.imbue_jsn(infile)
         if ret<0:return
+        document['doc_type'] = 'prc-in'
         document['data'] = [int(f) if f.isdigit() else str(f) for f in document['data']]
         try:
             data_size=document['data'][1]
@@ -334,13 +339,15 @@ class elasticBand():
         return True #disabling this message
         document,ret = self.imbue_jsn(infile,silent=True)
         if ret<0:return False
+        document['doc_type'] = 'qstatus'
         document['fm_date']=str(infile.mtime)
         document['host']=self.hostname
-        self.tryIndex('qstatus',document)
+        self.tryIndex(document)
         return True
 
     def elasticize_fu_complete(self,timestamp):
         document = {}
+        document['doc_type'] = 'fu-complete'
         document['host']=self.hostname
         document['fm_date']=timestamp
         self.tryBulkIndex('fu-complete',[document],attempts=5)
@@ -374,9 +381,9 @@ class elasticBand():
         self.flushMonBuffer()
         self.flushAllLS()
 
-    def tryIndex(self,docname,document):
+    def tryIndex(self,document):
         try:
-            self.es.index(index=self.indexName,doc_type=docname,body=document)
+            self.es.index(index=self.indexName,doc_type='doc',body=document)
         except (ConnectionError,ConnectionTimeout) as ex:
             self.logger.warning("Elasticsearch connection error:"+str(ex))
             self.indexFailures+=1
@@ -404,7 +411,7 @@ class elasticBand():
         while attempts>0 and len(documents):
             attempts-=1
             try:
-                reply = bulk_index(self.es,self.indexName,docname,documents)
+                reply = bulk_index(self.es,self.indexName,documents)
                 try:
                     if reply['errors']==True:
                         retry_doc = []

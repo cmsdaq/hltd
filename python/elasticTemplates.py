@@ -26,6 +26,9 @@ runappliance = {
 #   "prc-i-state": {
     "doc": {
       "properties": {
+        "doc_type": {
+          "type": "keyword"
+        },
         "macro": {
           "type": "integer"
         },
