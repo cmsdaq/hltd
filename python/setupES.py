@@ -2,12 +2,15 @@
 import sys,os
 import six
 from __future__ import print_function
-from elasticsearch5 import Elasticsearch
-from elasticsearch5.exceptions import TransportError
+from elasticsearch6 import Elasticsearch
+from elasticsearch6.exceptions import TransportError
 
 import simplejson as json
 import socket
 import logging
+import copy
+
+from elasticTemplates import runappliance
 
 #compatibility (py3 unicode is str)
 unicode = str if sys.version_info.major == 3 else unicode
@@ -16,13 +19,9 @@ def delete_template(es,name):
     es.indices.delete_template(name)
 
 def load_template(name):
-    filepath = os.path.join(os.path.dirname((os.path.realpath(__file__))),'../json',name+"Template.json")
+
     try:
-        with open(filepath) as json_file:
-            doc = json.load(json_file)
-    except IOError as ex:
-        #print ex
-        doc = None
+        doc = copy.deepcopy(runappliance)
     except Exception as ex:
         #print ex
         doc = None

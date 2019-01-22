@@ -1,5 +1,5 @@
-{
-  "template": "run*",
+runappliance = {
+  "index_patterns": "run*",
 
   "settings": {
     "analysis": {
@@ -23,8 +23,8 @@
     }
   },
   "mappings": {
-    "prc-i-state": {
-      "_all": {"enabled": "false" },
+#   "prc-i-state": {
+    "doc": {
       "properties": {
         "macro": {
           "type": "integer"
@@ -64,15 +64,13 @@
         },
         "mclass" : {
           "type": "keyword"
-        }
-      }
-    },
-    "prc-s-state": {
-      "_all": {"enabled": "false" },
-      "properties": {
-        "macro": {
-          "type": "integer"
         },
+
+#    "prc-s-state": {
+#        "macro": {
+#          "type": "integer"
+#        },
+
         "miniv": {
           "properties":{
             "key":{"type":"integer","index":"no"},
@@ -90,32 +88,32 @@
             "tp": {
               "type": "double",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "lead": {
               "type": "double",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "nfiles": {
               "type": "integer",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "nevents": {
               "type": "integer",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "lockwaitUs": {
               "type": "double",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "lockcount": {
               "type": "integer",
               "index":"no",
-              "doc_values":true
+              "doc_values":True
             },
             "instatev": {
               "properties":{
@@ -127,14 +125,14 @@
         },
         "ls": {
           "type": "integer",
-          "store": true
+          "store": True
         },
-        "fm_date": {
-          "type": "date"
-        },
-        "source" : {
-          "type":"keyword"
-        },
+#        "fm_date": {
+#          "type": "date"
+#        },
+#        "source" : {
+#          "type":"keyword"
+#        },
         "host": {
           "type": "keyword"
         },
@@ -144,80 +142,72 @@
         "tid": {
           "type": "integer"
         },
-        "mclass" : {
-          "type": "keyword"
-        }
-      }
-    },
-    "prc-out": {
-      "_all": {"enabled": "false" },
-      "_source": {"enabled": "false" },
-      "properties": {
+#        "mclass" : {
+#          "type": "keyword"
+#        },
+
+#    "prc-out": {
+#      "_source": {"enabled": "false" },
         "din": {
           "type": "integer",
           "index":"no",
-          "doc_values":true
+          "doc_values":True
         },
         "dout": {
           "type": "integer",
           "index":"no",
-          "doc_values":true
+          "doc_values":True
         },
         "lsn": {
           "type": "integer",
-          "store": false,
-          "doc_values":false
+          "store": False,
+          "doc_values":False
         },
         "streamn": {
           "type": "keyword",
-          "store": false,
-          "doc_values":true
+          "store": False,
+          "doc_values":True
         },
         "pidn": {
           "type": "integer",
-          "store": false,
-          "doc_values":true
+          "store": False,
+          "doc_values":True
         },
         "hostn": {
           "type": "keyword",
-          "store": false,
-          "doc_values":true
+          "store": False,
+          "doc_values":True
         },
         "appn": {
           "type": "keyword",
-          "store": false,
-          "doc_values":true
+          "store": False,
+          "doc_values":True
         },
         "fm_d": {
           "type": "date",
-          "store":false,
-          "doc_values":true,
+          "store":False,
+          "doc_values":True,
           "format":"epoch_millis"
         },
-        "ls": {
-          "type": "integer",
-          "store": true
-        },
-        "streamn": {
-          "type": "keyword"
-        },
-        "pid": {
-          "type": "integer"
-        },
-        "host": {
-          "type": "keyword"
-        },
+#       "ls": {
+#          "type": "integer",
+#          "store": True
+#       },
+#        "pid": {
+#          "type": "integer"
+#        },
+#        "host": {
+#          "type": "keyword"
+#        },
         "appliance": {
           "type": "keyword"
         },
-        "fm_date": {
-          "type": "date"
-        }
-      }
-    },
-    "prc-in": {
-      "_all": {"enabled": "false" },
-      "properties": {
+#        "fm_date": {
+#          "type": "date"
+#        }
+
+#    "prc-in": {
+#TODO
         "data": {
           "properties": {
             "out": {
@@ -225,41 +215,14 @@
             },
             "size": {
               "type" : "long"
-            }
-          }
-        },
-        "ls": {
-          "type": "integer",
-          "store": true
-        },
-        "index": {
-          "type": "integer"
-        },
-        "pid": {
-          "type": "integer"
-        },
-        "host": {
-          "type": "keyword"
-        },
-        "appliance": {
-          "type": "keyword"
-        },
-        "fm_date": {
-          "type": "date"
-        }
-      }
-    },
-    "fu-out": {
-      "_all": {"enabled": "false" },
-      "properties": {
-        "data": {
-          "properties": {
+            },
+#fu-out data:
             "in": {
               "type": "integer"
             },
-            "out": {
-              "type": "integer"
-            },
+#            "out": {
+#              "type": "integer"
+#            },
             "errorEvents": {
               "type": "integer"
             },
@@ -286,44 +249,60 @@
             }
           }
         },
-        "ls": {
-          "type": "integer",
-          "store": true
+#        "ls": {
+#          "type": "integer",
+#          "store": True
+#        },
+        "index": {
+          "type": "integer"
         },
+#        "pid": {
+#          "type": "integer"
+#        },
+#        "host": {
+#          "type": "keyword"
+#        },
+#        "appliance": {
+#          "type": "keyword"
+#        },
+#        "fm_date": {
+#          "type": "date"
+#        },
+
+#    "fu-out": {
+#        "ls": {
+#          "type": "integer",
+#          "store": True
+#        },
         "stream": {
           "type": "keyword"
         },
-        "host": {
-          "type": "keyword"
-        },
+#        "host": {
+#          "type": "keyword"
+#        },
         "appliance": {
           "type": "keyword"
         },
-        "fm_date": {
-          "type": "date"
-        },
+#        "fm_date": {
+#          "type": "date"
+#        },
         "MergingTime":{
           "type": "float"
         },
         "MergingTimePerFile":{
           "type": "float"
-        }
-      }
-    },
-    "fu-complete": {
-      "_all": {"enabled": "false" },
-      "properties": {
-        "host": {
-          "type": "keyword"
         },
-        "fm_date": {
-          "type": "date"
-        }
-      }
-    },
-    "qstatus": {
-      "_all": {"enabled": "false" },
-      "properties": {
+
+#    "fu-complete": {
+#        "host": {
+#          "type": "keyword"
+#        },
+#        "fm_date": {
+#          "type": "date"
+#        },
+
+#    "qstatus": {
+
         "numQueuedLS": {
           "type": "integer"
         },
@@ -342,23 +321,21 @@
         "CMSSWMaxLS": {
           "type": "integer"
         },
-        "fm_date": {
-          "type": "date"
-        },
-        "host": {
-          "type": "keyword"
-        }
-      }
-    },
-    "cmsswlog": {
-      "_all": {"enabled": "false" },
-      "properties": {
-        "host": {
-          "type": "keyword"
-        },
-        "pid": {
-          "type": "integer"
-        },
+#        "fm_date": {
+#          "type": "date"
+#        },
+#        "host": {
+#          "type": "keyword"
+#        },
+
+#    "cmsswlog": {
+
+#        "host": {
+#          "type": "keyword"
+#        },
+#        "pid": {
+#          "type": "integer"
+#        },
         "doctype": {
           "type": "keyword"
         },

@@ -11,8 +11,10 @@ import simplejson as json
 import csv
 import math
 import logging
+import copy
 
 from aUtils import *
+from runapplianceTemplate import runappliance
 
 def getURLwithIP(url):
     try:
@@ -89,9 +91,10 @@ class elasticBand():
 
         self.indexName = runstring + "_" + indexSuffix
         try:
-            filepath = os.path.join(os.path.dirname((os.path.realpath(__file__))),'../json',"runapplianceTemplate.json")
-            with open(filepath,'r') as fpi:
-                body = json.load(fpi)
+            body = copy.deepcopy(runappliance)
+            #filepath = os.path.join(os.path.dirname((os.path.realpath(__file__))),'../json',"runapplianceTemplate.json")
+            #with open(filepath,'r') as fpi:
+            #    body = json.load(fpi)
             if forceReplicas>=0:
                 body['settings']['index']['number_of_replicas']=forceReplicas
             if forceShards>=0:
