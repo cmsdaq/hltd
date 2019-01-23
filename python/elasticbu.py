@@ -134,6 +134,7 @@ class elasticBandBU:
         if runMode == True and self.stopping==False:
             document = {}
             document['doc_type']='run'
+            document['runRelation']={"name":"run"}
             doc_id = self.runnumber
             document['runNumber'] = doc_id
             document['startTime'] = startTime
@@ -253,7 +254,6 @@ class elasticBandBU:
         self.logger.info(os.path.basename(fullpath))
         document = {}
         document['doc_type']='microstatelegend'
-        #document['_parent']= self.runnumber
         doc_id="microstatelegend_"+self.runnumber
         if fullpath.endswith('.jsn'):
             try:
@@ -294,16 +294,15 @@ class elasticBandBU:
                     idx,sn = nameToken.split('=')
                     document["stateNames"].append( sn )
 
-        documents = [document]
-        doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('microstatelegend',documents,doc_id,params=doc_pars,bulk=False)
+        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runNumber']=self.runnumber
+        return self.index_documents('microstatelegend',[document],doc_id,bulk=False)
 
 
     def elasticize_pathlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
         document = {}
         document['doc_type']='pathlegend'
-        #document['_parent']= self.runnumber
         doc_id="pathlegend_"+self.runnumber
         if fullpath.endswith('.jsn'):
             try:
@@ -323,9 +322,9 @@ class elasticBandBU:
         else:
             stub = self.read_line(fullpath)
             document['names']= self.read_line(fullpath)
-        documents = [document]
-        doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('pathlegend',documents,doc_id,params=doc_pars,bulk=False)
+        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runNumber']=self.runnumber
+        return self.index_documents('pathlegend',[document],doc_id,bulk=False)
 
     def elasticize_inputlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
@@ -338,9 +337,9 @@ class elasticBandBU:
                 document['stateNames'] = doc['names']
         except Exception as ex:
             self.logger.warning("can not parse "+fullpath)
-        documents = [document]
-        doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('inputstatelegend',documents,doc_id,params=doc_pars,bulk=False)
+        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runNumber']=self.runnumber
+        return self.index_documents('inputstatelegend',[document],doc_id,bulk=False)
 
     def elasticize_stream_label(self,infile):
         #elasticize stream name information
@@ -350,8 +349,9 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
         doc_id=infile.basename
-        doc_pars = {"parent":str(self.runnumber)}
-        return self.index_documents('stream_label',[document],params=doc_pars,bulk=False)
+        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runNumber']=self.runnumber
+        return self.index_documents('stream_label',[document],bulk=False)
 
     def elasticize_runend_time(self,endtime):
         self.logger.info(str(endtime)+" going into buffer")
@@ -361,11 +361,11 @@ class elasticBandBU:
         #second update:decrease atomically active BU counter
         self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs-=1"}}],doc_id,bulk=False,update_only=True,params={"retry_on_conflict":300})
 
-    def elasticize_resource_summary(self,jsondoc):
+    def elasticize_resource_summary(self,document):
         self.logger.debug('injecting resource summary document')
         document['doc_type']='resource_summary'
-        jsondoc['appliance']=self.host
-        self.index_documents('resource_summary',[jsondoc],bulk=False)
+        document['appliance']=self.host
+        self.index_documents('resource_summary',[document],bulk=False)
 
     def elasticize_box(self,infile):
 
@@ -444,12 +444,12 @@ class elasticBandBU:
             self.logger.warning('box info not injected: '+str(ex))
             return
 
-    def elasticize_fubox(self,doc):
+    def elasticize_fubox(self,document):
         try:
             doc_id = self.host
             document['doc_type']='fu-box-status'
-            doc['host']=doc_id
-            self.index_documents('fu-box-status',[doc],doc_id,bulk=False)
+            document['host']=doc_id
+            self.index_documents('fu-box-status',[document],doc_id,bulk=False)
         except Exception as ex:
             self.logger.warning('fu box status not injected: '+str(ex))
 
@@ -474,9 +474,9 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['appliance']=self.host
         document['doc_type']='eols'
-        documents = [document]
-        doc_pars = {"parent":str(self.runnumber)}
-        self.index_documents('eols',documents,doc_id,params=doc_pars,bulk=False)
+        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runNumber']=self.runnumber
+        self.index_documents('eols',[document],doc_id,bulk=False)
 
     def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False):
 

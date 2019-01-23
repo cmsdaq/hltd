@@ -64,6 +64,7 @@ central_runindex_mapping = {
 'doc' : {
     'properties' : {
 #  'run' : {
+        'runRelation':  {'type':'join',"relations":{"run":"member"}}
         'runNumber':  {'type':'integer'},
         'startTimeRC':{'type':'date'},
         'stopTimeRC': {'type':'date'},
