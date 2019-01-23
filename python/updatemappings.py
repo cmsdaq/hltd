@@ -9,7 +9,7 @@ import mappings
 import requests
 
 try:
-  from elasticsearch5.serializer import JSONSerializer
+  from elasticsearch6.serializer import JSONSerializer
   json = JSONSerializer()
   print("using elasticsearch-py JSONSerializer")
 except:
