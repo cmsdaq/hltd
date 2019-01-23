@@ -1,4 +1,4 @@
-from elasticsearch5 import Elasticsearch
+from elasticsearch6 import Elasticsearch
 from pprint import pprint
 from ordereddict import OrderedDict
 

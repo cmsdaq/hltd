@@ -566,6 +566,8 @@ class CMSSWLogESWriter(threading.Thread):
                     except Exception as ex:
                         try:
                           errinfo = list(ex)
+                          #TODO: ES6 changes closed exception from 403 to 400, but throws IndexClosedException for that case
+                          #we should detect this in a different way
                           if errinfo[0]==403:
                               self.logger.warning("es bulk index error:"+str(ex))
                           else:

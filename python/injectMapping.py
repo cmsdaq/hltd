@@ -9,8 +9,8 @@ from __future__ import print_function
 #from aUtils import *
 import mappings
 
-from elasticsearch5 import Elasticsearch
-from elasticsearch5.serializer import JSONSerializer
+from elasticsearch6 import Elasticsearch
+from elasticsearch6.serializer import JSONSerializer
 
 import requests
 import simplejson as json

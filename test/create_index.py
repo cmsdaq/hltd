@@ -10,7 +10,7 @@ sys.path.append('/opt/hltd/lib')
 
 import mappings
 
-from elasticsearch5 import Elasticsearch
+from elasticsearch6 import Elasticsearch
 
 if len(sys.argv)>=4:
 
