@@ -1,6 +1,6 @@
 import re
 from mock import Mock, patch
-import urllib3
+import urllib3_hltd as urllib3
 import warnings
 from requests.auth import AuthBase
 

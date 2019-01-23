@@ -1,7 +1,7 @@
 import time
-import urllib3
-from urllib3.exceptions import ReadTimeoutError, SSLError as UrllibSSLError
-from urllib3.util.retry import Retry
+import urllib3_hltd as urllib3
+from urllib3_hltd.exceptions import ReadTimeoutError, SSLError as UrllibSSLError
+from urllib3_hltd.util.retry import Retry
 import warnings
 
 try:
