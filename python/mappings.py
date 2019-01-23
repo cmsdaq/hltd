@@ -64,7 +64,7 @@ central_runindex_mapping = {
 'doc' : {
     'properties' : {
 #  'run' : {
-        'runRelation':  {'type':'join',"relations":{"run":"member"}}
+        'runRelation':  {'type':'join',"relations":{"run":"member"}},
         'runNumber':  {'type':'long'},
         'startTimeRC':{'type':'date'},
         'stopTimeRC': {'type':'date'},
@@ -117,7 +117,7 @@ central_runindex_mapping = {
         'TotalEvents'   :{'type':'integer'},
         'NLostEvents'   :{'type':'integer'},
         'NBytes'        :{'type':'long'},
-        'appliance'     :{'type':'keyword'}
+        'appliance'     :{'type':'keyword'},
 
 #'minimerge,macromerge' : {
 #        'runNumber'     :{'type':'integer'}
@@ -139,7 +139,7 @@ central_runindex_mapping = {
 #      'transfer' : {
 #        'startTime' : {          'type' : 'date'        },
         'status' : {          'type' : 'integer'        },
-        'type' : {          'type' : 'keyword'        }
+        'type' : {          'type' : 'keyword'        },
  
 
 #      'stream-hist' : {
@@ -237,7 +237,8 @@ central_runindex_mapping = {
             },
             'total': {              'type': 'integer'            }
           }
-        },
+        }
+      }
 #        'date': {          'type':'date'        },
 #        'fm_date':{          'type': 'date'        },
 #        'cpuslots':{          'type': 'short'        },
@@ -439,8 +440,10 @@ central_hltdlogs_mapping = {
 #            },
             'msgtimezone': {
                 'type': 'keyword'
-            },
+            }
 #            'date': {
 #                'type':'date'
 #            }
+        }
+    }
 }
