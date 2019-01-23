@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 
 import os,sys,socket
 import shutil
@@ -7,7 +8,6 @@ import subprocess
 import shutil
 import syslog
 import time
-from __future__ import print_function
 
 sys.path.append('/opt/hltd/python')
 

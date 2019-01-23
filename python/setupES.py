@@ -1,7 +1,8 @@
 #!/bin/env python
+from __future__ import print_function
 import sys,os
 import six
-from __future__ import print_function
+
 from elasticsearch6 import Elasticsearch
 from elasticsearch6.exceptions import TransportError
 

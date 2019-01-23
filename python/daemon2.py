@@ -1,9 +1,10 @@
+
+from __future__ import print_function
 import sys, os, time, atexit
 import subprocess
 from signal import SIGINT,SIGKILL
 import re
 import logging
-from __future__ import print_function
 #from aUtils import * #for stdout and stderr redirection
 try:
   #hltd service dependency

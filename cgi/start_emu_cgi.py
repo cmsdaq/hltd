@@ -1,8 +1,8 @@
 #!/bin/env python
+from __future__ import print_function
 import cgi
 import os
 import time
-from __future__ import print_function
 
 RUNNUMBER_PADDING=6
 

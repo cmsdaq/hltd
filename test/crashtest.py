@@ -1,8 +1,8 @@
 #!/bin/env python
+from __future__ import print_function
 
 import sys,traceback
 import os,signal
-from __future__ import print_function
 
 import logging
 import pyinotify

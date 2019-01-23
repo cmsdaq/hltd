@@ -1,9 +1,9 @@
 #!/bin/env python
+from __future__ import print_function
 import cgi
 import time
 import os
 import subprocess
-from __future__ import print_function
 
 """
 problem: cgi scripts run as user 'nobody'

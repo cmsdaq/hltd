@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 
 import requests
 try:
@@ -8,7 +9,6 @@ except:
 import sys
 import datetime
 import time
-from __future__ import print_function
 
 
 logThreshold=2 #WARNING

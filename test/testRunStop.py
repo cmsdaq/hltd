@@ -1,6 +1,6 @@
 #!/bin/env python
-import os,sys,shutil,time
 from __future__ import print_function
+import os,sys,shutil,time
 
 def lineSearch(logfile,*args):
   searchTimeout = 10.

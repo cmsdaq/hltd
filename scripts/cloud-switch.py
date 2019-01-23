@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 import os,sys
 import threading
 try:
@@ -7,7 +8,6 @@ except:
   from http.client import HTTPConnection
 import time
 import socket
-from __future__ import print_function
 
 socket.setdefaulttimeout(5)
 

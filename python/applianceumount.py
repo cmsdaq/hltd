@@ -1,4 +1,5 @@
 #!/bin/env python
+from __future__ import print_function
 
 import os,sys,socket
 import errno
@@ -7,7 +8,6 @@ import shutil
 import threading
 import time
 import syslog
-from __future__ import print_function
 
 try:
   from httplib import HTTPConnection

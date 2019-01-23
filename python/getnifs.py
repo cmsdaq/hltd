@@ -1,11 +1,11 @@
 #!/bin/env python
+from __future__ import print_function
 
 # Based on https://gist.github.com/provegard/1536682, which was
 # Based on getifaddrs.py from pydlnadms [http://code.google.com/p/pydlnadms/].
 # Only tested on Linux!
 
 #taken from: https://gist.github.com/chadmiller/5157850
-from __future__ import print_function
 
 from socket import AF_INET, AF_INET6, inet_ntop
 from ctypes import (
