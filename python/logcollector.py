@@ -27,9 +27,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
 
-from elasticsearch6 import Elasticsearch
-from elasticsearch6.serializer import JSONSerializer
-from elasticsearch6.exceptions import ElasticsearchException
+from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
+from elasticsearch.exceptions import ElasticsearchException
 from elasticBand import bulk_index
 
 from hltdconf import *

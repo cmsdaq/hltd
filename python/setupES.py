@@ -3,8 +3,8 @@ from __future__ import print_function
 import sys,os
 import six
 
-from elasticsearch6 import Elasticsearch
-from elasticsearch6.exceptions import TransportError
+from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import TransportError
 
 import simplejson as json
 import socket

@@ -1,5 +1,5 @@
 from __future__ import print_function
-from elasticsearch6 import Elasticsearch
+from elasticsearch import Elasticsearch
 from pprint import pprint
 from ordereddict import OrderedDict
 

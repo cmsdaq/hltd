@@ -19,9 +19,9 @@ from aUtils import *
 from daemon2 import stdOutLog,stdErrorLog
 import mappings
 
-from elasticsearch6 import Elasticsearch
-from elasticsearch6.serializer import JSONSerializer
-from elasticsearch6.exceptions import (ConnectionError, ConnectionTimeout,
+from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
+from elasticsearch.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
 from elasticBand import bulk_index
 

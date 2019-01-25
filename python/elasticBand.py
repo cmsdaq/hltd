@@ -2,9 +2,9 @@ import os,socket,time
 import sys
 import threading
 
-from elasticsearch6 import Elasticsearch
-from elasticsearch6.serializer import JSONSerializer
-from elasticsearch6.exceptions import (ConnectionError, ConnectionTimeout,
+from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
+from elasticsearch.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
 
 import simplejson as json

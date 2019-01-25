@@ -9,8 +9,8 @@ import time
 #from aUtils import *
 import mappings
 
-from elasticsearch6 import Elasticsearch
-from elasticsearch6.serializer import JSONSerializer
+from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
 
 import requests
 import simplejson as json
