@@ -296,7 +296,7 @@ class elasticBandBU:
 
         document['runRelation']={"name":"member","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('microstatelegend',[document],doc_id,bulk=False)
+        return self.index_documents('microstatelegend',[document],doc_id,bulk=False)[0]
 
 
     def elasticize_pathlegend(self,fullpath):
@@ -324,7 +324,7 @@ class elasticBandBU:
             document['names']= self.read_line(fullpath)
         document['runRelation']={"name":"member","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('pathlegend',[document],doc_id,bulk=False)
+        return self.index_documents('pathlegend',[document],doc_id,bulk=False)[0]
 
     def elasticize_inputlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
@@ -339,7 +339,7 @@ class elasticBandBU:
             self.logger.warning("can not parse "+fullpath)
         document['runRelation']={"name":"member","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('inputstatelegend',[document],doc_id,bulk=False)
+        return self.index_documents('inputstatelegend',[document],doc_id,bulk=False)[0]
 
     def elasticize_stream_label(self,infile):
         #elasticize stream name information
@@ -351,7 +351,7 @@ class elasticBandBU:
         doc_id=infile.basename
         document['runRelation']={"name":"member","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('stream_label',[document],bulk=False)
+        return self.index_documents('stream_label',[document],bulk=False)[0]
 
     def elasticize_runend_time(self,endtime):
         self.logger.info(str(endtime)+" going into buffer")
@@ -502,7 +502,7 @@ class elasticBandBU:
                     else:
                       self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params_)
 
-                return True
+                return (True,0)
 
             except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:
                 self.logger.warning("detected connection problem: "+str(ex))
@@ -512,7 +512,7 @@ class elasticBandBU:
                     self.logger.warning('elasticsearch connection error: ' + str(ex)+'. retry.')
                 elif (attempts-2)%10==0:
                     self.logger.error('elasticsearch connection error:' + str(ex)+'. retry.')
-                if self.stopping:return False
+                if self.stopping:return (False,0)
                 ip_url=getURLwithIP(self.es_server_url,self.nsslock)
                 self.es = Elasticsearch(ip_url,timeout=20)
                 time.sleep(0.1)
@@ -523,11 +523,11 @@ class elasticBandBU:
                   if attempts<10:
                     self.logger.warning('elasticsearch Serialization error. retrying..')
                     continue
-                  return False
+                  return (False,0)
  
             except TransportError as ex: #TODO (transport error)
                 if name=='run' and ex.status_code==409: #create failed because overwrite was forbidden
-                    return (False,ex.status_cude)
+                    return (False,ex.status_code)
 
                 if ex.status_code==429:
                   if attempts<10 and not is_box:
@@ -541,8 +541,8 @@ class elasticBandBU:
                     self.logger.warning('elasticsearch HTTP error '+str(ex)+'. skipping document '+name)
                 else:
                     self.logger.error('elasticsearch HTTP error '+str(ex)+'. skipping document '+name)
-                return False
-        return False
+                return (False,0)
+        return (False,0)
 
 
 class elasticCollectorBU():
