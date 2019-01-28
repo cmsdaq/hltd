@@ -479,7 +479,7 @@ class elasticBandBU:
         self.index_documents('eols',[document],doc_id,bulk=False)
 
     def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False):
-
+        params_ = params.copy()
         if name=='fu-box-status' or name.startswith("boxinfo") or name=='resource_summary':
             destination_index = self.boxinfo_write
             is_box=True
@@ -495,12 +495,12 @@ class elasticBandBU:
                 else:
                     if doc_id:
                       if update_only:
-                        self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params)
+                        self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params_)
                       else:
-                        params["op_type"] = "create" if not overwrite else "index"
-                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params)
+                        params_["op_type"] = "create" if not overwrite else "index"
+                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
                     else:
-                      self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params)
+                      self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params_)
 
                 return True
 
