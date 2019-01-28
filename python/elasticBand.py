@@ -107,6 +107,7 @@ class elasticBand():
                 self.logger.info("Result of index create: " + str(c_res) )
         except Exception as ex:
             self.logger.info("Elastic Exception "+ str(ex))
+
         self.indexFailures=0
         self.monBufferSize = monBufferSize
         self.fastUpdateModulo = fastUpdateModulo

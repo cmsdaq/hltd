@@ -611,9 +611,9 @@ class CMSSWLogESWriter(threading.Thread):
                         break
 
     def stop(self):
-        for key in self.parsers:
+        for key in list(self.parsers.keys()):
             self.parsers[key].stop()
-        for key in self.parsers:
+        for key in list(self.parsers.keys()):
             self.parsers[key].join()
         self.abort = True
         self.threadEvent.set()
@@ -621,7 +621,7 @@ class CMSSWLogESWriter(threading.Thread):
 
     def clearFinished(self):
         aliveCount=0
-        for key in self.parsers:
+        for key in list(self.parsers.keys()):
             aliveCount+=1
             if self.parsers[key].closed:
                 self.parsers[key].join()
