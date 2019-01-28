@@ -218,7 +218,6 @@ class Run:
                 self.logger.error('RUN:'+str(self.runnumber)+" - failed to stat "+self.rawinputdir)
             try:
                 os.mkdir(self.rawinputdir+'/mon')
-                os.chmod(0o777,self.rawinputdir+'/mon')
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - could not create mon dir inside the run input directory")
         else:
