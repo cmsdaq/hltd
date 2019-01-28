@@ -168,7 +168,7 @@ def calculateLexicalId(string):
         pos=80
         if strlen<pos:
             pos=strlen
-    return zlib.adler32(re.sub("[0-9\+\- ]", "",string[:pos]))
+    return zlib.adler32(bytes(re.sub("[0-9\+\- ]", "",string[:pos]),"utf-8"))
 
 class CMSSWLogEvent(object):
 
