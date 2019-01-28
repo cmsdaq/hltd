@@ -652,4 +652,5 @@ if __name__ == "__main__":
     if do_forking:
       daemon.start()
     else: #default
+      os.umask(0)
       daemon.run()
