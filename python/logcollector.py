@@ -565,11 +565,9 @@ class CMSSWLogESWriter(threading.Thread):
                             self.logger.error("Error reply on bulk-index request(logcollector):"+ str(reply))
                     except Exception as ex:
                         try:
-                          errinfo = list(ex)
-                          #TODO: ES6 changes closed exception from 403 to 400, but throws IndexClosedException for that case
-                          #we should detect this in a different way
-                          if errinfo[0]==403:
-                              self.logger.warning("es bulk index error:"+str(ex))
+                          err = ex.error
+                          if err == "index_closed_exception":
+                              self.logger.warning("es bulk index error (closed):"+str(ex))
                           else:
                               self.logger.error("es bulk index:"+str(ex))
                         except Exception as ex2:
@@ -587,9 +585,9 @@ class CMSSWLogESWriter(threading.Thread):
                                 self.eb.es.index(index=self.eb.indexName,doc_type='doc',body=evt.document)
                         except Exception as ex:
                             try:
-                              errinfo = list(ex)
-                              if errinfo[0]==403:
-                                  self.logger.warning("es bulk index error:"+str(ex))
+                              err = ex.error
+                              if err == "index_closed_exception":
+                                  self.logger.warning("es bulk index error (closed):"+str(ex))
                               else:
                                   self.logger.error("es bulk index:"+str(ex))
                             except Exception as ex2:
