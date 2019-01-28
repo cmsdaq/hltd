@@ -14,7 +14,7 @@ import copy
 from elasticTemplates import runappliance
 
 #compatibility (py3 unicode is str)
-unicode = str if sys.version_info.major == 3 else unicode
+conv_unicode = False if sys.version_info.major == 3 else True
 
 def delete_template(es,name):
     es.indices.delete_template(name)
@@ -48,8 +48,10 @@ def convert(inp):
         return dict((convert(key), convert(value)) for key, value in six.iteritems(inp))
     elif isinstance(inp, list):
         return [convert(element) for element in inp]
-    elif isinstance(inp, unicode):
+    elif conv_unicode and isinstance(inp, unicode):
         return inp.encode('utf-8')
+    elif isinstance(inp, bytes):
+        return inp.decode('utf-8')
     else:
         return inp
 
