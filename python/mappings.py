@@ -83,7 +83,7 @@ central_runindex_mapping = {
 
         'id':         {'type':'keyword'},
         'names':      {'type':'keyword'},
-        'stateNames': {'type':'keyword','index':'no'},
+        'stateNames': {'type':'keyword','index':'false'},
         'reserved':   {'type':'integer'},
         'special':    {'type':'integer'},
         'output':     {'type':'integer'},
