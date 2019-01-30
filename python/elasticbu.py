@@ -348,7 +348,7 @@ class elasticBandBU:
         document['doc_type']='stream_label'
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
-        doc_id=infile.basename
+        doc_id="stream_label_"+infile.basename
         document['runRelation']={"name":"member","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
         return self.index_documents('stream_label',[document],bulk=False)[0]
@@ -446,9 +446,9 @@ class elasticBandBU:
 
     def elasticize_fubox(self,document):
         try:
-            doc_id = self.host
             document['doc_type']='fu-box-status'
-            document['host']=doc_id
+            document['host']=self.host
+            doc_id = "fu-box-status_"+self.host
             self.index_documents('fu-box-status',[document],doc_id,bulk=False)
         except Exception as ex:
             self.logger.warning('fu box status not injected: '+str(ex))

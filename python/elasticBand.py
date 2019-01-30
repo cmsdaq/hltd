@@ -14,7 +14,7 @@ import logging
 import copy
 
 from aUtils import *
-from runapplianceTemplate import runappliance
+from elasticTemplates import runappliance
 
 def getURLwithIP(url):
     try:
