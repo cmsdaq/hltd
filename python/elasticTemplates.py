@@ -76,52 +76,52 @@ runappliance = {
 
         "miniv": {
           "properties":{
-            "key":{"type":"integer","index":"no"},
-            "value":{"type":"integer","index":"no"}
+            "key":{"type":"integer","index":"false"},
+            "value":{"type":"integer","index":"false"}
           }
         },
         "microv": {
           "properties":{
-            "key":{"type":"integer","index":"no"},
-            "value":{"type":"integer","index":"no"}
+            "key":{"type":"integer","index":"false"},
+            "value":{"type":"integer","index":"false"}
           }
         },
         "inputStats" : {
           "properties" : {
             "tp": {
               "type": "double",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "lead": {
               "type": "double",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "nfiles": {
               "type": "integer",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "nevents": {
               "type": "integer",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "lockwaitUs": {
               "type": "double",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "lockcount": {
               "type": "integer",
-              "index":"no",
+              "index":"false",
               "doc_values":True
             },
             "instatev": {
               "properties":{
-                "key":{"type":"integer","index":"no"},
-                "value":{"type":"integer","index":"no"}
+                "key":{"type":"integer","index":"false"},
+                "value":{"type":"integer","index":"false"}
               }
             }
           }
@@ -153,12 +153,12 @@ runappliance = {
 #      "_source": {"enabled": "false" },
         "din": {
           "type": "integer",
-          "index":"no",
+          "index":"false",
           "doc_values":True
         },
         "dout": {
           "type": "integer",
-          "index":"no",
+          "index":"false",
           "doc_values":True
         },
         "lsn": {
@@ -373,8 +373,7 @@ runappliance = {
           "type": "long"
         },
         "message": {
-          "type": "string",
-          "index": "analyzed"
+          "type": "text"
         },
         "lexicalId": {
           "type": "keyword"
