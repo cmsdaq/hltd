@@ -145,7 +145,7 @@ class elasticBandBU:
             if arch: document['CMSSW_arch']=arch
             if hltmenuname and len(hltmenuname): document['HLT_menu']=hltmenuname
             documents = [document]
-            ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False)
+            ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False,routing=str(self.runnumber))
             if isinstance(ret,tuple) and ret[1]==409:
                 #run document was already created by another BU. In that case increase atomically active BU counter
                 self.index_documents('run',[{"script":{"inline":"ctx._source.activeBUs+=1;ctx._source.totalBUs+=1"}}],doc_id,params={"retry_on_conflict":300},bulk=False,update_only=True)
@@ -294,9 +294,9 @@ class elasticBandBU:
                     idx,sn = nameToken.split('=')
                     document["stateNames"].append( sn )
 
-        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runRelation']={"name":"microstatelegend","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('microstatelegend',[document],doc_id,bulk=False)[0]
+        return self.index_documents('microstatelegend',[document],doc_id,bulk=False,routing=str(self.runnumber))[0]
 
 
     def elasticize_pathlegend(self,fullpath):
@@ -322,9 +322,9 @@ class elasticBandBU:
         else:
             stub = self.read_line(fullpath)
             document['names']= self.read_line(fullpath)
-        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runRelation']={"name":"pathlegend","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('pathlegend',[document],doc_id,bulk=False)[0]
+        return self.index_documents('pathlegend',[document],doc_id,bulk=False,routing=str(self.runnumber))[0]
 
     def elasticize_inputlegend(self,fullpath):
         self.logger.info(os.path.basename(fullpath))
@@ -337,9 +337,9 @@ class elasticBandBU:
                 document['stateNames'] = doc['names']
         except Exception as ex:
             self.logger.warning("can not parse "+fullpath)
-        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runRelation']={"name":"inputstatelegend","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('inputstatelegend',[document],doc_id,bulk=False)[0]
+        return self.index_documents('inputstatelegend',[document],doc_id,bulk=False,routing=str(self.runnumber))[0]
 
     def elasticize_stream_label(self,infile):
         #elasticize stream name information
@@ -349,9 +349,9 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['stream']=infile.stream[6:]
         doc_id="stream_label_"+infile.basename
-        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runRelation']={"name":"stream_label","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('stream_label',[document],bulk=False)[0]
+        return self.index_documents('stream_label',[document],bulk=False,routing=str(self.runnumber))[0]
 
     def elasticize_runend_time(self,endtime):
         self.logger.info(str(endtime)+" going into buffer")
@@ -474,11 +474,11 @@ class elasticBandBU:
         #document['_parent']= self.runnumber
         document['appliance']=self.host
         document['doc_type']='eols'
-        document['runRelation']={"name":"member","parent":str(self.runnumber)}
+        document['runRelation']={"name":"eols","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        self.index_documents('eols',[document],doc_id,bulk=False)
+        self.index_documents('eols',[document],doc_id,bulk=False,routing=str(self.runnumber))
 
-    def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False):
+    def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False,routing=None):
         params_ = params.copy()
         if name=='fu-box-status' or name.startswith("boxinfo") or name=='resource_summary':
             destination_index = self.boxinfo_write
@@ -498,7 +498,10 @@ class elasticBandBU:
                         self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params_)
                       else:
                         params_["op_type"] = "create" if not overwrite else "index"
-                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
+                        if routing!=None: #we do routing only with normal non-bulk id index
+                          self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_,routing=routing)
+                        else:
+                          self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
                     else:
                       self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params_)
 
