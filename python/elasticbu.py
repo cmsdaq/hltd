@@ -347,11 +347,13 @@ class elasticBandBU:
         document = {}
         document['doc_type']='stream_label'
         #document['_parent']= self.runnumber
-        document['stream']=infile.stream[6:]
-        doc_id="stream_label_"+infile.basename
+        doc_stream=infile.stream[6:]
+        document['stream']=doc_stream
+        doc_id = "stream_label_"+str(self.runnumber)+"_"+doc_stream
+        #doc_id="stream_label_"+infile.basename
         document['runRelation']={"name":"stream_label","parent":str(self.runnumber)}
         document['runNumber']=self.runnumber
-        return self.index_documents('stream_label',[document],bulk=False,routing=str(self.runnumber))[0]
+        return self.index_documents('stream_label',[document],doc_id=doc_id,bulk=False,routing=str(self.runnumber))[0]
 
     def elasticize_runend_time(self,endtime):
         self.logger.info(str(endtime)+" going into buffer")

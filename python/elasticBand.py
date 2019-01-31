@@ -176,10 +176,10 @@ class elasticBand():
         document,ret = self.imbue_jsn(infile)
         if ret<0:return
         datadict = {}
-        document['doc_type'] = 'prc-s-state'
-        document['host']=self.hostname
-        document['pid']=int(infile.pid[3:])
-        try:document['tid']=int(infile.tid[3:])
+        datadict['doc_type'] = 'prc-s-state'
+        datadict['host']=self.hostname
+        datadict['pid']=int(infile.pid[3:])
+        try:datadict['tid']=int(infile.tid[3:])
         except:pass
         datadict['ls'] = int(infile.ls[2:])
         if document['data'][0] != "N/A":
