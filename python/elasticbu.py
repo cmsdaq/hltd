@@ -493,17 +493,18 @@ class elasticBandBU:
                 if bulk:
                     bulk_index(self.es,destination_index,documents)
                 else:
-                    if doc_id:
-                      if update_only:
-                        self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params_)
-                      else:
-                        params_["op_type"] = "create" if not overwrite else "index"
-                        if routing!=None: #we do routing only with normal non-bulk id index
-                          self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_,routing=routing)
+                    if update_only:
+                        if doc_id:
+                          self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params_)
                         else:
-                          self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
+                          self.logger.error("can not update document " + name + " without document id")
                     else:
-                      self.es.index(index=destination_index,doc_type='doc',body=documents[0],params = params_)
+                      if doc_id!=None:
+                        params_["op_type"] = "create" if not overwrite else "index"
+                      if routing!=None:
+                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_,routing=routing)
+                      else:
+                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
 
                 return (True,0)
 
