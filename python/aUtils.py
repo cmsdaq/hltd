@@ -41,7 +41,7 @@ bw_cnt = 0
 #    def write(self, message):
 #        self.logger.error(message)
 
-def decodecstr(raw):return ( raw if isinstance(raw,str) else raw.decode("utf-8") )
+def decodecstr(raw):return ( raw if isinstance(raw,str) else raw.decode("utf-8") if raw!=None else "")
 
 
     #on notify, put the event file in a queue
