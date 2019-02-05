@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python2.7
 from __future__ import print_function
 
 import os,sys,socket
@@ -73,7 +73,7 @@ def getmachinetype():
 
     #print "running on host ",myhost
     if myhost.startswith('dvrubu-') or myhost.startswith('dvfu-'):
-      return 'daq2val',"bu"
+      return 'daq2val',"fu"
     elif myhost.startswith('dvbu-') :
       return 'daq2val','bu'
     elif myhost.startswith('d3vfu-') :
