@@ -189,7 +189,6 @@ Classifier: Topic :: System :: Filesystems
 Classifier: Topic :: System :: Monitoring
 EOF
 
-
 cd $TOPDIR
 cd opt/hltd/lib/setproctitle-1.1.10
 $pyexec ./setup.py -q build
@@ -197,8 +196,13 @@ cp build/lib.linux-x86_64-${python_version}/setproctitle*.so $TOPDIR/usr/lib64/$
 PROC_FILES="/usr/lib64/${python_dir}/site-packages/setproctitle*.so"
 cp COPYRIGHT $TOPDIR/usr/share/hltd-libs-$python_dir/setproctitle-COPYRIGHT
 
+### conditional packaging
+
 SOAPPY_FILES=""
 WSTOOLS_FILES=""
+ORACLE_FILES=""
+PYCACHE_FILES=""
+
 if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
   cd $TOPDIR
   cd opt/hltd/lib/SOAPpy-py3-0.52.24
@@ -212,12 +216,19 @@ if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
   cp -R build/lib/wstools $TOPDIR/usr/lib64/$python_dir/site-packages/
   WSTOOLS_FILES=/usr/lib64/$python_dir/site-packages/wstools
 
+  #Oracle python library
+  cd $TOPDIR
+  cd opt/hltd/lib/cx_Oracle-7.1/
+  rm -rf build
+  $pyexec ./setup.py -q build
+  cp -R build/lib.linux-x86_64-${python_version}/cx_Oracle*.so $TOPDIR/usr/lib64/$python_dir/site-packages/
+  ORACLE_FILES="/usr/lib64/$python_dir/site-packages/cx_Oracle*.so"
+
+  PYCACHE_FILES="/usr/lib64/$python_dir/site-packages/__pycache__"
 fi
 
-PYCACHE_FILES=""
-if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
-PYCACHE_FILES="/usr/lib64/$python_dir/site-packages/__pycache__"
-fi
+###
+
 cd $TOPDIR
 rm -rf opt
 
@@ -241,7 +252,7 @@ fi
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
 Name: ${pkgname}
-Version: 2.5.0
+Version: 2.5.1
 Release: 0
 Summary: hlt daemon libraried ${python_dir}
 License: gpl
@@ -283,6 +294,7 @@ ${PROC_FILES}
 ${SOAPPY_FILES}
 ${WSTOOLS_FILES}
 ${PYCACHE_FILES}
+${ORACLE_FILES}
 
 EOF
 mkdir -p RPMBUILD/{RPMS/{noarch},SPECS,BUILD,SOURCES,SRPMS}
