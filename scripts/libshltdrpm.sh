@@ -154,11 +154,11 @@ EOF
 cd $TOPDIR
 cd opt/hltd/lib/python-inotify-0.5/
 $pyexec ./setup.py -q build
-$pyexec - <<'EOF'
+$pyexec - <<EOF
 import compileall
 compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
 EOF
-$pyexec -O - <<'EOF'
+$pyexec -O - <<EOF
 import compileall
 compileall.compile_dir("build/lib.linux-x86_64-${python_version}/inotify",quiet=True)
 EOF
