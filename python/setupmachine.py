@@ -39,7 +39,8 @@ dbpwd = 'empty'
 equipmentSet = 'latest'
 minidaq_list = ["bu-c2f13-14-01","bu-c2f13-16-01","bu-c2f13-25-01","bu-c2f13-27-01",
                 "bu-c2f13-37-01","bu-c2f13-39-01","fu-c2f13-09-01","fu-c2f13-09-02","fu-c2f13-09-03",
-                "fu-c2f13-20-01","fu-c2f13-20-02","fu-c2f13-20-03","fu-c2f13-33-01","fu-c2f13-33-02","bu-c2f13-41-01","bu-c2f13-29-01"]
+                "fu-c2f13-20-01","fu-c2f13-20-02","fu-c2f13-20-03","fu-c2f13-33-01","fu-c2f13-33-02","bu-c2f13-41-01","bu-c2f13-29-01",
+                "bu-c2e31-11-01","fu-c2e31-13-01"]
 dqm_list     = ["bu-c2f11-09-01",
                 "fu-c2f11-11-01","fu-c2f11-11-02","fu-c2f11-11-03","fu-c2f11-11-04"]
 dqmtest_list = ["bu-c2f11-13-01",
@@ -777,6 +778,8 @@ if __name__ == "__main__":
                 #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
 
                 hltdcfg.reg('watch_directory',watch_dir_bu,'[General]')
+                if cluster=='daq3val': 
+                  hltdcfg.reg('output_subdirectory_remote','output')
 
                 if cluster=='daq2val' or cluster=='daq3val':
                     hltdcfg.reg('static_blacklist','True','[General]')
@@ -818,6 +821,8 @@ if __name__ == "__main__":
 
             hltdcfg.reg('exec_directory',execdir,'[General]')
             hltdcfg.reg('watch_directory','/fff/data','[General]')
+            if cluster=='daq3val': 
+              hltdcfg.reg('output_subdirectory_remote','output')
             hltdcfg.reg('static_blacklist','False','[General]')
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
