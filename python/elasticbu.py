@@ -9,6 +9,8 @@ import time
 import logging
 import inotify._inotify as inotify
 import threading
+import shutil
+
 try:
   import Queue as queue
 except:
@@ -590,7 +592,8 @@ class elasticCollectorBU():
                         try:
                             with open(event.fullpath,'r') as feor:
                               if int(json.load(feor)['data'][0])==0:
-                                  self.makeOutputDir()
+                                  if not self.es.conf.drop_at_fu:
+                                      self.makeOutputDir()
                         except Exception as ex:
                             self.logger.warning('unable to parse EoR file content '+str(ex))
                         if self.es:
@@ -623,6 +626,23 @@ class elasticCollectorBU():
                         endtime = datetime.datetime.utcnow().isoformat()
                         self.es.elasticize_runend_time(endtime)
                     break
+
+        if self.es.conf.drop_at_fu:
+            #we are in test mode. wait for a while before deleting
+            time.sleep(60)
+            #delete directory because merger is not active
+
+            try:
+                self.logger.info("deleting ramdisk and output (drop at FU mode)")
+                shutil.rmtree(os.path.join('/fff',self.es.conf.output_subdirectory_remote,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
+            except Exception as ex:
+                self.logger.exception(ex)
+
+            try:
+                shutil.rmtree(os.path.join(self.es.conf.watch_directory,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
+            except Exception as ex:
+                self.logger.exception(ex)
+ 
         self.logger.info("Stop main loop (watching directory " + str(self.inRunDir) + ")")
 
     def makeOutputDir(self):
@@ -806,6 +826,7 @@ class RunCompletedChecker(threading.Thread):
         threading.Thread.__init__(self)
         self.conf = conf
         self.runObj = runObj
+        self.runnumber = runObj.runnumber
         rundirstr = 'run'+ str(runObj.runnumber).zfill(conf.run_number_padding)
         self.indexPrefix = rundirstr + '_' + conf.elastic_cluster
         self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/doc/_search&size=0'
@@ -863,6 +884,7 @@ class RunCompletedChecker(threading.Thread):
             #check every 10 seconds
             self.threadEvent.wait(10)
 
+
     def stop(self):
         self.stopping = True
         self.threadEvent.set()
@@ -893,7 +915,7 @@ if __name__ == "__main__":
     runnumber = sys.argv[1]
     watchdir = conf.watch_directory
     mainDir = os.path.join(watchdir,'run'+ runnumber.zfill(conf.run_number_padding))
-    mainOutDir = os.path.join('/fff/output','run'+ runnumber.zfill(conf.run_number_padding))
+    mainOutDir = os.path.join('/fff',conf.output_subdirectory_remote,'run'+ runnumber.zfill(conf.run_number_padding))
     dt=os.path.getctime(mainDir)
     startTime = datetime.datetime.utcfromtimestamp(dt).isoformat()
     #EoR file path to watch for

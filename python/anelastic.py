@@ -26,10 +26,11 @@ host = os.uname()[1]
 host_true = host
 
 class LumiSectionRanger:
-    def __init__(self,mr,tempdir,outdir,run_number):
+    def __init__(self,mr,tempdir,outdir,run_number,drop_at_fu):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.dqmHandler = None
         self.dqmQueue = queue.Queue()
+        self.drop_at_fu=drop_at_fu
         self.mr = mr
         self.stoprequest = threading.Event()
         self.emptyQueue = threading.Event()
@@ -324,11 +325,12 @@ class LumiSectionRanger:
 
         #create stream subdirectory in output if not there
         create_attempts=5
-        while not self.createOutputDirs(filedir) and create_attempts>0:
-            time.sleep(.1)
-            #terminate script if there is no condition
-            create_attempts-=1
-            if create_attempts==0: self.logger.fatal('Unable to create destination directories for INI file ' + self.infile.basename)
+        if not self.drop_at_fu:
+            while not self.createOutputDirs(filedir) and create_attempts>0:
+                time.sleep(.1)
+                #terminate script if there is no condition
+                create_attempts-=1
+                if create_attempts==0: self.logger.fatal('Unable to create destination directories for INI file ' + self.infile.basename)
 
         infile = fileHandler(filepath)
         infile.data = ""
@@ -364,11 +366,12 @@ class LumiSectionRanger:
 
         #create stream subdirectory in output if not there
         create_attempts=5
-        while not self.createOutputDirs(remotefiledir) and create_attempts>0:
-            time.sleep(.1+(5-create_attempts)/50.)
-            #terminate script if there is no condition
-            create_attempts-=1
-            if create_attempts==0: self.logger.fatal('Unable to create destination directories for INI file ' + self.infile.basename)
+        if not self.drop_at_fu:
+            while not self.createOutputDirs(remotefiledir) and create_attempts>0:
+                time.sleep(.1+(5-create_attempts)/50.)
+                #terminate script if there is no condition
+                create_attempts-=1
+                if create_attempts==0: self.logger.fatal('Unable to create destination directories for INI file ' + self.infile.basename)
 
         if not os.path.exists(localmonfilepath):
             try:
@@ -383,7 +386,8 @@ class LumiSectionRanger:
                 self.activeStreams.append(stream)
                 self.streamCounters[stream]=0
             self.infile.moveFile(newpath=localfilepath)
-            self.infile.moveFile(newpath=remotefilepath,copy=True,createDestinationDir=False,missingDirAlert=False)
+            if not self.drop_at_fu:
+              self.infile.moveFile(newpath=remotefilepath,copy=True,createDestinationDir=False,missingDirAlert=False)
         else:
             self.logger.debug("compare %s , %s " %(localfilepath,filepath))
             if not filecmp.cmp(localfilepath,filepath,False):
@@ -415,9 +419,10 @@ class LumiSectionRanger:
             #find stream token
             #copy to output with rename
             if not stream:
-                self.infile.moveFile(os.path.join(outputDir,run,os.path.basename(newpath)),copy=True,adler32=False,
+                if not self.drop_at_fu:
+                    self.infile.moveFile(os.path.join(outputDir,run,os.path.basename(newpath)),copy=True,adler32=False,
                                    silent=True,createDestinationDir=False,missingDirAlert=False,updateFileInfo=False)
-            else:
+            elif not self.drop_at_fu:
                 remotefiledir = os.path.join(outputDir,run,stream)
                 #create stream subdirectory in output if not there
                 create_attempts=5
@@ -528,11 +533,13 @@ class LumiSectionRanger:
                 json.dump(document,fi)
         except: logging.exception("unable to create %r" %srcName)
 
-        f = fileHandler(srcName)
-        f.moveFile(destName,createDestinationDir=False,missingDirAlert=False)
+        if not self.drop_at_fu:
+            f = fileHandler(srcName)
+            f.moveFile(destName,createDestinationDir=False,missingDirAlert=False)
         self.logger.info('created local EoR files for output')
 
     def createBoLS(self,run,ls,stream):
+        if self.drop_at_fu:return
         #create BoLS file in output dir
         bols_file = run+"_"+ls+"_"+stream+"_BoLS.jsn"
         bols_path =  os.path.join(self.outdir,run,stream,bols_file)
@@ -789,7 +796,10 @@ class LumiSectionHandler():
                     dataFile = fileHandler(localDataPath)
                     remoteDataPath = os.path.join(outdir,outfile.run,outfile.stream,'data',datafilename)
                     if self.EOLS:
-                        dataFile.moveFile(remoteDataPath, createDestinationDir=False, missingDirAlert=True)
+                        if not self.parent.drop_at_fu:
+                            dataFile.moveFile(remoteDataPath, createDestinationDir=False, missingDirAlert=True)
+                        else:
+                            dataFile.deleteFile()
                 else:
                     outfile.setFieldByName("Filelist","")
                 remotePath = os.path.join(outdir,outfile.run,outfile.stream,'jsns',outfilename)
@@ -800,7 +810,8 @@ class LumiSectionHandler():
                 #(otherwise this EoR of LS that doesn't exist on BU)
                 if self.EOLS:
                     #move empty stream JSON to BU
-                    outfile.moveFile(remotePath, createDestinationDir=False, missingDirAlert=False, updateFileInfo=False,copy=True)
+                    if not self.parent.drop_at_fu:
+                        outfile.moveFile(remotePath, createDestinationDir=False, missingDirAlert=False, updateFileInfo=False,copy=True)
                     self.parent.mr.notifyMaxLsWithOutput(self.ls_num) #feedback for backpressure control
                     outfile.esCopy(keepmtime=False)
                     outfile.deleteFile(silent=True)
@@ -1021,7 +1032,11 @@ class LumiSectionHandler():
                                 doChecksum=False
                             else:
                                 #this code path covers PB files
-                                (status,checksum)=datfile.moveFile(newfilepath,adler32=doChecksum,createDestinationDir=False,missingDirAlert=True,missingDirAssert=True)
+                                if not self.parent.drop_at_fu:
+                                    (status,checksum)=datfile.moveFile(newfilepath,adler32=doChecksum,createDestinationDir=False,missingDirAlert=True,missingDirAssert=True)
+                                else:
+                                    datfile.deleteFile()
+                                    status=0 #skip checksum
                             checksum_success=True
                             if doChecksum and status:
                                 if checksum_cmssw!=checksum&0xffffffff:
@@ -1051,14 +1066,15 @@ class LumiSectionHandler():
                                 self.logger.warning('file exists, but not previously detected? '+os.path.join(self.tempdir,outfile.run,outfile.name+".dat"))
                             except:
                                 pass
-                            success,copy_size = outfile.mergeDatInputs(destinationpath,conf.output_adler32)
+                            success,copy_size = outfile.mergeDatInputs(destinationpath,conf.output_adler32,self.parent.drop_at_fu)
                             self.data_size +=copy_size
                             #reset expiration timestamp as we don't want to set lumi_bw to zero if files are still being copied
                             self.parent.mr.data_size_last_update = time.time()
 			    #os.rename(destinationpath_tmp,destinationpath)
                             outfile.writeout()
                             #test
-                            os.stat(destinationpath).st_size
+                            if not self.parent.drop_at_fu:
+                                os.stat(destinationpath).st_size
                         except Exception as ex:
                             self.logger.fatal("Failed micro-merge: "+destinationpath)
                             self.logger.exception(ex)
@@ -1070,13 +1086,14 @@ class LumiSectionHandler():
                 newfilepath = os.path.join(self.outdir,outfile.run,outfile.stream,'jsns',outfile.basename)
 
                 #fill JSON with error event info if merging is failing for special streams
-                if not outfile.mergeAndMoveJsnDataMaybe(os.path.join(self.outdir,outfile.run,outfile.stream,'data')):
+                if not outfile.mergeAndMoveJsnDataMaybe(os.path.join(self.outdir,outfile.run,outfile.stream,'data'),True,self.parent.drop_at_fu):
                     self.logger.error('jsndata stream merging failed. Assigning as error events')
                     writeoutError(outfile,'',False)
 
-                result,checksum=outfile.moveFile(newfilepath,copy=True,createDestinationDir=False,updateFileInfo=False)
-                if not result:
-                    writeoutError(outfile,'',False)
+                if not self.parent.drop_at_fu:
+                    result,checksum=outfile.moveFile(newfilepath,copy=True,createDestinationDir=False,updateFileInfo=False)
+                    if not result:
+                        writeoutError(outfile,'',False)
                 self.outfileList.remove(outfile) #is completed
                 self.parent.mr.notifyMaxLsWithOutput(self.ls_num) #feedback for backpressure control
                 outfile.esCopy(keepmtime=False)
@@ -1125,20 +1142,22 @@ class LumiSectionHandler():
         except:pass
         errfile.writeout()
         newfilepath = os.path.join(self.outdir,errfile.run,errfile.stream,'jsns',errfile.basename)
-        if total>0:#only assert for non-empty LS
-          result,ch=errfile.moveFile(newfilepath,createDestinationDir=False,copy=True,missingDirAssert=True,updateFileInfo=False)
-        else:
-          result,ch=errfile.moveFile(newfilepath,createDestinationDir=False,copy=True,updateFileInfo=False)
-        if not result:
-            errfile.setFieldByName("Processed", str(0))
-            errfile.setFieldByName("ErrorEvents", str(total))
-            errfile.writeout()
+        if not self.parent.drop_at_fu:
+            if total>0:#only assert for non-empty LS
+                result,ch=errfile.moveFile(newfilepath,createDestinationDir=False,copy=True,missingDirAssert=True,updateFileInfo=False)
+            else:
+                result,ch=errfile.moveFile(newfilepath,createDestinationDir=False,copy=True,updateFileInfo=False)
+            if not result:
+                errfile.setFieldByName("Processed", str(0))
+                errfile.setFieldByName("ErrorEvents", str(total))
+                errfile.writeout()
         #store in ES
         errfile.esCopy(keepmtime=False)
         errfile.deleteFile(silent=True)
 
 
     def outputBoLSFile(self,stream):
+        if self.parent.drop_at_fu:return
         #create BoLS file in output dir
         bols_file = str(self.run)+"_"+self.ls+"_"+stream+"_BoLS.jsn"#use join
         bols_path =  os.path.join(self.outdir,self.run,stream,'jsns',bols_file)
@@ -1310,7 +1329,7 @@ if __name__ == "__main__":
                 continue
 
         #starting lsRanger thread
-        ls = LumiSectionRanger(mr,watchDir,outputDir,run_number)
+        ls = LumiSectionRanger(mr,watchDir,outputDir,run_number,conf.drop_at_fu)
         ls.setSource(eventQueue)
         ls.start()
 

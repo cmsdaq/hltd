@@ -43,6 +43,7 @@ class hltdConf:
 
         self.delete_run_dir = cfg.getboolean('General','delete_run_dir')
         self.output_adler32 = cfg.getboolean('General','output_adler32')
+        self.drop_at_fu = cfg.getboolean('General','drop_at_fu')
 
         self.use_elasticsearch = cfg.getboolean('Monitoring','use_elasticsearch')
         self.force_replicas = cfg.getint('Monitoring','force_replicas')

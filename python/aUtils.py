@@ -635,7 +635,7 @@ class fileHandler(object):
         return adler32c
 
 
-    def mergeDatInputs(self,destinationpath,doChecksum):
+    def mergeDatInputs(self,destinationpath,doChecksum,dropAtFU=False):
         global bw_cnt
         dirname = os.path.dirname(self.filepath)
         ccomb=1
@@ -665,7 +665,7 @@ class fileHandler(object):
             json_size+=ifilesize
 
             #if going to merge, open input file
-            if dst == None:
+            if dst == None and not dropAtFU:
                 try:
                     dst = open(destinationpath,'wb')
                 except IOError as ex:
@@ -688,7 +688,8 @@ class fileHandler(object):
                     file_size+=read_len
                     if doChecksum:
                         adler32c=zlib.adler32(buf,adler32c)
-                    dst.write(buf)
+                    if dst:
+                      dst.write(buf)
                     bw_cnt+=read_len
             copy_size += file_size
             #adler32c = adler32 & 0xffffffff
@@ -824,7 +825,7 @@ class fileHandler(object):
         if len(self.inputData)>0:return True
         return False
 
-    def mergeAndMoveJsnDataMaybe(self,outDir, removeInput=True):
+    def mergeAndMoveJsnDataMaybe(self,outDir, removeInput=True, dropAtFU=False):
         if len(self.inputData):
             try:
                 outfile = os.path.join(self.dir,self.name+'.jsndata')
@@ -851,8 +852,11 @@ class fileHandler(object):
                     self.setFieldByName("FileAdler32","-1")
                     self.writeout()
                     jsndatFile = fileHandler(outfile)
-                    result,cs = jsndatFile.moveFile(os.path.join(outDir, os.path.basename(outfile)),adler32=False,createDestinationDir=False,missingDirAssert=True)
-                    if not result: return False
+                    if not dropAtFU:
+                        result,cs = jsndatFile.moveFile(os.path.join(outDir, os.path.basename(outfile)),adler32=False,createDestinationDir=False,missingDirAssert=True)
+                        if not result: return False
+                    else:
+                        jsndatFile.deleteFile()
                 except Exception as ex:
                     self.logger.error("Unable to copy jsonStream data file "+str(outfile)+" to output.")
                     self.logger.exception(ex)
