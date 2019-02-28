@@ -34,6 +34,27 @@ if host.startswith('dv'):
 			AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET     \
 			where tag='"+tagdaq+"' AND                                 \
 			ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+tagdaq+"'))"
+
+elif host.startswith('d3v'):
+  tagdaq = 'DAQ3VAL'
+  hostname = os.uname()[1]
+  con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',cred['password'],'int2r_lb',
+                        cclass="FFFSETUP",purity = cx_Oracle.ATTR_PURITY_SELF)
+  qstring = "select d.dnsname from \
+	                DAQ_EQCFG_DNSNAME d,               \
+	                DAQ_EQCFG_HOST_ATTRIBUTE ha,       \
+	                DAQ_EQCFG_HOST_NIC hn              \
+	                where                              \
+			d.dnsname like 'd3vfu-%'           \
+	                AND ha.eqset_id=d.eqset_id         \
+	                AND hn.eqset_id=d.eqset_id         \
+	                AND hn.nic_id=d.nic_id             \
+	                AND ha.host_id=hn.host_id          \
+			AND ha.attr_name like 'myBU%' AND ha.attr_value like '"+hostname+".%' \
+			AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET     \
+			where tag='"+tagdaq+"' AND                                 \
+			ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+tagdaq+"'))"
+
 else:
   tagdaq = 'DAQ2'
   con = cx_Oracle.connect(cred['login'],cred['password'],cred['sid'],

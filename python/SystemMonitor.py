@@ -212,7 +212,7 @@ class system_monitor(threading.Thread):
     def buBootIdFetch(self,buboxdir):
         try:
           for bf in os.listdir(buboxdir):
-            if bf.startswith('bu-') or bf.startswith('dvbu-') or (self.hostname.startswith('dvfu-') and bf.startswith('dvrubu-')):
+            if bf.startswith('bu-') or bf.startswith('dvbu-')  or bf.startswith('d3vrubu-') or (self.hostname.startswith('dvfu-') and bf.startswith('dvrubu-')):
               with open(os.path.join(buboxdir,bf),'r') as fp:
                 return json.load(fp)['boot_id']
               break

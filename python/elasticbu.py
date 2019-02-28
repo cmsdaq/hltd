@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3.4
 from __future__ import print_function
 
 import sys,traceback
@@ -380,7 +380,7 @@ class elasticBandBU:
         if infile.data=={}:return
 
         bu_doc=False
-        if basename.startswith('bu') or basename.startswith('dvbu'):
+        if basename.startswith('bu') or basename.startswith('dvbu') or basename.startswith('d3vrubu'):
             bu_doc=True
 
         #check box file against blacklist
@@ -642,7 +642,7 @@ class elasticCollectorBU():
                 shutil.rmtree(os.path.join(self.es.conf.watch_directory,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
             except Exception as ex:
                 self.logger.exception(ex)
- 
+
         self.logger.info("Stop main loop (watching directory " + str(self.inRunDir) + ")")
 
     def makeOutputDir(self):

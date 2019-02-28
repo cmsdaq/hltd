@@ -82,7 +82,7 @@ class hltdConf:
 
     def autodetect_parameters(self):
         #NOTE: will not work with daq3val if role is not set
-        if not self.role and (os.uname()[1].startswith('bu-') or os.uname()[1].startswith('dvbu-')):
+        if not self.role and (os.uname()[1].startswith('bu-') or os.uname()[1].startswith('dvbu-')) or os.uname()[1].startswith('d3vrubu-'):
             self.role = 'bu'
         elif not self.role:
             self.role = 'fu'
