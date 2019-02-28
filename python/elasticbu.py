@@ -1,4 +1,4 @@
-#!/bin/env python3.4
+#!/bin/env python
 from __future__ import print_function
 
 import sys,traceback
