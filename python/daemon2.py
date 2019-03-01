@@ -326,8 +326,8 @@ class Daemon2:
 
         for sec in cfg.sections():
             for item,value in cfg.items(sec):
-                if item=='ramdisk_subdiretory':ramdisk_subdirectory=value
-                if item=='output_subdirectory':output_subdirectory=value
+                if item=='ramdisk_subdirectory':ramdisk_subdirectory=value
+                if item=='output_subdirectory' :output_subdirectory=value
                 if item=='bu_base_dir':bu_base_dir=value
                 if item=='role':role=value
 

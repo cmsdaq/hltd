@@ -264,7 +264,7 @@ class RunRanger:
                 timeLeft=5
                 while timeLeft>0:
                   try:
-                    bu_files = os.listdir(os.path.join('/',conf.bu_base_dir+'0','ramdisk'))
+                    bu_files = os.listdir(os.path.join('/',conf.bu_base_dir+'0',conf.ramdisk_subdirectory))
                   except Exception as ex:
                     self.logger.exception(ex)
                     break

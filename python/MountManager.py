@@ -258,7 +258,7 @@ class MountManager:
                         attemptsLeft=8
                         #sys.exit(1)
                 if True:
-                    self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.ramdisk_subdirectory+' '+os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
+                    self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.ramdisk_subdirectory_remote+' '+os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
                     try:
                         subprocess.check_call(
                             [self.conf.mount_command,
@@ -266,7 +266,7 @@ class MountManager:
                              self.conf.mount_type,
                              '-o',
                              self.conf.mount_options_ramdisk,
-                             line.strip()+':/fff/'+self.conf.ramdisk_subdirectory,
+                             line.strip()+':/fff/'+self.conf.ramdisk_subdirectory_remote,
                              os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)]
                             )
                         toappend = os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)

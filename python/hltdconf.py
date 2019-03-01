@@ -17,9 +17,10 @@ class hltdConf:
         self.elastic_runindex_url = None
         self.elastic_runindex_name = 'cdaq'
         self.watch_directory = None
-        self.ramdisk_subdirectory = 'ramdisk'
-        self.output_subdirectory = 'output'
-        self.output_subdirectory_remote = 'ramdisk/output'
+        self.ramdisk_subdirectory = 'ramdisk' #local mountpoint
+        self.output_subdirectory = 'output' #local mountpoint
+        self.ramdisk_subdirectory_remote = 'ramdisk' #remote or on BU
+        self.output_subdirectory_remote = 'ramdisk/output' #remore or on BU
         self.fastmon_insert_modulo = 1
         self.elastic_cluster = None
         self.log_dir = "/var/log/hltd"

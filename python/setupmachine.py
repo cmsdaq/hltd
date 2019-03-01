@@ -721,7 +721,7 @@ if __name__ == "__main__":
 
             #do major ramdisk cleanup (unmount existing loop mount points, run directories and img files)
             try:
-                subprocess.check_call(['/opt/hltd/scripts/unmountloopfs.sh','/fff/ramdisk'])
+                subprocess.check_call(['/opt/hltd/scripts/unmountloopfs.sh',watch_dir_bu])
                 #delete existing run directories to ensure there is space (if this machine has a non-main instance)
                 if instances!=["main"]:
                     os.popen('rm -rf /fff/ramdisk/run*')
@@ -753,7 +753,7 @@ if __name__ == "__main__":
 
                     #run loopback setup for non-main instances (is done on every boot since ramdisk is volatile)
                     try:
-                        subprocess.check_call(['/opt/hltd/scripts/makeloopfs.sh','/fff/ramdisk',instance, str(sizes[idx])])
+                        subprocess.check_call(['/opt/hltd/scripts/makeloopfs.sh', watch_dir_bu, instance, str(sizes[idx])])
                     except subprocess.CalledProcessError as err1:
                         print('failed to configure loopback device mount in ramdisk')
 
