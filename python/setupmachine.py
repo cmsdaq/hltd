@@ -450,7 +450,7 @@ def restoreFileMaybe(file):
 
 #main function
 if __name__ == "__main__":
-    if not len(sys.argv)>1 or sys.argv[1] not in ['configure','forceConfigure','disable','getrole']:
+    if not len(sys.argv)>1 or sys.argv[1] not in ['configure','forceConfigure','disable','getrole','changeoption','setbusconfig']:
         print("Command parameter is missing or not among [configure,disable,getrole]")
         sys.exit(1)
 
@@ -468,7 +468,16 @@ if __name__ == "__main__":
         hltdcfg.reg('enabled','False','[General]')
         hltdcfg.commit()
         sys.exit(0)
-
+    elif 'changeoption' == selection:
+      hltdcfg = FileManager(hltdcon,None,'=',True,' ',' ',recreate=False)
+      hltdcfg.reg(sys.argv[2],sys.argv[3],sys.argv[4])
+      hltdcfg.commit()
+      sys.exit(0)
+    elif 'setbusconfig' == selection:
+      with open(busconfig,'w+') as f:
+        f.writelines([sys.argv[2]])
+      sys.exit(0)
+ 
     #else: configure or forceConfigure
 
     with open('/opt/fff/db.jsn','r') as fi:
