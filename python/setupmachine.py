@@ -469,8 +469,14 @@ if __name__ == "__main__":
         hltdcfg.commit()
         sys.exit(0)
     elif 'changeoption' == selection:
-      hltdcfg = FileManager(hltdcon,None,'=',True,' ',' ',recreate=False)
-      hltdcfg.reg(sys.argv[2],sys.argv[3],sys.argv[4])
+      hltdcfg = FileManager(hltdconf,None,'=',True,' ',' ',recreate=False)
+      section_str = sys.argv[4]
+      if not section_str.startswith('['): section_str='['+section_str
+      if not section_str.endswith(']'): section_str=section_str+']'
+      par_val = sys.argv[3]
+      if par_val=='true': par_val='True'
+      if par_val=='false': par_val='False'
+      hltdcfg.reg(sys.argv[2],par_val,section_str)
       hltdcfg.commit()
       sys.exit(0)
     elif 'setbusconfig' == selection:

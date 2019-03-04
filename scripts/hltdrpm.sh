@@ -272,7 +272,7 @@ fi
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
-Version: 2.5.5
+Version: 2.5.6
 Release: 0
 Summary: hlt daemon
 License: gpl
