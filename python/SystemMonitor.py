@@ -111,7 +111,7 @@ class system_monitor(threading.Thread):
             self.logger.info(disk)
 
     def startESBox(self):
-        if conf.role == "fu":
+        if conf.role == "fu" and not conf.dqm_machine:
             self.esBoxThread = threading.Thread(target=self.runESBox)
             self.esBoxThread.daemon=True #set as daemon thread (not blocking process termination). this should be tested
             self.esBoxThread.start()
@@ -846,7 +846,8 @@ class system_monitor(threading.Thread):
           tsc_old,mperf_old,aperf_old=self.getIntelCPUPerfAvgs()
           has_turbo = True
         self.threadEventESBox.wait(1)
-        eb = elasticBandBU(conf,0,'',False,update_run_mapping=False,update_box_mapping=True)
+        if conf.use_elasticsearch:
+            eb = elasticBandBU(conf,0,'',False,update_run_mapping=False,update_box_mapping=True)
         rc = 0
         counter=0
         while self.running:
@@ -937,11 +938,11 @@ class system_monitor(threading.Thread):
             except:
                 self.logger.info("Interrupted ESBox thread - ending")
                 break
-
-        eb.stopping=True
-        eb.threadEvent.set()
-        self.logger.info("deleting elasticBandBU")
-        del eb
+        if conf.use_elasticsearch:
+            eb.stopping=True
+            eb.threadEvent.set()
+            self.logger.info("deleting elasticBandBU")
+            del eb
 
 
     def getCloudState(self):
