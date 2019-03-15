@@ -179,7 +179,7 @@ class OnlineResource:
             self.process = subprocess.Popen(new_run_args,
                                             preexec_fn=preexec_function,
                                             close_fds=True,
-                                            stdout==subprocess.PIPE,
+                                            stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE
                                             )
             try: #python2
