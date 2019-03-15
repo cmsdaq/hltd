@@ -178,7 +178,9 @@ class OnlineResource:
         try:
             self.process = subprocess.Popen(new_run_args,
                                             preexec_fn=preexec_function,
-                                            close_fds=True
+                                            close_fds=True,
+                                            stdout==subprocess.PIPE,
+                                            stderr=subprocess.PIPE
                                             )
             try: #python2
               args_str=str(new_run_args).translate(None, "'")
@@ -333,7 +335,7 @@ class ProcessWatchdog(threading.Thread):
     def run(self):
         try:
             self.logger.info('watchdog thread for process '+str(self.resource.process.pid) + ' on resource '+str(self.resource.cpu)+" for run "+str(self.resource.runnumber) + ' started ')
-            self.resource.process.wait()
+            self.resource.process.communicate()
             self.resource.loc_res_lk.acquire()
             returncode = self.resource.process.returncode
             pid = self.resource.process.pid
