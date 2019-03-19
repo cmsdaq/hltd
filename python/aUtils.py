@@ -368,7 +368,7 @@ class fileHandler(object):
                 data = json.load(fi)
         except IOError as e:
             data = {}
-        except (StandardError,Exception) as e:
+        except Exception as e:
         #    self.logger.exception(e)
             self.logger.warning('Box parse error:'+str(e))
             data = {}
@@ -383,7 +383,7 @@ class fileHandler(object):
         except json.scanner.JSONDecodeError as e:
             self.logger.exception(e)
             data = {}
-        except (StandardError,Exception) as e:
+        except Exception as e:
             self.logger.exception(e)
             data = {}
         return data
