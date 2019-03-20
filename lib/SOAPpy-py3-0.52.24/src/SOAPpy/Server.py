@@ -257,15 +257,15 @@ class SOAPRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 for (k,v) in  list(kw.items()):
 
-                    if k[0]=="v":
+                    if k.decode()[0]=="v":
                         try:
                             i = int(k[1:])
                             ordered_args[i] = v
                         except ValueError:
-                            named_args[str(k)] = v
+                            named_args[str(k.decode())] = v
 
                     else:
-                        named_args[str(k)] = v
+                        named_args[str(k.decode())] = v
 
             # We have to decide namespace precedence
             # I'm happy with the following scenario
