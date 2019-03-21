@@ -793,7 +793,7 @@ if __name__ == "__main__":
                 #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
 
                 hltdcfg.reg('watch_directory',watch_dir_bu,'[General]')
-                if cluster=='daq3val' or myhost in minidaq_list or cluster=='daq2_904':
+                if cluster=='daq3val' or myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
                   hltdcfg.reg('output_subdirectory_remote','output','[General]')
                 if cluster=='daq3val': 
                   hltdcfg.reg('drop_at_fu','True','[General]')
@@ -838,7 +838,7 @@ if __name__ == "__main__":
 
             hltdcfg.reg('exec_directory',execdir,'[General]')
             hltdcfg.reg('watch_directory','/fff/data','[General]')
-            if cluster=='daq3val' or myhost in minidaq_list or cluster=='daq2_904':
+            if cluster=='daq3val' or myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
               hltdcfg.reg('output_subdirectory_remote','output','[General]')
             #if cluster=='daq3val':
               #hltdcfg.reg('drop_at_fu','True','[General]')
