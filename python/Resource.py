@@ -231,7 +231,9 @@ class OnlineResource:
             self.parent.n_quarantined=0
         except Exception as ex:
             self.logger.exception(ex)
-        if doLock:self.resource_lock.release()
+        if doLock:
+            try:self.resource_lock.release()
+            except:pass
         return retq
 
     def moveUsedToIdles(self,uselock=True):
