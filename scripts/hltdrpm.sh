@@ -45,6 +45,12 @@ fi
 
 if [ $ASK = "1" ]; then
 
+echo "This is the hltd build script. It will now ask for several configuration parameters."
+echo "Use -b cmdline parameter to build from cache without waiting for input"
+echo "   ... press any key to continue ..."
+read readin
+
+
 echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
@@ -272,8 +278,8 @@ fi
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
-Version: 2.5.7
-Release: 3
+Version: 2.5.8
+Release: 0
 Summary: hlt daemon
 License: gpl
 Group: DAQ

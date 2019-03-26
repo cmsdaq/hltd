@@ -158,6 +158,7 @@ class elasticBandBU:
         retry=False
 
         s = requests.Session()
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
@@ -210,7 +211,7 @@ class elasticBandBU:
 
             except Exception as ex:
                 self.logger.error("unknown exception when updating index mappings:")
-                self.logger.exception(es)
+                self.logger.exception(ex)
 
         s.close()
 
@@ -218,6 +219,7 @@ class elasticBandBU:
         #update in case of new documents added to mapping definition
 
         s = requests.Session()
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         for key in mapping:
@@ -226,9 +228,11 @@ class elasticBandBU:
             res = s.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200:
-                if res.content.strip()=='{}':
+                if res.content.decode().strip()=='{}':
                     self.logger.info('inserting new mapping for '+str(key))
-                    s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                    res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                    if res.status_code!=200:
+                        self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -237,12 +241,15 @@ class elasticBandBU:
 
                         self.logger.info('checking mapping '+ indexname + '/' + key + ' which has '
                             + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..')
+                        try_inject = False
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
+                                try_inject = True
                                 self.logger.info('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
-                                s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
-                                if res.status_code!=200: self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content)
-                                break
+                        if try_inject:
+                            res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                            if res.status_code!=200:
+                                self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
             else:
                 self.logger.warning('requests error code '+res.status_code+' in mapping request')
         s.close()
@@ -842,6 +849,7 @@ class RunCompletedChecker(threading.Thread):
         total_es_elapsed=0
 
         s = requests.Session()
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while self.stopping==False:

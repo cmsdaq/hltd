@@ -50,6 +50,7 @@ class hltdConf:
         self.force_replicas = cfg.getint('Monitoring','force_replicas')
         self.force_shards = cfg.getint('Monitoring','force_shards')
         self.update_es_template = cfg.getboolean('Monitoring','update_es_template')
+        self.mon_bu_cpus = cfg.getboolean('Monitoring','mon_bu_cpus')
         self.cgi_port = cfg.getint('Web','cgi_port')
         self.cgi_instance_port_offset = cfg.getint('Web','cgi_instance_port_offset')
         self.soap2file_port = cfg.getint('Web','soap2file_port')

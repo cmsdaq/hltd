@@ -800,6 +800,7 @@ class HLTDLogIndex():
 
         attempts=10
         s = requests.Session()
+        session.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
@@ -877,8 +878,9 @@ class HLTDLogIndex():
         for key in mappings.central_hltdlogs_mapping:
             doc = mappings.central_hltdlogs_mapping[key]
             res = session.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping')
+            content = res.content.decode()
             #only update if mapping is empty
-            if res.status_code==200 and res.content.strip()=='{}':
+            if res.status_code==200 and content.strip()=='{}':
                 session.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
 
 class HLTDLogParser(threading.Thread):

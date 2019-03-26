@@ -281,6 +281,11 @@ central_boxinfo_mapping = {
       'activeRunLSBWMB':{'type':'float'},
       'sysCPUFrac':{'type':'float'},
       'cpu_MHz_avg_real':{'type':'integer'},
+      'bu_percpu_MHz_real':{'type':'integer'},
+      'bu_percpu_c1_frac' : {'type':'float'},
+      'bu_percpu_c3_frac' : {'type':'float'},
+      'bu_percpu_c6_frac' : {'type':'float'},
+      'bu_percpu_c7_frac' : {'type':'float'},
       'dataNetIn':{'type':'float'},
       'activeRunStats'    :{
         'type':'nested',

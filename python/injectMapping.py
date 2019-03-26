@@ -52,9 +52,9 @@ class elasticBandInjector:
             res = requests.get(self.es_server_url+'/'+index_name+'/'+key+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200:
-                if res.content.strip()=='{}':
+                if res.content.decode().strip()=='{}':
                     print('inserting new mapping for '+str(key))
-                    requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                    res = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc),headers={'Content-Type':'application/json'})
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -62,13 +62,15 @@ class elasticBandInjector:
                         properties = inmapping[indexname]['mappings'][key]['properties']
 
                         print('checking mapping '+ indexname + '/' + key + ' which has ' + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..')
+                        try_inject=False
                         for pdoc in mapping[key]['properties']:
                             if pdoc not in properties:
+                                try_inject=True
                                 print('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
-                                rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
-                                if rres.status_code!=200:
-                                    print(rres.content)
-                                break
+                        if try_inject:
+                            rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc),headers = {'Content-Type':'application/json'})
+                            if rres.status_code!=200:
+                                print(rres.content)
             else:
                 print('requests error code '+res.status_code+' in mapping request')
 

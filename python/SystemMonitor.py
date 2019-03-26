@@ -13,6 +13,13 @@ import getnifs
 from aUtils import ES_DIR_NAME
 from elasticbu import elasticBandBU
 
+
+MSR_CORE_C1_RES=0x660
+MSR_CORE_C3_RESIDENCY=0x3fc
+MSR_CORE_C6_RESIDENCY=0x3fd
+MSR_CORE_C7_RESIDENCY=0x3fe
+
+
 class system_monitor(threading.Thread):
 
     def __init__(self,confClass,stateInfo,resInfo,runList,mountMgr,boxInfo,num_cpus_initial):
@@ -229,6 +236,11 @@ class system_monitor(threading.Thread):
             boxinfo_update_attempts=0
             counter=0
             fu_watchdir_is_mountpoint = os.path.ismount(conf.watch_directory)
+
+            if conf.mon_bu_cpus:
+                vtmp_old = self.getIntelCPUPerfVec()
+                ts_old_percpu = time.time()
+
             while self.running:
                 self.threadEvent.wait(5 if counter>0 else 1)
                 counter+=1
@@ -467,6 +479,46 @@ class system_monitor(threading.Thread):
                                 "activeHTCores":fu_ht_cores,
                                 "fuMemFrac":mem_frac_avg
                               }
+                    #BU CPU montoring of C-states and frequency
+                    if conf.mon_bu_cpus:
+                        try:
+                            vtmp_new = self.getIntelCPUPerfVec()
+                            ts_new_percpu = time.time()
+                            d_ts = ts_new_percpu - ts_old_percpu
+                            ts_old_percpu = ts_new_percpu
+
+                            mhz_vec = []
+                            c1_vec = []
+                            c3_vec = []
+                            c6_vec = []
+                            c7_vec = []
+                            for i,x in enumerate(vtmp_new):
+                                d_tsc = vtmp_new[i][0]-vtmp_old[i][0]
+                                d_aperf = vtmp_new[i][1]-vtmp_old[i][1]
+                                d_mperf = vtmp_new[i][2]-vtmp_old[i][2]
+                                mhz_vec.append(int((d_tsc * d_aperf) / (1000000. * d_mperf * d_ts)))
+                                d_c3 = vtmp_new[i][4]-vtmp_old[i][4]
+                                d_c6 = vtmp_new[i][5]-vtmp_old[i][5]
+                                d_c7 = vtmp_new[i][6]-vtmp_old[i][6]
+                                c3_vec.append((d_c3*1.)/d_tsc)
+                                c6_vec.append((d_c6*1.)/d_tsc)
+                                c7_vec.append((d_c7*1.)/d_tsc)
+                                #c1 formula
+                                c1 = d_tsc - d_mperf -d_c3 -d_c6 -d_c7
+                                if c1<0: c1=0
+                                c1_vec.append(c1/(1.*d_tsc))
+
+                            #store next
+                            vtmp_old = vtmp_new
+
+                            res_doc["bu_percpu_MHz_real"] = mhz_vec
+                            res_doc["bu_percpu_c1_frac"] = c1_vec
+                            res_doc["bu_percpu_c3_frac"] = c3_vec
+                            res_doc["bu_percpu_c6_frac"] = c6_vec
+                            res_doc["bu_percpu_c7_frac"] = c7_vec
+                        except Exception as ex:
+                            self.logger.exception(ex)
+
                     try:
                         with open(res_path_temp,'w') as fp:
                             json.dump(res_doc,fp,indent=True)
@@ -737,6 +789,52 @@ class system_monitor(threading.Thread):
           except:pass
           return 0,0,0
       return tsc,mperf,aperf
+
+    def getIntelCPUPerfVec(self):
+      ret=[]
+      cnt=0
+      #while cnt<self.cpu_siblings:
+      while cnt<self.cpu_cores:
+        try:
+          fd = None
+          fd = os.open("/dev/cpu/"+str(cnt)+"/msr",os.O_RDONLY)
+          os.lseek(fd,0x10,os.SEEK_SET)
+          tsc = struct.unpack("Q",os.read(fd,8))[0]
+          os.lseek(fd,0xe7,os.SEEK_SET)
+          mperf = struct.unpack("Q",os.read(fd,8))[0]
+          os.lseek(fd,0xe8,os.SEEK_SET)
+          aperf = struct.unpack("Q",os.read(fd,8))[0]
+
+          #os.lseek(fd,MSR_CORE_C1_RES,os.SEEK_SET)
+          #c1 = struct.unpack("Q",os.read(fd,8))[0]
+          #if cnt<self.cpu_cores:
+          if True:
+              os.lseek(fd,MSR_CORE_C3_RESIDENCY,os.SEEK_SET)
+              c3 = struct.unpack("Q",os.read(fd,8))[0]
+
+              os.lseek(fd,MSR_CORE_C6_RESIDENCY,os.SEEK_SET)
+              c6 = struct.unpack("Q",os.read(fd,8))[0]
+
+              os.lseek(fd,MSR_CORE_C7_RESIDENCY,os.SEEK_SET)
+              c7 = struct.unpack("Q",os.read(fd,8))[0]
+          
+              ret.append([tsc,mperf,aperf,0,c3,c6,c7])
+#          else:
+              #info only extracted for 1st hyperthread on a core
+              #c3 = ret[cnt-self.cpu_cores][4]
+              #c6 = ret[cnt-self.cpu_cores][5]
+              #c7 = ret[cnt-self.cpu_cores][6]
+#              ret.append([tsc,mperf,aperf])
+          cnt+=1
+          os.close(fd)
+        except (IOError,OSError) as ex:
+          self.logger.warning(str(ex))
+          self.logger.exception(ex)
+          try:os.close(fd)
+          except:pass
+          return 0,0,0
+      return ret
+
 
     def getMEMInfo(self):
         return dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
