@@ -797,10 +797,10 @@ if __name__ == "__main__":
                   hltdcfg.reg('output_subdirectory_remote','output','[General]')
                 if cluster=='daq3val': 
                   hltdcfg.reg('drop_at_fu','True','[General]')
+                  hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
 
                 if cluster=='daq2val' or cluster=='daq3val':
                     hltdcfg.reg('static_blacklist','True','[General]')
-                    hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
                 else:
                     hltdcfg.reg('static_blacklist','False','[General]')
 

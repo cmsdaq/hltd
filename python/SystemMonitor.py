@@ -502,8 +502,8 @@ class system_monitor(threading.Thread):
                             cpucount = len(vtmp_new)
                             for i,x in enumerate(vtmp_new):
                                 d_tsc = vtmp_new[i][0]-vtmp_old[i][0]
-                                d_aperf = vtmp_new[i][1]-vtmp_old[i][1]
-                                d_mperf = vtmp_new[i][2]-vtmp_old[i][2]
+                                d_mperf = vtmp_new[i][1]-vtmp_old[i][1]
+                                d_aperf = vtmp_new[i][2]-vtmp_old[i][2]
                                 mhz = (d_tsc * d_aperf) / (1000000. * d_mperf * d_ts)
                                 mhz_vec.append(int(mhz))
                                 tsc_MHz = d_tsc / (1000000. * d_ts)
