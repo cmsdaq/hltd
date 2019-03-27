@@ -279,7 +279,7 @@ fi
 cat > hltd.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
 Version: 2.5.8
-Release: 0
+Release: 1
 Summary: hlt daemon
 License: gpl
 Group: DAQ

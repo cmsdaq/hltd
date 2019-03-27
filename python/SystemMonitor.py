@@ -522,11 +522,20 @@ class system_monitor(threading.Thread):
                                 c1 = d_tsc - d_mperf -d_c3 -d_c6 -d_c7
                                 if c1<0: c1=0
                                 c1_vec.append(c1/(1.*d_tsc))
-                                s_tot = vtmp_new[i][7]+vtmp_new[i][8]+vtmp_new[i][9]+vtmp_new[i][10]
-                                s0_vec.append(vtmp_new[i][7]/s_tot)
-                                s1_vec.append(vtmp_new[i][8]/s_tot)
-                                s2_vec.append(vtmp_new[i][9]/s_tot)
-                                s3_vec.append(vtmp_new[i][10]/s_tot)
+                                
+                                s_tot = vtmp_new[i][7] + vtmp_new[i][8] + vtmp_new[i][9] + vtmp_new[i][10] - vtmp_old[i][7]-vtmp_old[i][8]-vtmp_old[i][9]-vtmp_old[i][10]
+                                if s_tot!=0:
+                                  s0_vec.append((vtmp_new[i][7]-vtmp_old[i][7])/s_tot)
+                                  s1_vec.append((vtmp_new[i][8]-vtmp_old[i][8])/s_tot)
+                                  s2_vec.append((vtmp_new[i][9]-vtmp_old[i][9])/s_tot)
+                                  s3_vec.append((vtmp_new[i][10]-vtmp_old[i][10])/s_tot)
+
+                                else:
+                                  s0_vec.append(0)
+                                  s1_vec.append(0)
+                                  s2_vec.append(0)
+                                  s3_vec.append(0)
+
 
                             #store next
                             vtmp_old = vtmp_new
@@ -876,10 +885,9 @@ class system_monitor(threading.Thread):
           os.close(fd)
         except (IOError,OSError) as ex:
           self.logger.warning(str(ex))
-          self.logger.exception(ex)
           try:os.close(fd)
           except:pass
-          return 0,0,0
+          return []
       return ret
 
 
