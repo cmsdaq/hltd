@@ -800,6 +800,7 @@ if __name__ == "__main__":
 
                 if cluster=='daq2val' or cluster=='daq3val':
                     hltdcfg.reg('static_blacklist','True','[General]')
+                    hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
                 else:
                     hltdcfg.reg('static_blacklist','False','[General]')
 

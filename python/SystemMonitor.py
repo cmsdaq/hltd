@@ -492,11 +492,22 @@ class system_monitor(threading.Thread):
                             c3_vec = []
                             c6_vec = []
                             c7_vec = []
+                            load_factor = 0.
+                            load_factor_0 = 0.
+                            load_factor_1 = 0.
+                            cpucount = len(vtmp_new)
                             for i,x in enumerate(vtmp_new):
                                 d_tsc = vtmp_new[i][0]-vtmp_old[i][0]
                                 d_aperf = vtmp_new[i][1]-vtmp_old[i][1]
                                 d_mperf = vtmp_new[i][2]-vtmp_old[i][2]
-                                mhz_vec.append(int((d_tsc * d_aperf) / (1000000. * d_mperf * d_ts)))
+                                mhz = (d_tsc * d_aperf) / (1000000. * d_mperf * d_ts)
+                                mhz_vec.append(int(mhz))
+                                tsc_MHz = d_tsc / (1000000. * d_ts)
+                                load_factor+=mhz/(tsc_MHz * cpucount)
+                                if i<cpucount/2:
+                                  load_factor_0+=mhz/(tsc_MHz * cpucount*0.5)
+                                else:
+                                  load_factor_1+=mhz/(tsc_MHz * cpucount*0.5)
                                 d_c3 = vtmp_new[i][4]-vtmp_old[i][4]
                                 d_c6 = vtmp_new[i][5]-vtmp_old[i][5]
                                 d_c7 = vtmp_new[i][6]-vtmp_old[i][6]
@@ -512,6 +523,7 @@ class system_monitor(threading.Thread):
                             vtmp_old = vtmp_new
 
                             res_doc["bu_percpu_MHz_real"] = mhz_vec
+                            res_doc["bu_cpu_loadfactor"] = [load_factor,load_factor_0,load_factor_1]
                             res_doc["bu_percpu_c1_frac"] = c1_vec
                             res_doc["bu_percpu_c3_frac"] = c3_vec
                             res_doc["bu_percpu_c6_frac"] = c6_vec
