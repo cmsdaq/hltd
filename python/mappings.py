@@ -287,6 +287,10 @@ central_boxinfo_mapping = {
       'bu_percpu_c3_frac' : {'type':'float','index':'false'},
       'bu_percpu_c6_frac' : {'type':'float','index':'false'},
       'bu_percpu_c7_frac' : {'type':'float','index':'false'},
+      'bu_percpu_s0_poll' : {'type':'float','index':'false'},
+      'bu_percpu_s1_c1' : {'type':'float','index':'false'},
+      'bu_percpu_s2_c1e' : {'type':'float','index':'false'},
+      'bu_percpu_s3_c6' : {'type':'float','index':'false'},
       'dataNetIn':{'type':'float'},
       'activeRunStats'    :{
         'type':'nested',

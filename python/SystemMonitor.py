@@ -492,6 +492,10 @@ class system_monitor(threading.Thread):
                             c3_vec = []
                             c6_vec = []
                             c7_vec = []
+                            s0_vec = []
+                            s1_vec = []
+                            s2_vec = []
+                            s3_vec = []
                             load_factor = 0.
                             load_factor_0 = 0.
                             load_factor_1 = 0.
@@ -518,6 +522,11 @@ class system_monitor(threading.Thread):
                                 c1 = d_tsc - d_mperf -d_c3 -d_c6 -d_c7
                                 if c1<0: c1=0
                                 c1_vec.append(c1/(1.*d_tsc))
+                                s_tot = vtmp_new[i][7]+vtmp_new[i][8]+vtmp_new[i][9]+vtmp_new[i][10]
+                                s0_vec.append(vtmp_new[i][7]/s_tot)
+                                s1_vec.append(vtmp_new[i][8]/s_tot)
+                                s2_vec.append(vtmp_new[i][9]/s_tot)
+                                s3_vec.append(vtmp_new[i][10]/s_tot)
 
                             #store next
                             vtmp_old = vtmp_new
@@ -528,6 +537,10 @@ class system_monitor(threading.Thread):
                             res_doc["bu_percpu_c3_frac"] = c3_vec
                             res_doc["bu_percpu_c6_frac"] = c6_vec
                             res_doc["bu_percpu_c7_frac"] = c7_vec
+                            res_doc["bu_percpu_s0_poll"] = s0_vec
+                            res_doc["bu_percpu_s1_c1"] = s1_vec
+                            res_doc["bu_percpu_s2_c1e"] = s2_vec
+                            res_doc["bu_percpu_s3_c6"] = s3_vec
                         except Exception as ex:
                             self.logger.exception(ex)
 
@@ -820,23 +833,45 @@ class system_monitor(threading.Thread):
           #os.lseek(fd,MSR_CORE_C1_RES,os.SEEK_SET)
           #c1 = struct.unpack("Q",os.read(fd,8))[0]
           #if cnt<self.cpu_cores:
-          if True:
-              os.lseek(fd,MSR_CORE_C3_RESIDENCY,os.SEEK_SET)
-              c3 = struct.unpack("Q",os.read(fd,8))[0]
+          os.lseek(fd,MSR_CORE_C3_RESIDENCY,os.SEEK_SET)
+          c3 = struct.unpack("Q",os.read(fd,8))[0]
 
-              os.lseek(fd,MSR_CORE_C6_RESIDENCY,os.SEEK_SET)
-              c6 = struct.unpack("Q",os.read(fd,8))[0]
+          os.lseek(fd,MSR_CORE_C6_RESIDENCY,os.SEEK_SET)
+          c6 = struct.unpack("Q",os.read(fd,8))[0]
 
-              os.lseek(fd,MSR_CORE_C7_RESIDENCY,os.SEEK_SET)
-              c7 = struct.unpack("Q",os.read(fd,8))[0]
-          
-              ret.append([tsc,mperf,aperf,0,c3,c6,c7])
+          os.lseek(fd,MSR_CORE_C7_RESIDENCY,os.SEEK_SET)
+          c7 = struct.unpack("Q",os.read(fd,8))[0]
+
 #          else:
               #info only extracted for 1st hyperthread on a core
               #c3 = ret[cnt-self.cpu_cores][4]
               #c6 = ret[cnt-self.cpu_cores][5]
               #c7 = ret[cnt-self.cpu_cores][6]
 #              ret.append([tsc,mperf,aperf])
+          s0 = s1 = s2 = s3 = 0
+          #try:
+          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state0/usage",'r') as fr:
+            val = fr.read()
+            s0 = int(val)
+          #except:pass
+
+          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state1/usage",'r') as fr:
+            val = fr.read()
+            s1 = int(val)
+
+
+          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state2/usage",'r') as fr:
+            val = fr.read()
+            s2 = int(val)
+
+
+          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state3/usage",'r') as fr:
+            val = fr.read()
+            s3 = int(val)
+
+
+          ret.append([tsc,mperf,aperf,0,c3,c6,c7,s0,s1,s2,s3])
+            
           cnt+=1
           os.close(fd)
         except (IOError,OSError) as ex:
