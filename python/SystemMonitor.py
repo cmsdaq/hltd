@@ -293,6 +293,7 @@ class system_monitor(threading.Thread):
                     cpufrac_vector = []
                     cpufreq_vector = []
                     fu_data_net_in = 0
+                    fu_data_net_in_vector = []
 
                     #counters used to calculate if all FUs are in cloud (or switching to cloud)
                     #stale FUs are not used in calculation
@@ -311,7 +312,9 @@ class system_monitor(threading.Thread):
                         current_runnumber = self.runList.getLastRun().runnumber
                     except:
                         current_runnumber=0
-                    for key in self.boxInfo.FUMap:
+                    fumapKeys = self.boxInfo.FUMap.keys()[:]
+                    fumapKeys.sort()
+                    for key in fumapKeys:
                         if key==selfhost:continue
                         try:
                             edata,etime,lastStatus = self.boxInfo.FUMap[key]
@@ -384,6 +387,7 @@ class system_monitor(threading.Thread):
                                     cpufrac_vector.append(edata['sysCPUFrac'])
                                     cpufreq_vector.append(edata['cpu_MHz_avg_real'])
                                     fu_data_net_in+=edata['dataNetIn']
+                                    fu_data_net_in_vector.push(edata['dataNetIn'])
                                     try:
                                       fu_phys_cores+=edata["cpu_phys_cores"]
                                       fu_ht_cores+=edata["cpu_hyperthreads"]
@@ -424,7 +428,7 @@ class system_monitor(threading.Thread):
                           except:
                             num_hlt_errors_lastrun = 0.
                         #second pass
-                        for key in self.boxInfo.FUMap:
+                        for key in self.boxInfo.FUMap: #no need to sort
                             if key==selfhost:continue
                             try:
                                 edata,etime,lastStatus = self.boxInfo.FUMap[key]
@@ -481,6 +485,7 @@ class system_monitor(threading.Thread):
                               }
                     #BU CPU montoring of C-states and frequency
                     if conf.mon_bu_cpus:
+                        res_doc["fuDataNetIn_perfu"]=fu_data_net_in_vector #per Fu bandwidth (sorted)
                         try:
                             vtmp_new = self.getIntelCPUPerfVec()
                             ts_new_percpu = time.time()
