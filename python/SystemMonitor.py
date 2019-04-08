@@ -312,7 +312,7 @@ class system_monitor(threading.Thread):
                         current_runnumber = self.runList.getLastRun().runnumber
                     except:
                         current_runnumber=0
-                    fumapKeys = self.boxInfo.FUMap.keys()[:]
+                    fumapKeys = list(self.boxInfo.FUMap.keys())[:]
                     fumapKeys.sort()
                     for key in fumapKeys:
                         if key==selfhost:continue
@@ -387,7 +387,7 @@ class system_monitor(threading.Thread):
                                     cpufrac_vector.append(edata['sysCPUFrac'])
                                     cpufreq_vector.append(edata['cpu_MHz_avg_real'])
                                     fu_data_net_in+=edata['dataNetIn']
-                                    fu_data_net_in_vector.push(edata['dataNetIn'])
+                                    fu_data_net_in_vector.append(edata['dataNetIn'])
                                     try:
                                       fu_phys_cores+=edata["cpu_phys_cores"]
                                       fu_ht_cores+=edata["cpu_hyperthreads"]

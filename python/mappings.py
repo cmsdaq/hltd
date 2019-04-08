@@ -339,7 +339,7 @@ central_boxinfo_mapping = {
       'fuSysCPUFrac':                {'type':'float'},
       'fuSysCPUMHz':                 {'type':'short'},
       'fuDataNetIn':                 {'type':'float'},
-      'fuDataNetIn_perfu':           {'type':'float'},
+      'fuDataNetIn_perfu':           {'type':'float','index':'false'},
       'resPerFU':                    {'type':'byte'},
       'fuCPUName':                   {'type':'keyword'},
       'buCPUName':                   {'type':'keyword'},
