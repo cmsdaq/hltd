@@ -86,7 +86,7 @@ class MonitorRanger:
             if bw_cnt_time is not None:
                 d_t = new_time-bw_cnt_time
                 if d_t!=0:
-                    self.output_bw=bw_cnt/d_t
+                    self.output_bw=bw_cnt//d_t
                     bw_cnt=0
             bw_cnt_time=new_time
 

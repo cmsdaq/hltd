@@ -133,7 +133,7 @@ def checkModifiedConfig(lines):
 def name_identifier():
     try:
         nameParts = os.uname()[1].split('-')
-        return (int(nameParts[-1]) * int(nameParts[-2]/2)) % 2
+        return (int(nameParts[-1]) * int(nameParts[-2]//2)) % 2
     except:
         return 0
 

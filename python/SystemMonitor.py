@@ -415,7 +415,7 @@ class system_monitor(threading.Thread):
                                 except:
                                     num_hlt_errors[entry_run]=rs['errorsRes']
                         except:pass
-                    res_per_fu=0 if not reporting_fus else reporting_fus_rescount/reporting_fus
+                    res_per_fu=0 if not reporting_fus else reporting_fus_rescount//reporting_fus
                     if len(stale_machines) and counter==1:
                         self.logger.warning("detected stale box resources: "+str(stale_machines))
                     fuRuns = sorted(list(set(lastFURuns)))
@@ -513,7 +513,7 @@ class system_monitor(threading.Thread):
                                 mhz_vec.append(int(mhz))
                                 tsc_MHz = d_tsc / (1000000. * d_ts)
                                 load_factor+=mhz/(tsc_MHz * cpucount)
-                                if i<cpucount/2:
+                                if i<cpucount//2:
                                   load_factor_0+=mhz/(tsc_MHz * cpucount*0.5)
                                 else:
                                   load_factor_1+=mhz/(tsc_MHz * cpucount*0.5)
@@ -528,18 +528,18 @@ class system_monitor(threading.Thread):
                                 if c1<0: c1=0
                                 c1_vec.append(c1/(1.*d_tsc))
                                 
-                                s_tot = vtmp_new[i][7] + vtmp_new[i][8] + vtmp_new[i][9] + vtmp_new[i][10] - vtmp_old[i][7]-vtmp_old[i][8]-vtmp_old[i][9]-vtmp_old[i][10]
-                                if s_tot!=0:
+                                s_tot = (vtmp_new[i][7] + vtmp_new[i][8] + vtmp_new[i][9] + vtmp_new[i][10] - vtmp_old[i][7]-vtmp_old[i][8]-vtmp_old[i][9]-vtmp_old[i][10])*1.
+                                if s_tot!=0.:
                                   s0_vec.append((vtmp_new[i][7]-vtmp_old[i][7])/s_tot)
                                   s1_vec.append((vtmp_new[i][8]-vtmp_old[i][8])/s_tot)
                                   s2_vec.append((vtmp_new[i][9]-vtmp_old[i][9])/s_tot)
                                   s3_vec.append((vtmp_new[i][10]-vtmp_old[i][10])/s_tot)
 
                                 else:
-                                  s0_vec.append(0)
-                                  s1_vec.append(0)
-                                  s2_vec.append(0)
-                                  s3_vec.append(0)
+                                  s0_vec.append(0.)
+                                  s1_vec.append(0.)
+                                  s2_vec.append(0.)
+                                  s3_vec.append(0.)
 
 
                             #store next

@@ -1,4 +1,5 @@
 #!/bin/env python
+from functools import cmp_to_key
 import os,sys
 #sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/scratch/python')
@@ -186,7 +187,10 @@ class ResInfo:
                 if int(x[4:])<int(y[4:]): return 1
                 elif int(x[4:])>int(y[4:]): return -1
                 else:return 0
-            invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),cmp=cmpfinv)
+            try:
+                invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),cmp_to_key=cmpfinv)
+            except NameError: #py2:
+                invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),cmp=cmpfinv)
             toDelete = current-newcount
             totDel=toDelete
             for i in invslist:
@@ -212,14 +216,14 @@ class ResInfo:
     def calculate_threadnumber(self):
         idlecount = len(os.listdir(self.idles))+len(os.listdir(self.cloud))
         if conf.cmssw_threads_autosplit>0:
-            self.nthreads = idlecount/conf.cmssw_threads_autosplit
-            self.nstreams = idlecount/conf.cmssw_threads_autosplit
+            self.nthreads = idlecount//conf.cmssw_threads_autosplit
+            self.nstreams = idlecount//conf.cmssw_threads_autosplit
             if self.nthreads*conf.cmssw_threads_autosplit != self.nthreads:
                 logger.error("idle cores can not be evenly split to cmssw threads")
         else:
             self.nthreads = conf.cmssw_threads
             self.nstreams = conf.cmssw_streams
-        self.expected_processes = idlecount/self.nstreams
+        self.expected_processes = idlecount//self.nstreams
         self.last_idlecount=idlecount
         self.calc_num_allowed(0)
 

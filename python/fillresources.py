@@ -1,5 +1,5 @@
 #!/bin/env python
-
+from functools import cmp_to_key
 import os
 import shutil
 import hltdconf
@@ -38,7 +38,10 @@ def updateIdles(idledir,newcount):
         if int(x[4:])<int(y[4:]): return 1
         elif int(x[4:])>int(y[4:]): return -1
         else:return 0
-      invslist = sorted(os.listdir(idledir),cmp=cmpf)
+      try:
+        invslist = sorted(os.listdir(idledir),cmp_to_key=cmpf)
+      except NameError: #py2:
+        invslist = sorted(os.listdir(idledir),cmp=cmpf)
       toDelete = newcount-current
       totDel=toDelete
       for i in invslist:
