@@ -800,7 +800,7 @@ class HLTDLogIndex():
 
         attempts=10
         s = requests.Session()
-        session.headers.update({'Content-Type':'application/json'})
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
