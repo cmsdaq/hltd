@@ -1,9 +1,9 @@
 #!/bin/env python
+from __future__ import print_function
 import os
 import sys
 import json
 import time
-
 
 #----------------------------------------------------------------------
 
@@ -14,7 +14,7 @@ def findfus(nostale, nocloud, noquarantined, stale_threshold = 10):
     with open('/fff/ramdisk/appliance/blacklist','r') as blf:
       bl = json.load(blf)
   except:
-    print "no blacklist file"
+    print("no blacklist file")
 
   allwhitelist = []
   allwhitelisthlt = []
@@ -110,15 +110,16 @@ if __name__ == '__main__':
   fu_list = findfus(options.nostale, options.nocloud, options.noquarantined)
 
   if len(fu_list['blacklist']):
-    print "blacklisted   :",','.join(fu_list['blacklist'])
+    print("blacklisted   :",','.join(fu_list['blacklist']))
   if len(fu_list['stalelist']):
-    print "stale(10s)    :",','.join(fu_list['stalelist'])
+    print("stale(10s)    :",','.join(fu_list['stalelist']))
   if len(fu_list['cloudlist']):
-    print "cloud         :",','.join(fu_list['cloudlist'])
+    print("cloud         :",','.join(fu_list['cloudlist']))
   if len(fu_list['qlist']):
-    print "quarantined   :",','.join(fu_list['qlist'])
+    print("quarantined   :",','.join(fu_list['qlist']))
   if fu_list['whitelist'] != fu_list['allwhitelist']:
-    print "usable(HLT)   :",','.join(fu_list['whitelist'])
+    print("usable(HLT)   :",','.join(fu_list['whitelist']))
   if fu_list['allwhitelisthlt'] != fu_list['whitelist']:
-    print "whitelist(HLT):",','.join(fu_list['allwhitelisthlt'])
-  print "whitelist     :",','.join(fu_list['allwhitelist'])
+    print("whitelist(HLT):",','.join(fu_list['allwhitelisthlt']))
+  print("whitelist     :",','.join(fu_list['allwhitelist']))
+
