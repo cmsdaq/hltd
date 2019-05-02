@@ -16,7 +16,7 @@ import socket
 import pwd
 
 import Run
-from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
+from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern,acquireLock,releaseLock
 from inotifywrapper import InotifyWrapper
 from buemu import BUEmu
 
@@ -25,6 +25,10 @@ def preexec_function():
     dem()
     prctl.set_pdeathsig(SIGKILL)
     #    os.setpgrp()
+
+def tryremove(fpath):
+    try:os.remove(fpath)
+    except:pass
 
 class RunRanger:
 
@@ -60,34 +64,148 @@ class RunRanger:
         fullpath = event.fullpath
         self.logger.info('event '+fullpath)
         dirname=fullpath[fullpath.rfind("/")+1:]
+
+        #detect if number is appended to the end of the command
+        numChar = -1
+        for i,c in enumerate(dirname):
+          if c.isdigit() and numChar==-1:
+            numChar=i
+          elif not c.isdigit() and numChar!=-1:
+            numChar=-1
+            break
+
+        prefix = dirname if numChar==-1 else dirname[:numChar]
+        dirnum = -1 if numChar==-1 else int(dirname[numChar:])
+
         self.logger.info('new filename '+dirname)
-        nr=0
-        if dirname.startswith('run'):
-            if os.path.islink(fullpath):
-                self.logger.info('directory ' + fullpath + ' is link. Ignoring this run')
-                return
-            if not os.path.isdir(fullpath):
-                self.logger.info(fullpath +' is a file. A directory is needed to start a run.')
-                return
-            #check and fix directory ownership if not created as correct user and group (in case of manual creation)
-            if conf.role=='fu' and not conf.dqm_machine:
-              try:
+
+        self.acqs = None
+
+
+        try:
+          if prefix in ['run']:              #BU,FU
+            self.newRunCmd(dirname,dirnum,fullpath)
+
+          elif prefix in ['end']:            #FU
+            self.endRunCmd(dirnum,fullpath)
+
+          elif prefix in ['quarantined']:    #FU
+            tryremove(dirname)
+            if conf.role == 'fu':
+              self.quarantinedCmd(dirnum)
+
+          elif prefix in ['stop']:           #FU
+            if conf.role == 'fu':
+              self.stopCmd()
+            tryremove(fullpath)
+ 
+          elif prefix in ['exclude']:        #FU
+            if conf.role == 'fu':
+              self.excludeCmd()
+            tryremove(fullpath)
+  
+          elif prefix in ['include']:        #FU
+            if conf.role == 'fu':
+              self.includeCmd()
+            tryremove(fullpath)
+ 
+          elif prefix in ['resourceupdate']: #FU
+            self.resourceUpdateCmd()
+            tryremove(fullpath)
+ 
+          elif prefix in ['restart']:        #BU,FU
+            self.logger.info('restart event')
+            if conf.role=='bu':
+              self.restartBUCmd()
+            #some time to allow cgi return
+            time.sleep(1)
+            tryremove(fullpath)
+
+            pr = subprocess.Popen(["/opt/hltd/scripts/restart.py"],close_fds=True)
+            self.logger.info('restart imminent, waiting to die and raise from the ashes once again')
+
+          elif prefix in ['herod','tsunami','brutus']: #FU,BU
+              if conf.role == 'bu':
+                  self.cleanupBUCmd(dirname,dirnum)
+                  tryremove(fullpath)
+                  if prefix == 'tsunami':
+                      self.cleanDisksCmd(dirnum,clrRamdisk=True,clrOutput=True)
+              elif conf.role == 'fu':
+                  tryremove(fullpath)
+                  self.cleanupFUCmd(prefix,dirnum)
+
+          elif prefix in ['cleanoutput']: #BU
+              tryremove(fullpath)
+              if conf.role == 'bu':
+                  self.cleanDisksCmd(dirnum,clrRamdisk=False,clrOutput=True)
+
+          elif prefix in ['cleanramdisk']: #BU
+              tryremove(fullpath)
+              if conf.role == 'bu':
+                  self.cleanDisksCmd(dirnum,clrRamdisk=True,clrOutput=False)
+
+          elif prefix in ['suspend']: #FU (BU:warning)
+            if conf.role == 'fu':
+              self.suspendCmd(dirnum)
+            else:
+              self.logger.warning("unable to suspend on " + conf.role)
+              tryremove(fullpath)
+ 
+          elif prefix in ['logrestart']:     #BU,FU
+            #hook to restart logcollector process manually
+            restartLogCollector(conf,self.logger,self.logCollector,self.instance)
+            tryremove(fullpath)
+
+          elif prefix in ['harakiri']: #FU (used?)
+              tryremove(fullpath)
+              if conf.role == 'fu':
+                  self.harakiriCmd()
+
+          elif prefix in ['emu']: #BU (deprecated)
+            self.buEMUCmd(dirnum)
+            tryremove(fullpath)
+ 
+          else:
+            self.logger.warning("unrecognized command "+fullpath)
+            tryremove(fullpath)
+
+        finally:
+            releaseLock(self,self.resource_lock,True,True,self.acqs)
+
+        self.logger.debug("completed handling of event "+fullpath)
+
+    def process_default(self, event):
+        self.logger.info('event '+event.fullpath+' type '+str(event.mask))
+        filename=event.fullpath[event.fullpath.rfind("/")+1:]
+
+
+    def newRunCmd(self,dirname,rn,fullpath):
+        if os.path.islink(fullpath):
+            self.logger.info('directory ' + fullpath + ' is link. Ignoring this run')
+            return
+        if not os.path.isdir(fullpath):
+            self.logger.info(fullpath +' is a file. A directory is needed to start a run.')
+            return
+
+        #check and fix directory ownership if not created as correct user and group (in case of manual creation)
+        if conf.role=='fu' and not conf.dqm_machine:
+            try:
                 stat_res = os.stat(fullpath)
                 if self.pw_record.pw_uid!=stat_res.st_uid or self.pw_record.pw_gid!=stat_res.st_gid:
                   self.logger.info("fixing owner of the run directory")
                   os.chown(fullpath,self.pw_record.pw_uid,self.pw_record.pw_gid) 
                 os.chmod(fullpath,0o777)
-              except Exception as ex:
+            except Exception as ex:
                 self.logger.warning("exception checking run directory ownership and mode: "+str(ex))
-            nr=int(dirname[3:])
-            if nr!=0:
-                # the dqm BU processes a run if the "global run file" is not mandatory or if the run is a global run
-                is_global_run = os.path.exists(fullpath[:fullpath.rfind("/")+1] + dqm_globalrun_filepattern.format(str(nr).zfill(conf.run_number_padding)))
-                dqm_processing_criterion = (not conf.dqm_globallock) or (conf.role != 'bu') or  (is_global_run)
 
-                if (not conf.dqm_machine) or dqm_processing_criterion:
-                    try:
-                        self.logger.info('new run '+str(nr))
+        if rn>0:
+            # the dqm BU processes a run if the "global run file" is not mandatory or if the run is a global run
+            is_global_run = os.path.exists(fullpath[:fullpath.rfind("/")+1] + dqm_globalrun_filepattern.format(str(rn).zfill(conf.run_number_padding)))
+            dqm_processing_criterion = (not conf.dqm_globallock) or (conf.role != 'bu') or  (is_global_run)
+
+            if (not conf.dqm_machine) or dqm_processing_criterion:
+                try:
+                        self.logger.info('new run '+str(rn))
                         #terminate quarantined runs
                         for run in self.runList.getQuarantinedRuns():
                             #run shutdown waiting for scripts to finish
@@ -112,8 +230,8 @@ class RunRanger:
                             bu_dir = ''
 
                         #check if this run is a duplicate
-                        if self.runList.getRun(nr)!=None:
-                            raise Exception("Attempting to create duplicate run "+str(nr))
+                        if self.runList.getRun(rn)!=None:
+                            raise Exception("Attempting to create duplicate run "+str(rn))
 
                         # in case of a DQM machines create an EoR file
                         if conf.dqm_machine and conf.role == 'bu':
@@ -134,7 +252,7 @@ class RunRanger:
                             self.state.os_cpuconfig_change=tmp_change
                             self.resource_lock.release()
 
-                        run = Run.Run(nr,fullpath,bu_dir,self.instance,conf,self.state,self.resInfo,self.runList,self.rr,self.mm,self.nsslock,self.resource_lock)
+                        run = Run.Run(rn,fullpath,bu_dir,self.instance,conf,self.state,self.resInfo,self.runList,self.rr,self.mm,self.nsslock,self.resource_lock)
                         if not run.inputdir_exists and conf.role=='fu':
                             self.logger.info('skipping '+ fullpath + ' with raw input directory missing')
                             shutil.rmtree(fullpath)
@@ -153,7 +271,7 @@ class RunRanger:
                             run.Start()
                         else:
                             #BU mode: failed to get blacklist
-                            self.runList.remove(nr)
+                            self.runList.remove(rn)
                             self.resource_lock.release()
                             try:del run
                             except:pass
@@ -164,18 +282,18 @@ class RunRanger:
                             self.logger.info('creating run symlink in main ramdisk directory')
                             main_ramdisk = os.path.dirname(os.path.normpath(conf.watch_directory))
                             os.symlink(fullpath,os.path.join(main_ramdisk,os.path.basename(fullpath)))
-                    except OSError as ex:
-                        self.logger.error("RUN:"+str(nr)+" - exception in new run handler: "+str(ex)+" / "+ex.filename)
+                except OSError as ex:
+                        self.logger.error("RUN:"+str(rn)+" - exception in new run handler: "+str(ex)+" / "+ex.filename)
                         self.logger.exception(ex)
-                    except Exception as ex:
-                        self.logger.error("RUN:"+str(nr)+" - RunRanger: unexpected exception encountered in forking hlt slave")
+                except Exception as ex:
+                        self.logger.error("RUN:"+str(rn)+" - RunRanger: unexpected exception encountered in forking hlt slave")
                         self.logger.exception(ex)
-                    try:self.resource_lock.release()
-                    except:pass
+                try:self.resource_lock.release()
+                except:pass
 
-        elif dirname.startswith('emu'):
-            nr=int(dirname[3:])
-            if nr!=0:
+
+    def buEMUCmd(self,rn):
+            if rn>0:
                 try:
                     """
                     start a new BU emulator run here - this will trigger the start of the HLT test run
@@ -183,28 +301,24 @@ class RunRanger:
                     #TODO:fix this constructor in buemu.py
                     #self.bu_emulator = BUEmu(conf,self.mm.bu_disk_list_ramdisk_instance,preexec_function)
                     self.bu_emulator = BUEmu(conf,self.mm.bu_disk_list_ramdisk_instance)
-                    self.bu_emulator.startNewRun(nr)
+                    self.bu_emulator.startNewRun(rn)
 
                 except Exception as ex:
                     self.logger.info("exception encountered in starting BU emulator run")
                     self.logger.info(ex)
 
-                os.remove(fullpath)
 
-        elif dirname.startswith('end'):
-            # need to check is stripped name is actually an integer to serve
-            # as run number
-            if dirname[3:].isdigit():
-                nr=int(dirname[3:])
-                if nr!=0:
+    def endRunCmd(self,rn,fullpath):
+            if rn>0:
                     try:
-                        endingRun = self.runList.getRun(nr)
+                        endingRun = self.runList.getRun(rn)
                         if endingRun==None:
-                            self.logger.warning('request to end run '+str(nr)
+                            self.logger.warning('request to end run '+str(rn)
                                           +' which does not exist')
                             os.remove(fullpath)
+                            return
                         else:
-                            self.logger.info('end run '+str(nr))
+                            self.logger.info('end run '+str(rn))
                             #remove from runList to prevent intermittent restarts
                             #lock used to fix a race condition when core files are being moved around
                             endingRun.is_ongoing_run==False
@@ -213,56 +327,30 @@ class RunRanger:
                                 endingRun.StartWaitForEnd()
                             if self.bu_emulator and self.bu_emulator.runnumber != None:
                                 self.bu_emulator.stop()
-                            #self.logger.info('run '+str(nr)+' removing end-of-run marker')
+                            #self.logger.info('run '+str(rn)+' removing end-of-run marker')
                             #os.remove(fullpath)
 
                     except Exception as ex:
                         self.logger.info("exception encountered when waiting hlt run to end")
                         self.logger.info(ex)
-                else:
-                    self.logger.error('request to end run '+str(nr)
+            else:
+                    self.logger.error('request to end run '+str(rn)
                                   +' which is an invalid run number - this should '
                                   +'*never* happen')
-            else:
-                self.logger.error('request to end run '+str(nr)
-                              +' which is NOT a run number - this should '
-                              +'*never* happen')
 
-        elif dirname.startswith('herod') or dirname.startswith('tsunami') or dirname.startswith('brutus'):
 
-            if dirname.startswith('herod'): nlen=len('herod')
-            if dirname.startswith('tsunami'): nlen=len('tsunami')
-            if dirname.startswith('brutus'): nlen=len('brutus')
-            rn = 0
-            skip_action=False
-            try:
-              if nlen>len(dirname):
-                if dirname[nlen:].isdigit():
-                  rn = int(dirname[nlen:])
-                else:
-                  self.logger.error("can not parse run number suffix from "+dirname+ ". Aborting command")
-                  skip_action=True
-            except Exception as exp:
-                self.logger.error("Exception parsing run number suffix from " +dirname + ' ' + str(exp) + ". Aborting command")
-                skip_action=True
+    def cleanupFUCmd(self,prefix,rn):
 
-            kill_all_runs = True if nlen==len(dirname) else False
+        kill_all_runs = True if rn<=0 else False
 
-            if skip_action:
-                try:os.remove(fullpath)
-                except:pass
-
-            elif conf.role == 'fu':
-                try:os.remove(fullpath)
-                except:pass
-                self.logger.info("killing all CMSSW child processes")
-                #clear ongoing flags to avoid latest run picking up released resources (only if not killing a specific run)
-                if kill_all_runs:
-                  self.runList.clearOngoingRunFlags()
+        self.logger.info("killing all CMSSW child processes")
+        #clear ongoing flags to avoid latest run picking up released resources (only if not killing a specific run)
+        if kill_all_runs:
+            self.runList.clearOngoingRunFlags()
 
                 #wait 5 seconds for BU to finish with the command (until ramdisk marker is deleted), otherwise do cleanup
-                timeLeft=5
-                while timeLeft>0:
+        timeLeft=5
+        while timeLeft>0:
                   try:
                     bu_files = os.listdir(os.path.join('/',conf.bu_base_dir+'0',conf.ramdisk_subdirectory))
                   except Exception as ex:
@@ -279,26 +367,28 @@ class RunRanger:
                   timeLeft-=1
                   time.sleep(1)
 
-                for run in self.runList.getActiveRuns():
-                  if nlen==len(dirname) or run.runnumber==rn or run.checkQuarantinedLimit():
-                    if dirname.startswith('brutus'):
-                        run.Shutdown(True,False)
-                    else:
-                        run.Shutdown(True,True)
-                time.sleep(.2)
-                #clear all quarantined cores
-                for cpu in self.resInfo.q_list:
+        sh_kill_scripts=False if prefix=='brutus' else True
+
+        for run in self.runList.getActiveRuns():
+                  if run<0 or run.runnumber==rn or run.checkQuarantinedLimit():
+                    run.Shutdown(True,sh_kill_scripts)
+
+        time.sleep(.2)
+        #clear all quarantined cores
+        for cpu in self.resInfo.q_list:
                     try:
                         self.logger.info('Clearing quarantined resource '+cpu)
                         self.resInfo.resmove(self.resInfo.quarantined,self.resInfo.idles,cpu)
                     except:
                         self.logger.info('Quarantined resource was already cleared: '+cpu)
-                self.resInfo.q_list=[]
+        self.resInfo.q_list=[]
 
-            elif conf.role == 'bu':
-                #contact any FU that appears alive
-                boxdir = conf.resource_base +'/boxes/'
-                try:
+    def cleanupBUCmd(self,dirname,rn):
+        kill_all_runs = True if rn<0 else False
+
+        #contact any FU that appears alive
+        boxdir = conf.resource_base +'/boxes/'
+        try:
                     dirlist = os.listdir(boxdir)
                     current_time = time.time()
                     self.logger.info("sending "+dirname+" to child FUs")
@@ -346,64 +436,36 @@ class RunRanger:
                     for herodThread in herod_threads:
                       herodThread.join()
 
-                except Exception as ex:
+        except Exception as ex:
                     self.logger.error("exception encountered in contacting resources")
                     self.logger.info(ex)
 
-                #cleanup after contacting FUs. FUs will however still wait a few seconds for tsunami/herod/brutus file to be deleted
-                time.sleep(.5)
-                for run in self.runList.getActiveRuns():
+        #cleanup after contacting FUs. FUs will however still wait a few seconds for tsunami/herod/brutus file to be deleted
+        time.sleep(.5)
+        for run in self.runList.getActiveRuns():
                     if kill_all_runs or run.runnumber==rn:
                       run.createEmptyEoRMaybe()
                       run.ShutdownBU()
-                time.sleep(.5)
-
-                #FUs can proceed with cleanup, remove marker
-                try:os.remove(fullpath)
-                except:pass
-
-                #delete input and output BU directories
-                if dirname.startswith('tsunami'):
-                    self.logger.info('tsunami approaching: cleaning all ramdisk and output run data')
-                    if rn:
-                        self.mm.cleanup_bu_disks(rn,True,True)
-                    else:
-                        self.mm.cleanup_bu_disks(None,True,True)
+        time.sleep(.5)
 
 
-        elif dirname.startswith('cleanoutput'):
-            try:os.remove(fullpath)
-            except:pass
-            nlen = len('cleanoutput')
-            if len(dirname)==nlen:
-                self.logger.info('cleaning output (all run data)')
-                self.mm.cleanup_bu_disks(None,False,True)
-            else:
-                try:
-                    rn = int(dirname[nlen:])
-                    self.logger.info('cleaning output (only for run '+str(rn)+')')
-                    self.mm.cleanup_bu_disks(rn,False,True)
-                except:
-                    self.logger.error('Could not parse '+dirname)
 
-        elif dirname.startswith('cleanramdisk'):
-            try:os.remove(fullpath)
-            except:pass
-            nlen = len('cleanramdisk')
-            if len(dirname)==nlen:
-                self.logger.info('cleaning ramdisk (all run data)')
-                self.mm.cleanup_bu_disks(None,True,False)
-            else:
-                try:
-                    rn = int(dirname[nlen:])
-                    self.logger.info('cleaning ramdisk (only for run '+str(rn)+')')
-                    self.mm.cleanup_bu_disks(rn,True,False)
-                except:
-                    self.logger.error('Could not parse '+dirname)
+    def cleanDisksCmd(self,rn,clrRamdisk,clrOutput):
 
-        elif dirname.startswith('harakiri') and conf.role == 'fu':
-            try:os.remove(fullpath)
-            except:pass
+        if rn<=0:
+            self.logger.info('cleaning output (all run data)')
+            self.logger.info('cleaning ramdisk' + str(clrRamdisk) + " output:" + str(clrOutput) +  ' for all runs')
+            self.mm.cleanup_bu_disks(None,clrRamdisk,clrOutput)
+        else:
+            try:
+                self.logger.info('cleaning ramdisk' + str(clrRamdisk) + " output:" + str(clrOutput) +  '(only for run '+str(rn)+')')
+                self.mm.cleanup_bu_disks(rn,clrRamdisk,clrOutput)
+            except Exception as ex:
+                self.logger.error('Could not clean data: '+ str(ex))
+
+
+    def harakiriCmd(self):
+
             pid=os.getpid()
             self.logger.info('asked to commit seppuku:'+str(pid))
             try:
@@ -415,30 +477,28 @@ class RunRanger:
                 self.logger.error("exception in committing harakiri - the blade is not sharp enough...")
                 self.logger.error(ex)
 
-        elif dirname.startswith('quarantined'):
-            try:
-                os.remove(dirname)
-            except:
-                pass
-            if dirname[11:].isdigit():
-                nr=int(dirname[11:])
-                if nr!=0:
+
+    def quarantinedCmd(self,rn):
+
+            if rn>0:
                     try:
-                        run = self.runList.getRun(nr)
+                        run = self.runList.getRun(rn)
                         if run.checkQuarantinedLimit():
                             if self.runList.isLatestRun(run):
-                                self.logger.info('reached quarantined limit - pending Shutdown for run:'+str(nr))
+                                self.logger.info('reached quarantined limit - pending Shutdown for run:'+str(rn))
                                 run.pending_shutdown=True
                             else:
-                                self.logger.info('reached quarantined limit - initiating Shutdown for run:'+str(nr))
+                                self.logger.info('reached quarantined limit - initiating Shutdown for run:'+str(rn))
                                 run.startShutdown(True,False)
                     except Exception as ex:
                         self.logger.exception(ex)
 
-        elif dirname.startswith('suspend') and conf.role == 'fu':
+
+    def suspendCmd(self,dirnum,fullpath):
+
             self.logger.info('suspend mountpoints initiated')
             self.state.suspended=True
-            replyport = int(dirname[7:]) if dirname[7:].isdigit()==True else conf.cgi_port
+            replyport = dirnum if dirnum!=-1 else conf.cgi_port
 
             #terminate all ongoing runs
             self.runList.clearOngoingRunFlags()
@@ -533,16 +593,19 @@ class RunRanger:
 
             self.logger.info("Remount is performed")
 
-        elif dirname.startswith('stop') and conf.role == 'fu':
+
+    def stopCmd(self,dirname):
 
             self.logger.info("Stop command invoked: "+ dirname)
-            #make sure to not run inotify acquire while we are here
-            self.resource_lock.acquire()
+
+            #lock to get consistent state
+            self.acqs = acquireLock(self,self.resource_lock,True)
             self.state.disabled_resource_allocation=True
             q_list = self.runList.getQuarantinedRuns()
             a_list = self.runList.getActiveRuns()
             ongoing_rnlist = [r.runnumber for r in self.runList.getOngoingRuns()]
-            self.resource_lock.release()
+            releaseLock(self,self.resource_lock,True,False,self.acqs)
+
             self.logger.info('active runs:'+str([r.runnumber for r in a_list]) + ' quarantined runs:' + str([r.runnumber for r in q_list]))
 
             nlen = len('stopnow') if dirname.startswith('stopnow') else len('stop')
@@ -574,9 +637,7 @@ class RunRanger:
                           if len(run.online_resource_list)==0:
                             run.Shutdown(True,False)
                           else:
-                            self.resource_lock.acquire()
                             run.Stop(stop_now=stop_now_cmd)
-                            self.resource_lock.release()
                           break
                     if found:time.sleep(.1)
                   else:
@@ -594,17 +655,14 @@ class RunRanger:
               self.runList.clearOngoingRunFlags()
               #shut down any quarantined runs
               try:
-                for run in self.runList.getQuarantinedRuns():
+                for run in q_list:
                     run.Shutdown(True,False)
-                listOfActiveRuns = self.runList.getActiveRuns()
-                for run in listOfActiveRuns:
+                for run in a_list:
                     if not run.pending_shutdown:
                         if len(run.online_resource_list)==0:
                             run.Shutdown(True,False)
                         else:
-                            self.resource_lock.acquire()
                             run.Stop(stop_now=stop_now_cmd)
-                            self.resource_lock.release()
                 time.sleep(.1)
               except Exception as ex:
                 self.logger.fatal("Unable to stop run(s)")
@@ -612,11 +670,10 @@ class RunRanger:
 
             self.state.disabled_resource_allocation=False
 
-            try:self.resource_lock.release()
-            except:pass
-            os.remove(fullpath)
+            #releaseLock(self,self.resource_lock,True,True,-1)
 
-        elif dirname.startswith('exclude') and conf.role == 'fu':
+    def excludeCmd(self,dirname):
+
             #service on this machine is asked to be excluded for cloud use
             if self.state.cloud_mode:
                 if self.state.abort_cloud_mode:
@@ -624,7 +681,6 @@ class RunRanger:
                   self.state.abort_cloud_mode=False
                 else:
                   self.logger.info('already in cloud mode...')
-                  os.remove(fullpath)
                   return
             else:
                 self.logger.info('machine exclude for cloud initiated. stopping any existing runs...')
@@ -633,7 +689,6 @@ class RunRanger:
                 #execute run cloud stop script in case something is running
                 self.state.extinguish_cloud(repeat=True)
                 self.logger.error("Unable to switch to cloud mode (external script error).")
-                os.remove(fullpath)
                 return
 
             #make sure to not run not acquire resources by inotify while we are here
@@ -655,7 +710,6 @@ class RunRanger:
                         if len(run.online_resource_list)==0:
                             run.Shutdown(True,False)
                         else:
-                            self.resource_lock.acquire()
                             requested_stop=True
                             if dirname.startswith('excludenow'):
                               #let jobs stop without 3 LS drain
@@ -663,7 +717,6 @@ class RunRanger:
                             else:
                               #regular stop with 3 LS drain
                               run.Stop()
-                            self.resource_lock.release()
 
                 time.sleep(.1)
                 self.resource_lock.acquire()
@@ -682,15 +735,15 @@ class RunRanger:
                 self.state.cloud_mode=False
             try:self.resource_lock.release()
             except:pass
-            os.remove(fullpath)
 
-        elif dirname.startswith('include') and conf.role == 'fu':
+
+    def includeCmd(self,dirname,fullpath):
+
             if not self.state.cloud_mode:
                 self.logger.warning('received notification to exit from cloud but machine is not in cloud mode!')
                 if self.state.cloud_status():
                     self.logger.info('cloud scripts are still running, trying to stop')
                     returnstatus = self.state.extinguish_cloud(repeat=True)
-                os.remove(fullpath)
                 return
 
             self.resource_lock.acquire()
@@ -699,7 +752,6 @@ class RunRanger:
                 self.logger.info('include received while entering cloud mode. setting abort flag...')
                 self.state.abort_cloud_mode=True
                 self.resource_lock.release()
-                os.remove(fullpath)
                 return
 
             #switch to cloud stopping
@@ -731,7 +783,8 @@ class RunRanger:
                       if err_attempts>100:
                         #if error is persistent, give up eventually and complain with fatal error 
                         self.state.exiting_cloud_mode=False
-                        os.remove(fullpath)
+                        try:os.remove(fullpath)
+                        except:pass
                         time.sleep(1)
                         self.logger.critical('failed to switch off cloud. last status reported: '+str(last_status))
                         return
@@ -745,7 +798,8 @@ class RunRanger:
                         retried=True
                     if attempts>600:
                         self.state.exiting_cloud_mode=False
-                        os.remove(fullpath)
+                        try:os.remove(fullpath)
+                        except:pass
                         time.sleep(1)
                         self.logger.critical('failed to switch off cloud after attempting for 10 minutes! last status reports cloud is running...')
                         return
@@ -761,12 +815,15 @@ class RunRanger:
                     break
 
             self.state.exiting_cloud_mode=False
-            os.remove(fullpath)
+            try:os.remove(fullpath)
+            except:pass
             #sleep some time to let core file notifications to finish
             time.sleep(2)
             self.logger.info('cloud mode in hltd has been switched off')
-        
-        elif dirname.startswith('resourceupdate'):
+
+
+    def resourceUpdateCmd(self):
+
             self.logger.info('resource update event received with '+str(self.state.os_cpuconfig_change))
             #freeze any update during this operation
             self.state.lock.acquire()
@@ -853,18 +910,10 @@ class RunRanger:
               except:pass
               self.state.lock.release()
             self.logger.info('end resourceupdate. Left:'+str(self.state.os_cpuconfig_change))
-            os.remove(fullpath)
  
 
-        elif dirname.startswith('logrestart'):
-            #hook to restart logcollector process manually
-            restartLogCollector(conf,self.logger,self.logCollector,self.instance)
-            os.remove(fullpath)
+    def restartBUCmd(self):
 
-        elif dirname.startswith('restart'):
-            self.logger.info('restart event')
-
-            if conf.role=='bu':
               process = subprocess.Popen(['/opt/hltd/scripts/appliancefus.py'],stdout=subprocess.PIPE)
               raw_str=process.communicate()[0]
               if not isinstance(raw_str,str): raw_str = raw_str.decode("utf-8")
@@ -919,17 +968,4 @@ class RunRanger:
                   fu_thread.start()
               for fu_thread in fu_threads:
                   fu_thread.join()
-                
-            #some time to allow cgi return
-            time.sleep(1)
-            os.remove(fullpath)
-            pr = subprocess.Popen(["/opt/hltd/scripts/restart.py"],close_fds=True)
-            self.logger.info('restart imminent, waiting to die and raise from the ashes once again')
-
-        self.logger.debug("completed handling of event "+fullpath)
-
-    def process_default(self, event):
-        self.logger.info('event '+event.fullpath+' type '+str(event.mask))
-        filename=event.fullpath[event.fullpath.rfind("/")+1:]
-
-
+ 

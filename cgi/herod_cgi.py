@@ -21,11 +21,10 @@ try:
 except:
     command='herod'
 
+try:os.remove(command)
+except:pass
 try:
-    if os.path.exists(command):
-        os.remove(command)
-    fp = open(command,'w+')
-    fp.close()
+    with open(command,'w+') as fp:pass
 except Exception as ex:
     print("exception encountered in operating hltd (herod)\n")
     print('<P>')

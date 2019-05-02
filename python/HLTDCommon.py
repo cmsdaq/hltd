@@ -64,3 +64,27 @@ def updateBlacklist(conf,logger,blfile):
     #TODO:check on FU if blacklisted
     return True,black_list
 
+
+def acquireLock(parent,lock,doLock=True,maybe=False,timeout=-1):
+  if not doLock: return None
+  if maybe:
+    if lock.locked(): return True #already locked
+  return lock.acquire(timeout=timeout)
+
+def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
+  if not doLock: return None
+  if maybe:
+    if not lock.locked(): return True #not locked anymore
+  try:
+    return lock.release()
+  except RuntimeError as ex:
+    import inspect
+    if sys.version_info.major==3 and sys.version_info_minor>=5:
+       funcname = inspect.stack()[1].function
+    else:
+      funcname = inspect.stack()[1][3]
+    acq = "not provided" if acqStatus==-1 else str(acqStatus)
+    parent.logger.warning("Failed unlocking lock in " + funcname + "/" + parent.__class__.__name__+". Acquire status was  "+acq+". Exception:"+str(ex))
+    return None
+
+

@@ -7,11 +7,10 @@ import subprocess
 
 print("Content-Type: text/html")     # HTML is following
 print()
+try:os.remove('restart')
+except:pass
 try:
-    if os.path.exists('restart'):
-        os.remove('restart')
-    fp = open('restart','w+')
-    fp.close()
+    with open('restart','w+') as fp: pass
 except Exception as ex:
     print("exception encountered in operating hltd\n")
     print('<P>')

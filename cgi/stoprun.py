@@ -6,5 +6,6 @@ if "run" not in form:
     print("<H1>Error</H1>")
     print("Please fill in the run number ")
 else:
-    fp = open('end'+form["run"].value)
-    fp.close()
+    try: os.remove('end'+form["run"].value)
+    except:pass
+    with open('end'+form["run"].value) as fp: pass

@@ -28,7 +28,7 @@ class RunList:
 
     def add(self,runObj):
         runNumber = runObj.runnumber
-        check = [x for x in self.runs if runNumber == x.runnumber]
+        check = [x for x in self.runs[:] if runNumber == x.runnumber]
         if len(check):
             raise Exception("Run "+str(runNumber)+" already exists")
         #doc = {runNumber:runObj}
@@ -37,24 +37,24 @@ class RunList:
 
     def remove(self,runNumber):
         #runs =  map(lambda x: x.keys()[0]==runNumber)
-        runs =  [x for x in self.runs if x.runnumber==runNumber]
+        runs =  [x for x in self.runs[:] if x.runnumber==runNumber]
         if len(runs)>1:
             self.logger.error("Multiple runs entries for "+str(runNumber)+" were found while removing run")
         for run in runs[:]: self.runs.pop(self.runs.index(run))
 
     def getOngoingRuns(self):
         #return map(lambda x: x[x.keys()[0]], filter(lambda x: x.is_ongoing_run==True,self.runs))
-        return [x for x in self.runs if x.is_ongoing_run==True]
+        return [x for x in self.runs[:] if x.is_ongoing_run==True]
 
     def getQuarantinedRuns(self):
-        return [x for x in self.runs if x.pending_shutdown==True]
+        return [x for x in self.runs[:] if x.pending_shutdown==True]
 
     def getActiveRuns(self):
         #return map(lambda x.runnumber: x, self.runs)
         return self.runs[:]
 
     def getActiveRunNumbers(self):
-        return [x.runnumber for x in self.runs]
+        return [x.runnumber for x in self.runs[:]]
 
     def getLastRun(self):
         try:
@@ -70,7 +70,7 @@ class RunList:
 
     def getRun(self,runNumber):
         try:
-            return [x for x in self.runs if x.runnumber==runNumber][0]
+            return [x for x in self.runs[:] if x.runnumber==runNumber][0]
         except:
             return None
 
@@ -80,12 +80,12 @@ class RunList:
 
     def getStateDoc(self):
         docArray = []
-        for runObj in self.runs:
+        for runObj in self.runs[:]:
             docArray.append({'run':runObj.runnumber,'totalRes':runObj.n_used,'qRes':runObj.n_quarantined,'ongoing':runObj.is_ongoing_run,'errors':runObj.num_errors,'errorsRes':runObj.num_errors_res})
         return docArray
 
     def clearOngoingRunFlags(self):
-        for runObj in self.runs:
+        for runObj in self.runs[:]:
             runObj.is_ongoing_run=False
 
 
@@ -365,7 +365,6 @@ class Run:
         current_time = time.time()
         count = 0
         cpu_group=[]
-        #self.lock.acquire()
 
         bldir = os.path.join(self.dirname,'hlt')
         blpath = os.path.join(self.dirname,'hlt','blacklist')
@@ -412,7 +411,6 @@ class Run:
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring resource '+str(cpu)+':'+str(ex))
         return True
-        #self.lock.release()
 
     def checkStaleResourceFileAndIP(self,resourcepath):
         f_ip=None
@@ -457,7 +455,8 @@ class Run:
         if conf.role == 'fu':
             for resource in self.online_resource_list:
                 self.logger.info('start run '+str(self.runnumber)+' on cpu(s) '+str(resource.cpu))
-                self.StartOnResource(resource)
+                #this is taken only with acquired resource_lock. It will be released temporarily within this function:
+                self.StartOnResource(resource,is_locked=True)
 
             if conf.dqm_machine==False:
                 self.changeMarkerMaybe(Resource.RunCommon.ACTIVE)
@@ -506,7 +505,7 @@ class Run:
         else:
             return None
 
-    def StartOnResource(self, resource):
+    def StartOnResource(self, resource,is_locked):
         self.logger.debug("StartOnResource called")
         resource.assigned_run_dir=conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
         new_index = self.online_resource_list.index(resource)%len(self.mm.bu_disk_list_ramdisk_instance)
@@ -517,7 +516,8 @@ class Run:
                                  self.menu_path,
                                  self.transfermode,
                                  int(round((len(resource.cpu)*float(self.resInfo.nthreads)/self.resInfo.nstreams))),
-                                 len(resource.cpu))
+                                 len(resource.cpu),
+                                 is_locked)
         self.logger.debug("StartOnResource process started")
 
 
@@ -602,7 +602,7 @@ class Run:
             self.resource_lock.acquire()
             q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
             for resource in self.online_resource_list:
-                cleared_q = resource.clearQuarantined(doLock=False,restore=q_clear_condition)
+                cleared_q = resource.clearQuarantined(False,restore=q_clear_condition)
                 for cpu in resource.cpu:
                     if cpu not in cleared_q:
                         try:
@@ -758,6 +758,7 @@ class Run:
                           self.resource_lock.acquire()
                           #retry again with lock acquired
                           if not resource.isAlive():
+                            self.resource_lock.release()
                             break
                           self.logger.warning("timeout waiting for run to end (5 min) pid: "+str(ppid)+" . retrying join...")
                           if self.state.cloud_mode:

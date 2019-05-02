@@ -16,7 +16,7 @@ from signal import SIGKILL
 import logging
 
 from HLTDCommon import dqm_globalrun_filepattern
-
+from HLTDCommon import acquireLock,releaseLock
 def preexec_function():
     dem = demote.demote(conf.user)
     dem()
@@ -113,7 +113,7 @@ class OnlineResource:
         except Exception as ex:
             self.logger.exception(ex)
 
-    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, transfermode, num_threads, num_streams):
+    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, transfermode, num_threads, num_streams, is_locked):
         self.logger.debug("OnlineResource: StartNewProcess called")
         self.runnumber = runnumber
         self.remove_resources_flag=False
@@ -193,10 +193,12 @@ class OnlineResource:
         try:
             if self.watchdog:
                 #release lock while joining thread to let it complete
-                self.resource_lock.release()
+                if is_locked:
+                  self.resource_lock.release()
                 self.watchdog.join()
                 self.watchdog = None
-                self.resource_lock.acquire()
+                if is_locked:
+                  self.resource_lock.acquire()
 
             self.processstate = 100
             self.logger.info(self.process.pid)
@@ -220,7 +222,8 @@ class OnlineResource:
         if not restore:
             self.resInfo.q_list+=self.quarantined
             return self.quarantined
-        if doLock:self.resource_lock.acquire()
+        acqs = acquireLock(self,self.resource_lock,doLock)
+        if doLock: lr = self.resource_lock.acquire()
         try:
             for cpu in self.quarantined:
                 self.logger.info('Clearing quarantined resource '+cpu)
@@ -231,26 +234,25 @@ class OnlineResource:
             self.parent.n_quarantined=0
         except Exception as ex:
             self.logger.exception(ex)
-        if doLock:
-            try:self.resource_lock.release()
-            except:pass
+
+        releaseLock(self,self.resource_lock,doLock,acqStatus=acqs)
         return retq
 
-    def moveUsedToIdles(self,uselock=True):
-        if uselock:self.resource_lock.acquire()
-        try:
+    def moveUsedToIdles(self,doLock=True):
+        acqs = acquireLock(self,self.resource_lock,doLock)
+        if hasattr(self,'cpu') and isinstance(self.cpu,list):
             for cpu in self.cpu:
                 try:
                     self.resInfo.resmove(self.resInfo.used,self.resInfo.idles,cpu)
                     self.parent.n_used-=1
                 except Exception as ex:
-                    self.logger.warning('problem moving core ' + cpu + ' from used to idle:'+str(ex))
-        finally:
-            if uselock:self.resource_lock.release()
+                    self.logger.warning('problem moving core ' + str(cpu) + ' from used to idle:'+str(ex))
 
-    def moveUsedToQuarantined(self,uselock=True,takenOut=False):
-        if uselock:self.resource_lock.acquire()
-        try:
+        releaseLock(self,self.resource_lock,doLock,acqStatus=acqs)
+
+    def moveUsedToQuarantined(self,doLock=True,takenOut=False):
+        acqs = acquireLock(self,self.resource_lock,doLock)
+        if hasattr(self,'cpu') and isinstance(self.cpu,list):
             for cpu in self.cpu:
                 try:
                     self.resInfo.resmove(self.resInfo.used,self.resInfo.quarantined,cpu)
@@ -260,32 +262,30 @@ class OnlineResource:
                     else:self.parent.n_used-=1
                 except Exception as ex:
                     self.logger.warning('problem moving core ' + cpu + ' from used to quarantined:'+str(ex))
-        finally:
-            if uselock:self.resource_lock.release()
+        releaseLock(self,self.resource_lock,doLock,acqStatus=acqs)
+
 
     def moveUsedToBroken(self):
-        self.resource_lock.acquire()
-        try:
+        acqs = acquireLock(self,self.resource_lock,True)
+        if hasattr(self,'cpu') and isinstance(self.cpu,list):
             for cpu in self.cpu:
                 try:
                     self.resInfo.resmove(self.resInfo.used,self.resInfo.broken,cpu)
                     self.parent.n_used-=1
                 except Exception as ex:
                     self.logger.warning('problem moving core ' + cpu + ' from used to except:'+str(ex))
-        finally:
-            self.resource_lock.release()
+        releaseLock(self,self.resource_lock,True,acqStatus=acqs)
 
     def deleteUsed(self):
-        self.resource_lock.acquire()
-        try:
+        acqs = acquireLock(self,self.resource_lock,True)
+        if hasattr(self,'cpu') and isinstance(self.cpu,list):
             for cpu in self.cpu:
                 try:
                     os.unlink(os.path.join(self.resInfo.used,cpu))
                     self.parent.n_used-=1
                 except Exception as ex:
                     self.logger.warning('problem deleting core ' + cpu + ' from used:'+str(ex))
-        finally:
-            self.resource_lock.release()
+        releaseLock(self,self.resource_lock,True,acqStatus=acqs)
 
     def Stop(self, delete_resources=False, end_run_allow=False,move_q=False):
         self.loc_res_lk.acquire()
@@ -298,7 +298,7 @@ class OnlineResource:
             #time.sleep(0.01)
             proc_pid = self.process.pid
             stop_file = "CMSSW_STOP_pid"+str(proc_pid)
-            open(os.path.join(self.parent.dirname,stop_file),'w').close()
+            with open(os.path.join(self.parent.dirname,stop_file),'w')as fp:pass
             self.logger.info('created file '+stop_file)
             self.loc_res_lk.release()
             return True

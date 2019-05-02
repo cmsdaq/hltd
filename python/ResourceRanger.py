@@ -191,7 +191,8 @@ class ResourceRanger:
 
                     if acquired_sufficient:
                         self.logger.info("ResourceRanger: acquired resource(s) "+str(res.cpu))
-                        run.StartOnResource(res)
+                        #this is taken only with acquired resource_lock. It will be released temporarily within this function:
+                        run.StartOnResource(res,is_locked=True)
                         self.logger.info("ResourceRanger: started process on resource "
                                      +str(res.cpu))
                 else:
