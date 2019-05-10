@@ -18,6 +18,10 @@ On a (CC7) build machine prerequisite packages need to be installed:
 ```
 yum install -y python-devel libcap-devel rpm-build python-six python-setuptools
 ```
+Note: python 3.4 equivalent is:
+```
+yum install -y python34-devel libcap-devel rpm-build python34-six python34-setuptools
+```
 
 building hltd library RPM:
 ```
