@@ -11,9 +11,7 @@ portsuffix=""
 if "port" in form:
     portsuffix=form["port"].value
 
-try:
-    os.unlink('suspend'+portsuffix)
-except:
-    pass
-fp = open('suspend'+portsuffix,'w+')
-fp.close()
+try:os.remove('suspend'+portsuffix)
+except: pass
+
+with open('suspend'+portsuffix,'w+') as fp: pass

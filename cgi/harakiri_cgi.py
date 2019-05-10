@@ -16,11 +16,10 @@ print()
 print("<TITLE>CGI script output</TITLE>")
 print("Hey I'm still here !")
 
+try:os.remove('harakiri')
+except:pass
 try:
-    if os.path.exists('harakiri'):
-        os.remove('harakiri')
-    fp = open('harakiri','w+')
-    fp.close()
+    with open('harakiri','w+') as fp: pass
 except Exception as ex:
     print("exception encountered in operating hltd\n")
     print('<P>')
