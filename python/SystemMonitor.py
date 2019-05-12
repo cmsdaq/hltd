@@ -54,6 +54,7 @@ class system_monitor(threading.Thread):
         self.allow_resource_notifications = False
         self.buffered_resource_notification = None
         self.mem_frac = 0.
+        self.last_good = True
         global conf
         conf = confClass
         #cpu timing information
@@ -822,7 +823,17 @@ class system_monitor(threading.Thread):
           aperf += struct.unpack("Q",os.read(fd,8))[0]
           cnt+=1
           os.close(fd)
-        except (IOError,OSError) as ex:
+          self.last_good=True
+        except OSError as ex:
+          if ex.errno==5:
+            if self.last_good:
+              self.logger.warning(str(ex))
+            self.last_good=False
+            try:os.close(fd)
+            except:pass
+            return 0,0,0
+ 
+        except IOError as ex:
           self.logger.warning(str(ex))
           try:os.close(fd)
           except:pass
