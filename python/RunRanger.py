@@ -164,6 +164,9 @@ class RunRanger:
           elif prefix in ['emu']: #BU (deprecated)
             self.buEMUCmd(dirnum)
             tryremove(fullpath)
+
+          elif prefix=="cgi-bin":
+            pass
  
           else:
             self.logger.warning("unrecognized command "+fullpath)
