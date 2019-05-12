@@ -29,7 +29,7 @@ from requests.exceptions import Timeout as RequestsTimeout
 
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
-from elasticsearch.exceptions import ElasticsearchException
+from elasticsearch.exceptions import ElasticsearchException,RequestError
 from elasticBand import bulk_index
 
 from hltdconf import *
@@ -563,15 +563,13 @@ class CMSSWLogESWriter(threading.Thread):
                         reply = bulk_index(self.eb.es,self.eb.indexName,documents)
                         if reply['errors']==True:
                             self.logger.error("Error reply on bulk-index request(logcollector):"+ str(reply))
+                    except RequestError as ex:
+                        if ex.error == "index_closed_exception":
+                            self.logger.warning("es bulk index "+str(self.eb.indexName) + " index_closed_exception")
+                        else:
+                            self.logger.error("es bulk index:"+str(ex))
                     except Exception as ex:
-                        try:
-                          err = ex.error
-                          if err == "index_closed_exception":
-                              self.logger.warning("es bulk index error (closed):"+str(ex))
-                          else:
-                              self.logger.error("es bulk index:"+str(ex))
-                        except Exception as ex2:
-                            self.logger.warning("Unable to parse exception " + str(ex) + ":" + str(ex2))
+                        self.logger.error("es bulk index:"+str(ex))
 
             elif self.queue.qsize()>0:
                 while self.abort == False:
@@ -583,15 +581,13 @@ class CMSSWLogESWriter(threading.Thread):
                                 if evt.severity>=FATALLEVEL and evt.inject_central_index:
                                     hlc.esHandler.elasticize_cmsswlog(evt.document)
                                 self.eb.es.index(index=self.eb.indexName,doc_type='doc',body=evt.document)
+                        except RequestError as ex:
+                            if ex.error == "index_closed_exception":
+                                self.logger.warning("es index "+str(self.eb.indexName) + " index_closed_exception")
+                            else:
+                                self.logger.error("es index:"+str(ex))
                         except Exception as ex:
-                            try:
-                              err = ex.error
-                              if err == "index_closed_exception":
-                                  self.logger.warning("es bulk index error (closed):"+str(ex))
-                              else:
-                                  self.logger.error("es bulk index:"+str(ex))
-                            except Exception as ex2:
-                                self.logger.warning("Unable to parse exception " + str(ex) + ":" + str(ex2))
+                            self.logger.error("es index:"+str(ex))
 
                     except queue.Empty:
                         break
