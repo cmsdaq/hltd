@@ -560,7 +560,7 @@ class CMSSWLogESWriter(threading.Thread):
                         break
                 if len(documents)>0:
                     try:
-                        reply = bulk_index(self.eb.es,self.eb.indexName,'doc',documents)
+                        reply = bulk_index(self.eb.es,self.eb.indexName,documents)
                         if reply['errors']==True:
                             self.logger.error("Error reply on bulk-index request(logcollector):"+ str(reply))
                     except Exception as ex:
@@ -795,6 +795,7 @@ class HLTDLogIndex():
         self.es_server_url=es_server_url
         self.host = os.uname()[1]
         self.threadEvent = threading.Event()
+        self.es_type_name_param = True
 
         self.index_name = 'hltdlogs_'+conf.elastic_runindex_name+"_write" #using write alias
 
@@ -808,8 +809,15 @@ class HLTDLogIndex():
                 self.logger.info('writing to elastic index '+self.index_name)
                 ip_url=getURLwithIP(es_server_url)
                 self.es = Elasticsearch(ip_url,timeout=5)
+
+                #es7 transition
+                if self.es.info()['version']['number'].startswith('6'):
+                  essuffix=''
+                else:
+                  essuffix='?include_type_name=false'
+ 
                 #update in case of new documents added to mapping definition
-                self.updateMappingMaybe(s,ip_url)
+                self.updateMappingMaybe(s,ip_url,essuffix)
                 break
 
             except (ElasticsearchException,RequestsConnectionError,RequestsTimeout) as ex:
@@ -873,15 +881,15 @@ class HLTDLogIndex():
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
-    def updateMappingMaybe(self,session,ip_url):
+    def updateMappingMaybe(self,session,ip_url,essuffix=''):
 
         for key in mappings.central_hltdlogs_mapping:
             doc = mappings.central_hltdlogs_mapping[key]
-            res = session.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping')
+            res = session.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping'+essuffix)
             content = res.content.decode()
             #only update if mapping is empty
             if res.status_code==200 and content.strip()=='{}':
-                session.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                session.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
 
 class HLTDLogParser(threading.Thread):
     def __init__(self,dir,file,loglevel,esHandler,skipToEnd):

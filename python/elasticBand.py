@@ -80,6 +80,7 @@ class elasticBand():
         self.prcoutBuffer = {}
         self.fuoutBuffer = {}
         self.prcsstateBuffer = {}
+        self.es_type_name_param = True
 
         self.es = Elasticsearch(self.es_server_url,timeout=20)
         eslib_logger = logging.getLogger('elasticsearch')
@@ -100,9 +101,16 @@ class elasticBand():
             if forceShards>=0:
                 body['settings']['index']['number_of_shards']=forceShards
 
+            #disable on elasticsearch6. eventually all data will be injected with False when transition is done
+            if self.es.info()['version']['number'].startswith('6'):
+              self.es_type_name_param = False
             #body.pop('template')
-            #c_res = self.es.create_index(index = self.indexName, body = body)
-            c_res = self.es.indices.create(self.indexName, body = body)
+
+            if self.es_type_name_param:
+              c_res = self.es.indices.create(self.indexName, body = body, include_type_name=True)
+            else:
+              c_res = self.es.indices.create(self.indexName, body = body)
+
             if 'acknowledged' in c_res and c_res['acknowledged']==True:
                 self.logger.info("Result of index create: " + str(c_res) )
         except Exception as ex:

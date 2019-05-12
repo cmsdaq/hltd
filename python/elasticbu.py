@@ -168,12 +168,17 @@ class elasticBandBU:
                 if retry or self.ip_url==None:
                     self.ip_url=getURLwithIP(self.es_server_url,self.nsslock)
                     self.es = Elasticsearch(self.ip_url,timeout=20)
+                #es7 transtion
 
+                if self.es.info()['version']['number'].startswith('6'):
+                  essuffix=''
+                else:
+                  essuffix='?include_type_name=false'
+ 
                 #check if index alias exists
-
                 if s.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
                     self.logger.info('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.ip_url )
-                    self.createDocMappingsMaybe(alias_write,mapping)
+                    self.createDocMappingsMaybe(alias_write,mapping,essuffix)
                     break
                 else:
                     time.sleep(.5)
@@ -215,7 +220,7 @@ class elasticBandBU:
 
         s.close()
 
-    def createDocMappingsMaybe(self,index_name,mapping):
+    def createDocMappingsMaybe(self,index_name,mapping,essuffix=''):
         #update in case of new documents added to mapping definition
 
         s = requests.Session()
