@@ -380,7 +380,7 @@ runappliance = {
         },
         "msgtime": {
           "type": "date",
-          "format": "YYYY-mm-dd HH:mm:ss"
+          "format": "YYYY-MM-dd HH:mm:ss"
         },
         "msgtimezone": {
           "type": "keyword"

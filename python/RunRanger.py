@@ -373,7 +373,7 @@ class RunRanger:
         sh_kill_scripts=False if prefix=='brutus' else True
 
         for run in self.runList.getActiveRuns():
-                  if run<0 or run.runnumber==rn or run.checkQuarantinedLimit():
+                  if run.runnumber<0 or run.runnumber==rn or run.checkQuarantinedLimit():
                     run.Shutdown(True,sh_kill_scripts)
 
         time.sleep(.2)
