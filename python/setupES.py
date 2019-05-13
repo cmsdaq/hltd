@@ -93,7 +93,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
             loaddoc = create_template(es,None,template_label,subsystem,forceReplicas,forceShards,es_type_name_param,send=False)
             norm_name = convert(templateList[template_name])
             if deleteOld==0:
-                printout(template_name+" already exists. Add 'replace' parameter to update if different, or forceupdate to always  update.",doPrint,False)
+                printout(template_name+" already exists. Add 'replace' parameter to update if different, or forcereplace to always  update.",doPrint,False)
             else:
                 printout(template_name+" already exists.",doPrint,False)
                 if loaddoc!=None:

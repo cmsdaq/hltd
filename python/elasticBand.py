@@ -104,7 +104,7 @@ class elasticBand():
             #disable on elasticsearch6. eventually all data will be injected with False when transition is done
             if self.es.info()['version']['number'].startswith('6'):
               self.es_type_name_param = False
-            #body.pop('template')
+            body.pop('index_patterns')
 
             if self.es_type_name_param:
               c_res = self.es.indices.create(self.indexName, body = body, include_type_name=True)

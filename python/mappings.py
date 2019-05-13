@@ -390,7 +390,7 @@ central_hltdlogs_mapping = {
             'run'       : {'type':'integer'},
             'msgtime' : {
                 'type' : 'date',
-                'format':'YYYY-mm-dd HH:mm:ss||dd-MM-YYYY HH:mm:ss'
+                'format':'YYYY-MM-dd HH:mm:ss||dd-MM-YYYY HH:mm:ss'
             },
             'date':{
                 'type':'date'

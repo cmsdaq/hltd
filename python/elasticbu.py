@@ -173,7 +173,7 @@ class elasticBandBU:
                 if self.es.info()['version']['number'].startswith('6'):
                   essuffix=''
                 else:
-                  essuffix='?include_type_name=false'
+                  essuffix='?include_type_name=true'
  
                 #check if index alias exists
                 if s.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
@@ -230,12 +230,12 @@ class elasticBandBU:
         for key in mapping:
             doc = {key:mapping[key]}
 
-            res = s.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping')
+            res = s.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix)
             #only update if mapping is empty
             if res.status_code==200:
                 if res.content.decode().strip()=='{}':
                     self.logger.info('inserting new mapping for '+str(key))
-                    res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                    res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
                     if res.status_code!=200:
                         self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
                 else:
@@ -252,11 +252,11 @@ class elasticBandBU:
                                 try_inject = True
                                 self.logger.info('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
                         if try_inject:
-                            res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping',jsonSerializer.dumps(doc))
+                            res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
                             if res.status_code!=200:
                                 self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
             else:
-                self.logger.warning('requests error code '+res.status_code+' in mapping request')
+                self.logger.warning('requests error code '+str(res.status_code)+' in mapping request: ' + res.content.decode())
         s.close()
 
     def read_line(self,fullpath):
