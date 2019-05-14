@@ -385,6 +385,7 @@ class RunRanger:
                     except:
                         self.logger.info('Quarantined resource was already cleared: '+cpu)
         self.resInfo.q_list=[]
+        self.logger.info("cleanup done")
 
     def cleanupBUCmd(self,dirname,rn):
         kill_all_runs = True if rn<0 else False

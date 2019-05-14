@@ -245,7 +245,6 @@ class OnlineResource:
             if doLock:
                 self.resource_lock.release()
 
-        #releaseLock(self,self.resource_lock,doLock,acqStatus=acqs)
         return retq
 
     def moveUsedToIdles(self,doLock=True):

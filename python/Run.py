@@ -91,7 +91,7 @@ class RunList:
 
 class Run:
 
-    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,tresource_lock):
+    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,resource_lock):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.pending_shutdown=False
