@@ -80,7 +80,6 @@ cp -R build/lib/urllib3_hltd/* $TOPDIR/usr/lib64/$python_dir/site-packages/urlli
 
 cd $TOPDIR
 #elasticsearch-py
-#cd opt/hltd/lib/elasticsearch-py-6.3.1/
 cd opt/hltd/lib/elasticsearch-py-7.0.0/
 $pyexec ./setup.py -q build
 $pyexec - <<'EOF'
