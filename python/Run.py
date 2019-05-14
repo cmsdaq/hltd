@@ -91,7 +91,7 @@ class RunList:
 
 class Run:
 
-    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,resource_lock):
+    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,tresource_lock):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.pending_shutdown=False
@@ -235,10 +235,12 @@ class Run:
             else:
                 self.inputdir_exists = True
 
+        nsslock_acquired=False
         if conf.use_elasticsearch == True:
             try:
                 if conf.role == "bu":
                     self.nsslock.acquire()
+                    nsslock_acquired=True
                     self.logger.info("starting elasticbu.py with arguments:"+self.dirname)
                     elastic_args = ['/opt/hltd/scratch/python/elasticbu.py',str(self.runnumber),self.instance]
                 else:
@@ -255,8 +257,10 @@ class Run:
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - failed to start elasticsearch client (Exception)")
                 self.logger.exception(ex)
-            try:self.nsslock.release()
-            except:pass
+            finally:
+                if nsslock_acquired:
+                    self.nsslock.release()
+
         if conf.role == "fu" and conf.dqm_machine==False:
             try:
                 self.logger.info("starting anelastic.py with arguments:"+self.dirname)
@@ -279,6 +283,7 @@ class Run:
                 os._exit(2)
 
     def __del__(self):
+        self.logger.info('Run '+ str(self.runnumber) +' object __del__ runs')
         self.stopThreads=True
         self.threadEvent.set()
         if self.completedChecker:
@@ -599,23 +604,20 @@ class Run:
             res_copy = []
             res_copy_term = []
 
-            self.resource_lock.acquire()
-            q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
-            for resource in self.online_resource_list:
-                cleared_q = resource.clearQuarantined(False,restore=q_clear_condition)
-                for cpu in resource.cpu:
-                    if cpu not in cleared_q:
-                        try:
-                            self.resInfo.resmove(self.resInfo.used,self.resInfo.idles,cpu)
-                            self.n_used-=1
-                        except OSError:
-                            #@SM:can happen if it was quarantined
-                            self.logger.warning('Unable to find resource '+self.resInfo.used+cpu)
-                        except Exception as ex:
-                            self.resource_lock.release()
-                            raise ex
-                resource.process=None
-            self.resource_lock.release()
+            with self.resource_lock:
+                q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
+                for resource in self.online_resource_list:
+                    cleared_q = resource.clearQuarantined(False,restore=q_clear_condition)
+                    for cpu in resource.cpu:
+                        if cpu not in cleared_q:
+                            try:
+                                self.resInfo.resmove(self.resInfo.used,self.resInfo.idles,cpu)
+                                self.n_used-=1
+                            except OSError:
+                                #@SM:can happen if it was quarantined
+                                self.logger.warning('Unable to find resource '+self.resInfo.used+cpu)
+                    resource.process=None
+
             self.logger.info('completed clearing resource list')
 
             self.online_resource_list = []
@@ -662,12 +664,11 @@ class Run:
             self.logger.info("exception encountered in shutting down resources")
             self.logger.exception(ex)
 
-        self.resource_lock.acquire()
-        try:
-            self.runList.remove(self.runnumber)
-        except Exception as ex:
-            self.logger.exception(ex)
-        self.resource_lock.release()
+        with self.resource_lock:
+            try:
+               self.runList.remove(self.runnumber)
+            except Exception as ex:
+                self.logger.exception(ex)
 
         self.logger.info("removing remaining files...")
         try:
@@ -680,30 +681,35 @@ class Run:
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' completed')
 
         #activate cloud if planned after shutdown or run stop
-        self.resource_lock.acquire()
-        if self.state.cloud_mode==True:
-            if len(self.runList.getActiveRunNumbers())>=1:
-                self.logger.info("Cloud mode: waiting for runs: " + str(self.runList.getActiveRunNumbers()) + " to finish")
-            else:
-                self.logger.info("No active runs. moving all resource files to cloud")
-                #give resources to cloud and bail out
-                self.state.entering_cloud_mode=False
-                #check if cloud mode switch has been aborted in the meantime
-                if self.state.abort_cloud_mode:
-                    self.state.abort_cloud_mode=False
-                    self.state.cloud_mode=False
+        moved_to_cloud=False
+        with self.resource_lock:
+            if self.state.cloud_mode==True:
+                if len(self.runList.getActiveRunNumbers())>=1:
+                    self.logger.info("Cloud mode: waiting for runs: " + str(self.runList.getActiveRunNumbers()) + " to finish")
                 else:
-                    self.resInfo.move_resources_to_cloud()
-                    self.resource_lock.release()
-                    result = self.state.ignite_cloud()
-                    c_status = self.state.cloud_status()
-                    if c_status == 0:  self.logger.warning("igniter status : cloud is NOT active (hltd will remain in cloud-on state until it is included back in HLT)")
-                    elif c_status == 1:  self.logger.info("igniter status : cloud has been activated")
-                    else:  self.logger.warning("cloud is in error state:" + str(c_status))
-        try:self.resource_lock.release()
-        except:pass
+                    self.logger.info("No active runs. moving all resource files to cloud")
+                    #give resources to cloud and bail out
+                    self.state.entering_cloud_mode=False
+                    #check if cloud mode switch has been aborted in the meantime
+                    if self.state.abort_cloud_mode:
+                        self.state.abort_cloud_mode=False
+                        self.state.cloud_mode=False
+                    else:
+                        self.resInfo.move_resources_to_cloud()
+                        moved_to_cloud=True
+        if moved_to_cloud:
+            self.StartCloud()
 
 
+    def StartCloud(self):
+        result = self.state.ignite_cloud()
+        c_status = self.state.cloud_status()
+        if c_status == 0:
+            self.logger.warning("igniter status : cloud is NOT active (hltd will remain in cloud-on state until it is included back in HLT)")
+        elif c_status == 1:
+            self.logger.info("igniter status : cloud has been activated")
+        else:
+            self.logger.warning("cloud is in error state:" + str(c_status))
 
 
     def ShutdownBU(self):
@@ -720,12 +726,11 @@ class Run:
 
         #should also trigger destructor of the Run
 
-        self.resource_lock.acquire()
-        try:
-            self.runList.remove(self.runnumber)
-        except Exception as ex:
-            self.logger.exception(ex)
-        self.resource_lock.release()
+        with self.resource_lock:
+            try:
+                self.runList.remove(self.runnumber)
+            except Exception as ex:
+                self.logger.exception(ex)
 
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' on BU completed')
 
@@ -752,28 +757,24 @@ class Run:
                                  ' to complete ')
                     try:
                         while True:
-                          resource.join(timeout=300)
-                          if not resource.isAlive():
-                            break
-                          self.resource_lock.acquire()
-                          #retry again with lock acquired
-                          if not resource.isAlive():
-                            self.resource_lock.release()
-                            break
-                          self.logger.warning("timeout waiting for run to end (5 min) pid: "+str(ppid)+" . retrying join...")
-                          if self.state.cloud_mode:
-                            #give resources to cloud and bail out
-                            if self.state.abort_cloud_mode:
-                              self.logger.warning("detected cloud abort signal while waiting for run end, aborting cloud switch and setting masked resource flag until the next run")
-                              self.state.abort_cloud_mode=False
-                              self.state.masked_resources=True
-                              self.state.cloud_mode=False
-                          self.resource_lock.release()
+                            resource.join(timeout=300)
+                            if not resource.isAlive():
+                                break
+                            with self.resource_lock:
+                                #retry again with lock acquired
+                                if not resource.isAlive():
+                                    break
+                                self.logger.warning("timeout waiting for run to end (5 min) pid: "+str(ppid)+" . retrying join...")
+                                #check if cloud is aborting and finish action if needed
+                                if self.state.cloud_mode and self.state.abort_cloud_mode:
+                                    self.logger.warning("detected cloud abort signal while waiting for run end, aborting cloud switch and setting masked resource flag until the next run")
+                                    self.state.abort_cloud_mode=False
+                                    self.state.masked_resources=True
+                                    self.state.cloud_mode=False
 
                         self.logger.info('process '+str(resource.process.pid)+' completed')
-                    except:
-                      try:self.resource_lock.release()
-                      except:pass
+                    except Exception as ex:
+                        self.logger.warning(str(ex))
                 resource.clearQuarantined()
                 resource.process=None
 
@@ -812,41 +813,36 @@ class Run:
                     self.logger.exception(ex)
 
             #todo:clear this external thread
-            self.resource_lock.acquire()
-            self.logger.info("active runs.."+str(self.runList.getActiveRunNumbers()))
-            try:
-                self.runList.remove(self.runnumber)
-            except Exception as ex:
-                self.logger.exception(ex)
-            self.logger.info("new active runs.."+str(self.runList.getActiveRunNumbers()))
+            moved_to_cloud=False
+            with self.resource_lock:
+                self.logger.info("active runs.."+str(self.runList.getActiveRunNumbers()))
+                try:
+                    self.runList.remove(self.runnumber)
+                except Exception as ex:
+                    self.logger.exception(ex)
+                self.logger.info("new active runs.."+str(self.runList.getActiveRunNumbers()))
 
-            if self.state.cloud_mode==True:
-                if len(self.runList.getActiveRunNumbers())>=1:
-                    self.logger.info("Cloud mode: waiting for runs: " + str(self.runList.getActiveRunNumbers()) + " to finish")
-                else:
-                    self.logger.info("No active runs. moving all resource files to cloud")
-                    #give resources to cloud and bail out
-                    self.state.entering_cloud_mode=False
-                    #check if cloud mode switch has been aborted in the meantime
-                    if self.state.abort_cloud_mode:
-                        self.state.abort_cloud_mode=False
-                        self.state.cloud_mode=False
-                        self.resource_lock.release()
-                        return
+                if self.state.cloud_mode==True:
+                    if len(self.runList.getActiveRunNumbers())>=1:
+                        self.logger.info("Cloud mode: waiting for runs: " + str(self.runList.getActiveRunNumbers()) + " to finish")
+                    else:
+                        self.logger.info("No active runs. moving all resource files to cloud")
+                        #give resources to cloud and bail out
+                        self.state.entering_cloud_mode=False
+                        #check if cloud mode switch has been aborted in the meantime
+                        if self.state.abort_cloud_mode:
+                            self.state.abort_cloud_mode=False
+                            self.state.cloud_mode=False
+                            return
 
-                    self.resInfo.move_resources_to_cloud()
-                    self.resource_lock.release()
-                    result = self.state.ignite_cloud()
-                    c_status = self.state.cloud_status()
-                    if c_status == 0:  self.logger.warning("igniter status : cloud is NOT active (hltd will remain in cloud-on state until it is included back in HLT)")
-                    elif c_status == 1:  self.logger.info("igniter status : cloud has been activated")
-                    else:  self.logger.warning("cloud is in error state:" + str(c_status))
+                        self.resInfo.move_resources_to_cloud()
+                        moved_to_cloud=True
+            if moved_to_cloud:
+                self.StartCloud()
 
         except Exception as ex:
             self.logger.error('RUN:'+str(self.runnumber)+" - exception encountered in ending run")
             self.logger.exception(ex)
-        try:self.resource_lock.release()
-        except:pass
 
     def changeMarkerMaybe(self,marker):
         current = [x for x in os.listdir(self.dirname) if x in Resource.RunCommon.VALID_MARKERS]
@@ -935,13 +931,11 @@ class Run:
             self.threadEvent.wait(5)
             success, runFound = self.rr.checkNotifiedBoxes(self.runnumber)
             if success and runFound==False:
-                self.resource_lock.acquire()
-                try:
-                    self.runList.remove(self.runnumber)
-                except Exception as ex:
-                    self.logger.exception(ex)
-                try:self.resource_lock.release()
-                except:pass
+                with self.resource_lock:
+                    try:
+                        self.runList.remove(self.runnumber)
+                    except Exception as ex:
+                        self.logger.exception(ex)
                 self.logger.info("Completed checker: end of processing of run "+str(self.runnumber))
                 break
 

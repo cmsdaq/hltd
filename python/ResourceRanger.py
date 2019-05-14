@@ -51,8 +51,9 @@ class ResourceRanger:
     def process_IN_MOVED_TO(self, event):
         self.logger.debug('ResourceRanger-MOVEDTO: event '+event.fullpath)
         basename = os.path.basename(event.fullpath)
+        l_acquired = False
 
-        #closures for stopping resources
+        #helper closures for stopping resources
         def stopResourceMaybe(resourcename,current_run,quarantining):
             #detect if this resource belongs to the run and terminate the process if needed
             #this will only happen if last run is an ongoing run
@@ -72,15 +73,16 @@ class ResourceRanger:
                         checkRes.Stop(end_run_allow=eor_allow,move_q=quarantining)#stop and release all resources
                         return checkRes
             return None
-
-        def waitResource(resource,is_locked):
+ 
+        #second helper closure
+        def waitResourceOnLocked(resource):
 
             def resJoin(join_timeout):
-               if is_locked:
-                 try:self.resource_lock.release()
-                 except:pass
+               self.resource_lock.release()
+               l_acquired=False
                resource.watchdog.join(join_timeout)
-               if is_locked:self.resource_lock.acquire()
+               self.resource_lock.acquire()
+               l_acquired=True
 
             if resource:
               try:
@@ -95,19 +97,20 @@ class ResourceRanger:
                     resJoin(10)
               except Exception as ex:
                 self.logger.info("exception in waitResource: "+str(ex))
-                if is_locked:
-                  #make sure to return it locked
-                  try:self.resource_lock.release()
-                  except:pass
+              finally:
+                if not l_acquired:
+                  #should be returned locked
                   self.resource_lock.acquire()
             return
 
         if basename.startswith('resource_summary'):return
+
         try:
             resourcepath=event.fullpath[1:event.fullpath.rfind("/")]
             resourcestate=resourcepath[resourcepath.rfind("/")+1:]
             resourcename=event.fullpath[event.fullpath.rfind("/")+1:]
             self.resource_lock.acquire()
+            l_acquired = True
 
             if not (resourcestate == 'online' or resourcestate == 'cloud'
                     or resourcestate == 'quarantined'):
@@ -129,6 +132,7 @@ class ResourceRanger:
                     with open(os.path.join(conf.watch_directory,'include'),'w+') as fobj:
                         pass
                     self.resource_lock.release()
+                    l_acquired = False
                     time.sleep(1)
                     return
 
@@ -141,7 +145,7 @@ class ResourceRanger:
 
                 #make sure owner of the process ends or is terminated (in case file was moved by action other than process exit)
                 if os.path.exists(event.fullpath):
-                  waitResource(stopResourceMaybe(resourcename,run,False),is_locked=True)
+                  waitResourceOnLocked(stopResourceMaybe(resourcename,run,False))
 
                 if run is not None:
 
@@ -165,6 +169,7 @@ class ResourceRanger:
                     if fileFound==False:
                         #inotified file was already moved earlier
                         self.resource_lock.release()
+                        l_acquired = False
                         return
                     #acquire sufficient cores for a multithreaded process start
 
@@ -214,6 +219,7 @@ class ResourceRanger:
                             if fileFound==False:
                                 #inotified file was already moved earlier
                                 self.resource_lock.release()
+                                l_acquired = False
                                 return
                             resourcenames = []
                             for resname in reslist:
@@ -239,14 +245,14 @@ class ResourceRanger:
             elif resourcestate=="quarantined":
                 #quarantined check, terminate owner if needed
                 if os.path.exists(event.fullpath):
-                  waitResource(stopResourceMaybe(resourcename,self.runList.getLastOngoingRun(),True),is_locked=True)
+                  waitResourceOnLocked(stopResourceMaybe(resourcename,self.runList.getLastOngoingRun(),True))
  
         except Exception as ex:
             self.logger.error("exception in ResourceRanger")
             self.logger.exception(ex)
-        try:
-            self.resource_lock.release()
-        except:pass
+        finally:
+            if l_acquired:
+                self.resource_lock.release()
 
     def process_IN_CREATE(self, event):
         self.logger.debug('ResourceRanger-CREATE: event '+event.fullpath)
@@ -338,24 +344,22 @@ class ResourceRanger:
     def findRunAndNotify(self,basename,fullpath,override):
         try:
             resourceage = os.path.getmtime(fullpath)
-            self.resource_lock.acquire()
-            lrun = self.runList.getLastRun()
-            newRes = None
-            if lrun!=None:
-                is_stale,f_ip = lrun.checkStaleResourceFileAndIP(fullpath)
-                if is_stale:
-                    self.logger.error("RUN:"+str(lrun.runnumber)+" - notification: skipping resource "+basename+" which is stale")
-                    self.resource_lock.release()
-                    return
-                self.logger.info('Try attaching FU resource: last run is '+str(lrun.runnumber))
-                newRes = lrun.maybeNotifyNewRun(basename,resourceage,f_ip,override)
-            self.resource_lock.release()
+            with self.resource_lock:
+                lrun = self.runList.getLastRun()
+                newRes = None
+                if lrun!=None:
+                    is_stale,f_ip = lrun.checkStaleResourceFileAndIP(fullpath)
+                    if is_stale:
+                        self.logger.error("RUN:"+str(lrun.runnumber)+" - notification: skipping resource "+basename+" which is stale")
+                        return
+                    self.logger.info('Try attaching FU resource: last run is '+str(lrun.runnumber))
+                    newRes = lrun.maybeNotifyNewRun(basename,resourceage,f_ip,override)
+            #end of locked section
+
             if newRes:
                 newRes.NotifyNewRun(lrun.runnumber)
         except Exception as ex:
             self.logger.exception(ex)
-            try:self.resource_lock.release()
-            except:pass
 
     def checkNotifiedBoxes(self,runNumber):
         keys = list(self.boxInfo.FUMap.keys())

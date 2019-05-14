@@ -408,7 +408,7 @@ class hltd(Daemon2,object):
             sys.exit(1)
 
         nsslock = threading.Lock()
-        resource_lock = threading.Lock()
+        resource_lock = threading.RLock()
         mm = MountManager(conf)
 
         if conf.role == 'fu':

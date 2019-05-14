@@ -16,7 +16,7 @@ import socket
 import pwd
 
 import Run
-from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern,acquireLock,releaseLock
+from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
 from inotifywrapper import InotifyWrapper
 from buemu import BUEmu
 
@@ -171,9 +171,9 @@ class RunRanger:
           else:
             self.logger.warning("unrecognized command "+fullpath)
             tryremove(fullpath)
-
-        finally:
-            releaseLock(self,self.resource_lock,True,True,self.acqs)
+        except Exception as ex:
+          self.logger.error("Encountered exception in RunRanger during handling of "+ fullpath)
+          self.logger.exception(ex)
 
         self.logger.debug("completed handling of event "+fullpath)
 
@@ -246,14 +246,12 @@ class RunRanger:
 
                         if not len(self.runList.getActiveRuns()) and conf.role == 'fu':
                           if self.state.os_cpuconfig_change:
-                            self.state.lock.acquire()
-                            tmp_os_cpuconfig_change = self.state.os_cpuconfig_change
-                            self.state.os_cpuconfig_change=0
-                            self.state.lock.release()
-                            self.resource_lock.acquire()
-                            tmp_change = self.resInfo.updateIdles(tmp_os_cpuconfig_change,checkLast=False)
-                            self.state.os_cpuconfig_change=tmp_change
-                            self.resource_lock.release()
+                            with self.state.lock:
+                              tmp_os_cpuconfig_change = self.state.os_cpuconfig_change
+                              self.state.os_cpuconfig_change=0
+                            with self.resource_lock:
+                              tmp_change = self.resInfo.updateIdles(tmp_os_cpuconfig_change,checkLast=False)
+                              self.state.os_cpuconfig_change=tmp_change
 
                         run = Run.Run(rn,fullpath,bu_dir,self.instance,conf,self.state,self.resInfo,self.runList,self.rr,self.mm,self.nsslock,self.resource_lock)
                         if not run.inputdir_exists and conf.role=='fu':
@@ -261,25 +259,29 @@ class RunRanger:
                             shutil.rmtree(fullpath)
                             del run
                             return
-                        self.resource_lock.acquire()
-                        self.runList.add(run)
-                        try:
-                            if conf.role=='fu' and not self.state.entering_cloud_mode and not self.resInfo.has_active_resources():
-                                self.logger.error("RUN:"+str(run.runnumber)+' - trying to start a run without any available resources (all are QUARANTINED) - this requires manual intervention !')
-                        except Exception as ex:
-                            self.logger.exception(ex)
 
-                        if run.AcquireResources(mode='greedy'):
-                            run.CheckTemplate()
-                            run.Start()
-                        else:
-                            #BU mode: failed to get blacklist
-                            self.runList.remove(rn)
-                            self.resource_lock.release()
+                        with self.resource_lock:
+                          self.runList.add(run)
+                          try:
+                              if conf.role=='fu' and not self.state.entering_cloud_mode and not self.resInfo.has_active_resources():
+                                  self.logger.error("RUN:"+str(run.runnumber)+' - trying to start a run without any available resources (all are QUARANTINED) - this requires manual intervention !')
+                          except Exception as ex:
+                              self.logger.exception(ex)
+
+                          if run.AcquireResources(mode='greedy'):
+                              run.CheckTemplate()
+                              run.Start()
+                              acquire_success = True
+                          else:
+                              #BU mode: failed to get blacklist
+                              self.runList.remove(rn)
+                              acquire_success = False
+                        #end of locked section
+
+                        if not acquire_success:
                             try:del run
                             except:pass
                             return
-                        self.resource_lock.release()
 
                         if conf.role == 'bu' and conf.instance != 'main':
                             self.logger.info('creating run symlink in main ramdisk directory')
@@ -291,8 +293,6 @@ class RunRanger:
                 except Exception as ex:
                         self.logger.error("RUN:"+str(rn)+" - RunRanger: unexpected exception encountered in forking hlt slave")
                         self.logger.exception(ex)
-                try:self.resource_lock.release()
-                except:pass
 
 
     def buEMUCmd(self,rn):
@@ -602,12 +602,12 @@ class RunRanger:
             self.logger.info("Stop command invoked: "+ dirname)
 
             #lock to get consistent state
-            self.acqs = acquireLock(self,self.resource_lock,True)
-            self.state.disabled_resource_allocation=True
-            q_list = self.runList.getQuarantinedRuns()
-            a_list = self.runList.getActiveRuns()
-            ongoing_rnlist = [r.runnumber for r in self.runList.getOngoingRuns()]
-            releaseLock(self,self.resource_lock,True,False,self.acqs)
+            with self.resource_lock:
+              self.state.disabled_resource_allocation=True
+              q_list = self.runList.getQuarantinedRuns()
+              a_list = self.runList.getActiveRuns()
+              ongoing_rnlist = [r.runnumber for r in self.runList.getOngoingRuns()]
+            #end of locked section
 
             self.logger.info('active runs:'+str([r.runnumber for r in a_list]) + ' quarantined runs:' + str([r.runnumber for r in q_list]))
 
@@ -673,7 +673,6 @@ class RunRanger:
 
             self.state.disabled_resource_allocation=False
 
-            #releaseLock(self,self.resource_lock,True,True,-1)
 
     def excludeCmd(self,dirname):
 
@@ -695,10 +694,11 @@ class RunRanger:
                 return
 
             #make sure to not run not acquire resources by inotify while we are here
-            self.resource_lock.acquire()
-            self.state.cloud_mode=True
-            self.state.entering_cloud_mode=True
-            self.resource_lock.release()
+            with self.resource_lock:
+              self.state.cloud_mode=True
+              self.state.entering_cloud_mode=True
+            #end of locked section
+
             time.sleep(.1)
 
             #shut down any quarantined runs
@@ -722,22 +722,23 @@ class RunRanger:
                               run.Stop()
 
                 time.sleep(.1)
-                self.resource_lock.acquire()
+                with self.resource_lock:
+                    if requested_stop==False:
+                        #no runs present, switch to cloud mode immediately
+                        self.state.entering_cloud_mode=False
+                        self.resInfo.move_resources_to_cloud()
+                #end of locked section
+
                 if requested_stop==False:
-                    #no runs present, switch to cloud mode immediately
-                    self.state.entering_cloud_mode=False
-                    self.resInfo.move_resources_to_cloud()
-                    self.resource_lock.release()
                     result = self.state.ignite_cloud()
                     cloud_st = self.state.cloud_status()
                     self.logger.info("cloud is on? : "+str(cloud_st == 1) + ' (status code '+str(cloud_st)+')')
+
             except Exception as ex:
                 self.logger.fatal("Unable to clear runs. Will not enter VM mode.")
                 self.logger.exception(ex)
                 self.state.entering_cloud_mode=False
                 self.state.cloud_mode=False
-            try:self.resource_lock.release()
-            except:pass
 
 
     def includeCmd(self,dirname,fullpath):
@@ -749,19 +750,16 @@ class RunRanger:
                     returnstatus = self.state.extinguish_cloud(repeat=True)
                 return
 
-            self.resource_lock.acquire()
-            #schedule cloud mode cancel when HLT shutdown is completed
-            if self.state.entering_cloud_mode:
-                self.logger.info('include received while entering cloud mode. setting abort flag...')
-                self.state.abort_cloud_mode=True
-                self.resource_lock.release()
-                return
-
-            #switch to cloud stopping
-            self.state.exiting_cloud_mode=True
-
-            #unlock before stopping cloud scripts
-            self.resource_lock.release()
+            with self.resource_lock:
+                #schedule cloud mode cancel when HLT shutdown is completed
+                if self.state.entering_cloud_mode:
+                    self.logger.info('include received while entering cloud mode. setting abort flag...')
+                    self.state.abort_cloud_mode=True
+                    return
+                else:
+                    #else switch to cloud stopping
+                    self.state.exiting_cloud_mode=True
+            #end of locked section
 
             #cloud is being switched off so we don't care if its running status is false
             if not self.state.cloud_status(reportExitCodeError=False):
@@ -810,11 +808,10 @@ class RunRanger:
                 else:
                     self.logger.info('cloud scripts have been deactivated')
                     #switch resources back to normal
-                    self.resource_lock.acquire()
-                    #self.state.resources_blocked_flag=True
-                    self.state.cloud_mode=False
-                    self.resInfo.cleanup_resources()
-                    self.resource_lock.release()
+                    with self.resource_lock:
+                        #self.state.resources_blocked_flag=True
+                        self.state.cloud_mode=False
+                        self.resInfo.cleanup_resources()
                     break
 
             self.state.exiting_cloud_mode=False
@@ -831,6 +828,7 @@ class RunRanger:
             #freeze any update during this operation
             self.state.lock.acquire()
             self.resource_lock.acquire()
+            l_acquired=True
             try:
                 tmp_change = self.state.os_cpuconfig_change
                 self.state.os_cpuconfig_change=0
@@ -856,6 +854,7 @@ class RunRanger:
                           numQuarantine -= len(resource.cpu)
                           res_list_join.append(resource)
                     self.resource_lock.release()
+                    l_acquired=False
 
                     #join threads with timeout
                     time_left = 120
@@ -891,6 +890,7 @@ class RunRanger:
                     res_list_join=[]
                     res_list_join_alive=[]
                     self.resource_lock.acquire()
+                    l_acquired=True
                     if numQuarantine<0:
                       #if not a matching number of resources was stopped,add back part of resources later (next run start) 
                       self.state.os_cpuconfig_change=-numQuarantine
@@ -909,9 +909,12 @@ class RunRanger:
             finally:
               #refresh parameter values
               self.resInfo.calculate_threadnumber()
-              try:self.resource_lock.release()
-              except:pass
-              self.state.lock.release()
+
+            if l_acquired:
+                self.resource_lock.release()
+
+            self.state.lock.release()
+
             self.logger.info('end resourceupdate. Left:'+str(self.state.os_cpuconfig_change))
  
 

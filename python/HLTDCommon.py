@@ -66,9 +66,9 @@ def updateBlacklist(conf,logger,blfile):
 
 
 def acquireLock(parent,lock,doLock=True,maybe=False,timeout=-1):
-  if not doLock: return None
-  if maybe:
-    if lock.locked(): return True #already locked
+#  if not doLock: return None
+#  if maybe:
+#    if lock.locked(): return True #already locked
   return lock.acquire(timeout=timeout)
 
 def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
