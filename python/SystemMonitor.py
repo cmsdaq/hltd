@@ -8,7 +8,8 @@ except:
   import json
 import datetime
 import logging
-import psutil
+#RH8 port currently uses custom packaging of psutil
+import psutil_hltd as psutil
 import struct
 import socket
 

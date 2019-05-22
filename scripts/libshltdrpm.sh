@@ -105,6 +105,14 @@ cp -R build/lib.linux-x86_64-${python_version}/_zlibextras*.so $TOPDIR/usr/lib64
 
 
 cd $TOPDIR
+#psutil_hltd library
+cd opt/hltd/lib/psutil-5.6.2
+rm -rf build
+$pyexec ./setup.py -q build
+cp -R build/lib.linux-x86_64-${python_version}/psutil $TOPDIR/usr/lib64/$python_dir/site-packages/psutil_hltd
+
+
+cd $TOPDIR
 #python-prctl
 cd opt/hltd/lib/python-prctl/
 $pyexec ./setup.py -q build
@@ -286,6 +294,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/elasticsearch
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/*prctl*
+/usr/lib64/$python_dir/site-packages/psutil_hltd
 ${PROC_FILES}
 ${SOAPPY_FILES}
 ${DEFUSEDXML_FILES}

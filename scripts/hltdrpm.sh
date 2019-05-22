@@ -238,7 +238,7 @@ PACKAGENAME="hltd"
 #fi
 
 
-alias python=`readlink /usr/bin/python2`
+#alias python=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 
@@ -257,25 +257,16 @@ TOPDIR=$PWD
 echo "working in $PWD"
 #ls
 
-pypkgprefix="python"
+pypkgprefix=""
 pkgsuffix=""
 pkgobsoletes=""
-soappy=",SOAPpy"
+#soappy=",SOAPpy"
 if [ $pythonver = "python3.6" ]; then
   pypkgprefix="python36"
   pkgsuffix="-python36"
   pkgobsoletes=", hltd"
-  soappy=""
+  #soappy=""
 fi
-
-if [ $pythonver = "python3.4" ]; then
-  pypkgprefix="python34"
-  pkgsuffix="-python34"
-  pkgobsoletes=", hltd"
-  soappy=""
-fi
-
-
 
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
@@ -307,7 +298,8 @@ Provides:/opt/fff/init.d/fff
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
-Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil
+#Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil
+Requires:hltd-libs$pkgsuffix >= 2.4.0,jsonMerger,python3-dateutil
 Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
 
@@ -369,13 +361,13 @@ mv $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
 cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
 
 touch opt/hltd/scratch/new-version
 
