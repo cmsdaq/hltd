@@ -64,7 +64,7 @@ central_runindex_mapping = {
 'doc' : {
     'properties' : {
 #  'run' : {
-        'runRelation': {'type':'join','relations':{'run':['eols','stream-hist','state-hist','state-hist-summary','microstatelegend','inputstatelegend','pathlegend','stream_label']}},
+        'runRelation': {'type':'join','relations':{'run':['eols','stream-hist','stream-hist-appliance','state-hist','state-hist-summary','microstatelegend','inputstatelegend','pathlegend','stream_label']}},
         'runNumber':  {'type':'long'},
         'startTimeRC':{'type':'date'},
         'stopTimeRC': {'type':'date'},
