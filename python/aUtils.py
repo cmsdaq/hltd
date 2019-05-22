@@ -2,7 +2,10 @@ import sys,traceback
 import os,stat
 import time,datetime
 import shutil
-import simplejson as json
+try:
+  import simplejson as json
+except:
+  import json
 import logging
 import zlib
 import subprocess

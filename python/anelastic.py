@@ -14,7 +14,10 @@ try:
   import Queue as queue
 except:
   import queue
-import simplejson as json
+try:
+  import simplejson as json
+except:
+  import json
 import logging
 
 

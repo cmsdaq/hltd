@@ -32,7 +32,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
-import simplejson as json
+try:
+  import simplejson as json
+except:
+  import json
 import socket
 
 #silence HTTP connection info from requests package
