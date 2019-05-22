@@ -190,6 +190,7 @@ SOAPPY_FILES=""
 WSTOOLS_FILES=""
 ORACLE_FILES=""
 PYCACHE_FILES=""
+DEFUSEDXML_FILES=""
 
 if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
   cd $TOPDIR
@@ -197,6 +198,13 @@ if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
   $pyexec ./setup.py -q build
   cp -R build/lib/SOAPpy $TOPDIR/usr/lib64/$python_dir/site-packages/
   SOAPPY_FILES=/usr/lib64/$python_dir/site-packages/SOAPpy
+
+  cd $TOPDIR
+  cd opt/hltd/lib/defusedxml-0.6.0
+  $pyexec ./setup.py -q build
+  cp -R build/lib/defusedxml $TOPDIR/usr/lib64/$python_dir/site-packages/
+  DEFUSEDXML_FILES=/usr/lib64/$python_dir/site-packages/defusedxml
+
 
   cd $TOPDIR
   cd opt/hltd/lib/wstools-0.4.8
@@ -226,13 +234,13 @@ extradeps=""
 if [ $python_dir = "python3.6" ]; then
   pypkgprefix="python36"
   pkgname="hltd-libs-python36"
-  extradeps=", python36-defusedxml"
+  extradeps=""
 fi
 
 if [ $python_dir = "python3.4" ]; then
   pypkgprefix="python34"
   pkgname="hltd-libs-python34"
-  extradeps=", python34-defusedxml"
+  extradeps=""
 fi
 
 
@@ -253,7 +261,7 @@ BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
 #Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,${pypkgprefix}-requests $extradeps
-Requires:${pypkgprefix},libcap,python3-six >= 1.11,${pypkgprefix}-requests $extradeps
+Requires:${pypkgprefix},libcap,python3-six >= 1.11,python3-requests $extradeps
 
 %description
 fff hlt daemon libraries
@@ -280,6 +288,7 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/*prctl*
 ${PROC_FILES}
 ${SOAPPY_FILES}
+${DEFUSEDXML_FILES}
 ${WSTOOLS_FILES}
 ${PYCACHE_FILES}
 ${ORACLE_FILES}
