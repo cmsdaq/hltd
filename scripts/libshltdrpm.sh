@@ -24,7 +24,7 @@ if ! [ -z $1 ]; then
 else
   #take what is used for hltd
   PARAMCACHE="paramcache"
-  rl="python3.4"
+  rl="python3.6"
   if [ -f $SCRIPTDIR/$PARAMCACHE ];
   then
     readarray lines < $SCRIPTDIR/$PARAMCACHE
@@ -33,20 +33,23 @@ else
   fi
 fi 
 
-pythonlink=$rl
+#pythonlink=$rl
+#while ! [ "$pythonlink" = "" ]
+#do
+#  pythonlinklast=$pythonlink
+#  readlink /usr/bin/$pythonlink > pytmp | true
+#  pythonlink=`cat pytmp`
+#  rm -rf pytmp
+#  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+#done
+#pythonlinklast=`basename $pythonlinklast`
+#echo "will compile packages for: $pythonlinklast"
+#pyexec=$pythonlinklast
+#python_dir=$pythonlinklast
+#python_version=${python_dir:6}
 
-while ! [ "$pythonlink" = "" ]
-do
-  pythonlinklast=$pythonlink
-  readlink /usr/bin/$pythonlink > pytmp | true
-  pythonlink=`cat pytmp`
-  rm -rf pytmp
-  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
-done
-pythonlinklast=`basename $pythonlinklast`
-echo "will compile packages for: $pythonlinklast"
-pyexec=$pythonlinklast
-python_dir=$pythonlinklast
+pyexec=$rl
+python_dir=$rl
 python_version=${python_dir:6}
 
 mkdir -p $TOPDIR/opt/hltd

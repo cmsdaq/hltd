@@ -166,15 +166,17 @@ fi
 
 
 pythonlink=${lines[0]}
-while ! [ "$pythonlink" = "" ]
-do
-  pythonlinklast=$pythonlink
-  readlink /usr/bin/$pythonlink > $SCRIPTDIR/pytmp | true
-  pythonlink=`cat $SCRIPTDIR/pytmp`
-  rm -rf $SCRIPTDIR/pytmp
-  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
-done
-pythonlinklast=`basename $pythonlinklast`
+pythonlinklast=$pythonlink
+
+#while ! [ "$pythonlink" = "" ]
+#do
+#  pythonlinklast=$pythonlink
+#  readlink /usr/bin/$pythonlink > $SCRIPTDIR/pytmp | true
+#  pythonlink=`cat $SCRIPTDIR/pytmp`
+#  rm -rf $SCRIPTDIR/pytmp
+#  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+#done
+#pythonlinklast=`basename $pythonlinklast`
 echo "will use python version: $pythonlinklast"
 
 #other parameters
@@ -368,8 +370,8 @@ cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/*.py   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
@@ -385,6 +387,7 @@ rm -rf opt/hltd/scripts/*rpm.sh
 rm -rf opt/hltd/scripts/postinstall.sh
 rm -rf opt/hltd/scripts/*.php
 rm -rf opt/hltd/init.d/*.service
+rm -rf opt/hltd/init.d/fff
 rm -rf opt/fff/init.d/*.service
 rm -rf opt/hltd/init.d/fff*
 rm -rf opt/hltd/python/setupmachine.py
@@ -408,14 +411,14 @@ rm -rf opt/hltd/test/*.gz
 %attr( 644 ,root, root) /usr/lib/systemd/system/fff.service
 /etc/appliance
 %attr( 755 ,root, root) /opt/fff/setupmachine.py
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
+#%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
+#%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
 %attr( 755 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/postinstall.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyc
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyo
+#%attr( 755 ,root, root) /opt/fff/dbcheck.pyc
+#%attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 700 ,root, root) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 
