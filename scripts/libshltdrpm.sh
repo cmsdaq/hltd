@@ -200,7 +200,8 @@ ORACLE_FILES=""
 PYCACHE_FILES=""
 DEFUSEDXML_FILES=""
 
-if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+#if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+if [ $python_dir = "python3.6" ]; then
   cd $TOPDIR
   cd opt/hltd/lib/SOAPpy-py3-0.52.24
   $pyexec ./setup.py -q build
@@ -244,13 +245,6 @@ if [ $python_dir = "python3.6" ]; then
   pkgname="hltd-libs-python36"
   extradeps=""
 fi
-
-if [ $python_dir = "python3.4" ]; then
-  pypkgprefix="python34"
-  pkgname="hltd-libs-python34"
-  extradeps=""
-fi
-
 
 
 # we are done here, write the specs and make the fu***** rpm

@@ -51,7 +51,7 @@ echo "   ... press any key to continue ..."
 read readin
 
 
-echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
+echo "Python version - currently supported: python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -238,7 +238,6 @@ PACKAGENAME="hltd"
 #fi
 
 
-#alias python=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 
