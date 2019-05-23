@@ -24,7 +24,7 @@ if ! [ -z $1 ]; then
 else
   #take what is used for hltd
   PARAMCACHE="paramcache"
-  rl="python3.4"
+  rl="python3.6"
   if [ -f $SCRIPTDIR/$PARAMCACHE ];
   then
     readarray lines < $SCRIPTDIR/$PARAMCACHE
@@ -33,20 +33,23 @@ else
   fi
 fi 
 
-pythonlink=$rl
+#pythonlink=$rl
+#while ! [ "$pythonlink" = "" ]
+#do
+#  pythonlinklast=$pythonlink
+#  readlink /usr/bin/$pythonlink > pytmp | true
+#  pythonlink=`cat pytmp`
+#  rm -rf pytmp
+#  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+#done
+#pythonlinklast=`basename $pythonlinklast`
+#echo "will compile packages for: $pythonlinklast"
+#pyexec=$pythonlinklast
+#python_dir=$pythonlinklast
+#python_version=${python_dir:6}
 
-while ! [ "$pythonlink" = "" ]
-do
-  pythonlinklast=$pythonlink
-  readlink /usr/bin/$pythonlink > pytmp | true
-  pythonlink=`cat pytmp`
-  rm -rf pytmp
-  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
-done
-pythonlinklast=`basename $pythonlinklast`
-echo "will compile packages for: $pythonlinklast"
-pyexec=$pythonlinklast
-python_dir=$pythonlinklast
+pyexec=$rl
+python_dir=$rl
 python_version=${python_dir:6}
 
 mkdir -p $TOPDIR/opt/hltd
@@ -99,6 +102,14 @@ cd opt/hltd/lib/python-zlib-extras-0.2/
 rm -rf build
 $pyexec ./setup.py -q build
 cp -R build/lib.linux-x86_64-${python_version}/_zlibextras*.so $TOPDIR/usr/lib64/$python_dir/site-packages/
+
+
+cd $TOPDIR
+#psutil_hltd library
+cd opt/hltd/lib/psutil-5.6.2
+rm -rf build
+$pyexec ./setup.py -q build
+cp -R build/lib.linux-x86_64-${python_version}/psutil $TOPDIR/usr/lib64/$python_dir/site-packages/psutil_hltd
 
 
 cd $TOPDIR
@@ -187,13 +198,22 @@ SOAPPY_FILES=""
 WSTOOLS_FILES=""
 ORACLE_FILES=""
 PYCACHE_FILES=""
+DEFUSEDXML_FILES=""
 
-if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+#if [ $python_dir = "python3.6" ] || [ $python_dir = "python3.4" ]; then
+if [ $python_dir = "python3.6" ]; then
   cd $TOPDIR
   cd opt/hltd/lib/SOAPpy-py3-0.52.24
   $pyexec ./setup.py -q build
   cp -R build/lib/SOAPpy $TOPDIR/usr/lib64/$python_dir/site-packages/
   SOAPPY_FILES=/usr/lib64/$python_dir/site-packages/SOAPpy
+
+  cd $TOPDIR
+  cd opt/hltd/lib/defusedxml-0.6.0
+  $pyexec ./setup.py -q build
+  cp -R build/lib/defusedxml $TOPDIR/usr/lib64/$python_dir/site-packages/
+  DEFUSEDXML_FILES=/usr/lib64/$python_dir/site-packages/defusedxml
+
 
   cd $TOPDIR
   cd opt/hltd/lib/wstools-0.4.8
@@ -223,15 +243,8 @@ extradeps=""
 if [ $python_dir = "python3.6" ]; then
   pypkgprefix="python36"
   pkgname="hltd-libs-python36"
-  extradeps=", python36-defusedxml"
+  extradeps=""
 fi
-
-if [ $python_dir = "python3.4" ]; then
-  pypkgprefix="python34"
-  pkgname="hltd-libs-python34"
-  extradeps=", python34-defusedxml"
-fi
-
 
 
 # we are done here, write the specs and make the fu***** rpm
@@ -249,7 +262,8 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,${pypkgprefix}-requests $extradeps
+#Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,${pypkgprefix}-requests $extradeps
+Requires:${pypkgprefix},libcap,python3-six >= 1.11,python3-requests $extradeps
 
 %description
 fff hlt daemon libraries
@@ -274,8 +288,10 @@ tar -C $TOPDIR -c usr | tar -xC \$RPM_BUILD_ROOT
 /usr/lib64/$python_dir/site-packages/elasticsearch
 /usr/lib64/$python_dir/site-packages/urllib3_hltd
 /usr/lib64/$python_dir/site-packages/*prctl*
+/usr/lib64/$python_dir/site-packages/psutil_hltd
 ${PROC_FILES}
 ${SOAPPY_FILES}
+${DEFUSEDXML_FILES}
 ${WSTOOLS_FILES}
 ${PYCACHE_FILES}
 ${ORACLE_FILES}
