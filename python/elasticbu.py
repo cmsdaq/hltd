@@ -838,9 +838,9 @@ class RunCompletedChecker(threading.Thread):
         self.runnumber = runObj.runnumber
         rundirstr = 'run'+ str(runObj.runnumber).zfill(conf.run_number_padding)
         self.indexPrefix = rundirstr + '_' + conf.elastic_cluster
-        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/doc/_search&size=0'
-        self.urlclose =  'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/_close'
-        self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '*/doc/_search?size=1'
+        self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_search&size=0'
+        self.urlclose =  'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_close'
+        self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_search?size=1'
         self.url_query = '{  "query": { "term" {"doc_type": "fu-complete"}}, "sort": { "fm_date": { "order": "desc" }}}'
         self.stopping = False
         self.threadEvent = threading.Event()
@@ -867,7 +867,7 @@ class RunCompletedChecker(threading.Thread):
                             fm_time = str(dataq['hits']['hits'][0]['_source']['fm_date'])
                             #fill in central index completition time
                             postq = "{runNumber\":\"" + str(self.runObj.runnumber) + "\",\"completedTime\" : \"" + fm_time + "\"}"
-                            s.post(self.conf.elastic_runindex_url+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/run',postq,timeout=5)
+                            s.post(self.conf.elastic_runindex_url+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/_doc',postq,timeout=5)
                             self.logger.info("filled in completition time for run "+str(self.runObj.runnumber))
                         except IndexError:
                             # 0 FU resources present in this run, skip writing completition time
