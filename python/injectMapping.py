@@ -42,41 +42,33 @@ class elasticBandInjector:
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
         self.es = Elasticsearch(self.es_server_url,timeout=20) #is this needed? (using requests)
 
-        #using this now for transition to elasticsearch7
-        if self.es.info()['version']['number'].startswith('6'):
-          essuffix = ''
-        else:
-          essuffix = '?include_type_name=true'
- 
         if requests.get(self.es_server_url+'/_alias/'+alias_write).status_code == 200:
             print('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.es_server_url)
-            self.createDocMappingsMaybe(alias_write,mapping,essuffix)
+            self.createDocMappingsMaybe(alias_write,mapping)
 
-    def createDocMappingsMaybe(self,index_name,mapping,essuffix=''):
+    def createDocMappingsMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
 
-        for key in mapping:
-            doc = {key:mapping[key]}
-            res = requests.get(self.es_server_url+'/'+index_name+'/'+key+'/_mapping'+essuffix)
+            res = requests.get(self.es_server_url+'/'+index_name+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200:
                 if res.content.decode().strip()=='{}':
-                    print('inserting new mapping for '+str(key))
-                    res = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc),headers={'Content-Type':'application/json'})
+                    print('inserting new mapping for ' + index_name)
+                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers={'Content-Type':'application/json'})
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
                     for indexname in inmapping:
-                        properties = inmapping[indexname]['mappings'][key]['properties']
+                        properties = inmapping[indexname]['mappings']['properties']
 
-                        print('checking mapping '+ indexname + '/' + key + ' which has ' + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..')
+                        print('checking mapping of '+ indexname + ' which has ' + str(len(mapping['properties'])) + '(index:' + str(len(properties)) + ') entries..')
                         try_inject=False
-                        for pdoc in mapping[key]['properties']:
+                        for pdoc in mapping['properties']:
                             if pdoc not in properties:
                                 try_inject=True
-                                print('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
+                                print('inserting mapping for ' + index_name + ' which is missing mapping property ' + str(pdoc))
                         if try_inject:
-                            rres = requests.post(self.es_server_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc),headers = {'Content-Type':'application/json'})
+                            rres = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers = {'Content-Type':'application/json'})
                             if rres.status_code!=200:
                                 print(rres.content)
             else:

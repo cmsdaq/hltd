@@ -61,9 +61,7 @@ central_es_settings_hltlogs = {
 
 
 central_runindex_mapping = {
-'doc' : {
     'properties' : {
-#  'run' : {
         'runRelation': {'type':'join','relations':{'run':['eols','stream-hist','stream-hist-appliance','state-hist','state-hist-summary','microstatelegend','inputstatelegend','pathlegend','stream_label']}},
         'runNumber':  {'type':'long'},
         'startTimeRC':{'type':'date'},
@@ -78,9 +76,6 @@ central_runindex_mapping = {
         'CMSSW_arch':      {'type':'keyword'},
         'HLT_menu':        {'type':'keyword'},
 
-#'microstatelegend' : {
-#        '_parent':{'type':'run'},
-
         'id':         {'type':'keyword'},
         'names':      {'type':'keyword'},
         'stateNames': {'type':'keyword','index':'false'},
@@ -89,28 +84,7 @@ central_runindex_mapping = {
         'output':     {'type':'integer'},
         'fm_date':    {'type':'date'},
 
-#'pathlegend' : {
-#        '_parent':{'type':'run'},
-#        'id':         { 'type':'keyword'},
-#        'names':      {'type':'keyword'},
-#        'stateNames': {'type':'keyword','index':'no'},
-#        'reserved':   {'type':'integer'},
-#        'fm_date':    {'type':'date'},
-
-#'inputstatelegend' : {
-#        '_parent':{'type':'run'},
-#        'stateNames':   {'type':'keyword','index':'no'},
-#        'fm_date':      {'type':'date'},
-#'stream_label' : {
-#        '_parent':{'type':'run'},
         'stream':       {'type':'keyword'},
-#        'fm_date':      {'type':'date'},
-#        'id' :          {'type':'keyword'},
-
-#'eols' : {
-#        '_parent'    :{'type':'run'},
-#        'fm_date'       :{'type':'date'},
-#        'id'            :{'type':'keyword'},
         'ls'            :{'type':'integer'},
         'NEvents'       :{'type':'integer'},
         'NFiles'        :{'type':'integer'},
@@ -119,13 +93,6 @@ central_runindex_mapping = {
         'NBytes'        :{'type':'long'},
         'appliance'     :{'type':'keyword'},
 
-#'minimerge,macromerge' : {
-#        'runNumber'     :{'type':'integer'}
-#        'fm_date'       :{'type':'date'},
-#        'id'            :{'type':'keyword'}, #run + appliance + stream + ls
-#        'appliance'     :{'type':'keyword'}, #wrong mapping:not analyzed
-#        'stream'        :{'type':'keyword'},
-#        'ls'            :{'type':'integer'},
         'host'          :{'type':'keyword'},
         'processed'     :{'type':'integer'},
         'accepted'      :{'type':'integer'},
@@ -136,30 +103,14 @@ central_runindex_mapping = {
         'fname'         :{'type':'keyword'},
         'adler32'       :{'type':'long'},
 
-#      'transfer' : {
-#        'startTime' : {          'type' : 'date'        },
         'status' : {          'type' : 'integer'        },
         'type' : {          'type' : 'keyword'        },
- 
-
-#      'stream-hist' : {
-#        '_parent': {
-#          'type': 'run'
-#        },
-#        'stream': {          'type': 'keyword'        },
-#        'ls': {          'type': 'integer'        },
         'in': {          'type': 'float'        },
         'out': {          'type': 'float'        },
         'err': {          'type': 'float'        },
         'filesize': {          'type': 'float'        },
         'completion':{          'type': 'double'        },
-#        'fm_date':{          'type': 'date'        },
         'date':{          'type': 'date'        },
-
-#'state-hist': {
-#        '_parent': {
-#          'type': 'run'
-#        },
         'hminiv': {
           'properties': {
             'entries': {
@@ -193,15 +144,8 @@ central_runindex_mapping = {
             'total': {              'type': 'integer'            }
           }
         },
-#        'date': {          'type':'date'        },
-#        'fm_date':{          'type': 'date'        },
         'cpuslots':{          'type': 'short'        },
         'cpuslotsmax':{          'type': 'short'        },
-
-#      'state-hist-summary': {
-#        '_parent': {
-#          'type': 'run'
-#        },
         'hmini': {
           'properties': {
             'entries': {
@@ -239,18 +183,11 @@ central_runindex_mapping = {
           }
         }
       }
-#        'date': {          'type':'date'        },
-#        'fm_date':{          'type': 'date'        },
-#        'cpuslots':{          'type': 'short'        },
-#        'cpuslotsmax':{          'type': 'short'        },
 
-    }
 }
 
 
 central_boxinfo_mapping = {
-#  'boxinfo' : {
-  'doc' : {
     'properties' : {
       'fm_date'       :{'type':'date'
       },
@@ -294,7 +231,6 @@ central_boxinfo_mapping = {
       'dataNetIn':{'type':'float'},
       'activeRunStats'    :{
         'type':'nested',
-        #'include_in_parent': True,
         'properties': {
           'run':      {'type': 'integer'},
           'ongoing':  {'type': 'boolean'},
@@ -310,26 +246,13 @@ central_boxinfo_mapping = {
       'cpuName' : {'type':'keyword'},
       'cpu_phys_cores':{'type':'integer'},
       'cpu_hyperthreads':{'type':'integer'},
-
-#          'resource_summary' : {
-#      'fm_date' :                    {'type':'date'},
-#      'appliance' :                  {'type':'keyword'},
       'activeFURun' :                {'type' : 'integer'},
-      #'activeRunCMSSWMaxLS' :        {'type' : 'integer'},
-#      'activeRunNumQueuedLS' :       { 'type' : 'integer' },
       'activeRunLSWithOutput':       { 'type' : 'integer' },
-#      'outputBandwidthMB':           { 'type' : 'float'   },
-#      'activeRunOutputMB':           { 'type' : 'float'   },
-#      'activeRunLSBWMB':             { 'type' : 'float'   },
       'activeRunHLTErr':             { 'type' : 'float'   },
       'active_resources' :           { 'type' : 'short' },
       'active_resources_activeRun' : { 'type' : 'short' },
       'active_resources_oldRuns' :   { 'type' : 'short' },
-      'idle' :                       { 'type' : 'short' }, #TODO:harmonize
-#      'used' :                       { 'type' : 'short' },
-#      'broken' :                     { 'type' : 'short' },
-#      'quarantined' :                { 'type' : 'short' },
-#      'cloud' :                      { 'type' : 'short' },
+      'idle' :                       { 'type' : 'short' },
       'pending_resources' :          { 'type' : 'short' },
       'stale_resources' :            { 'type' : 'short' },
       'ramdisk_occupancy' :          { 'type' : 'float' },
@@ -346,19 +269,11 @@ central_boxinfo_mapping = {
       'activePhysCores':             {'type':'short'},
       'activeHTCores':               {'type':'short'},
       'fuMemFrac':                   {'type':'float'},
-#  'fu-box-status' : {
       'date':{'type':'date'},
       'cpu_name':{'type':'keyword'},
       'cpu_MHz_nominal':{'type':'integer'},
       'cpu_MHz_avg':{'type':'integer'},
-#      'cpu_MHz_avg_real':{'type':'integer'},
-#      'cpu_phys_cores':{'type':'integer'},
-#      'cpu_hyperthreads':{'type':'integer'},
       'cpu_usage_frac':{'type':'float'},
-#      'appliance':{'type':'keyword'},
-#      'host':{'type':'keyword'},
-#      'cloudState':{'type':'keyword'},
-#      'activeRunList':{'type':'integer'},
       'usedDisk':{'type':'integer'},
       'totalDisk':{'type':'integer'},
       'diskOccupancy':{'type':'float'},
@@ -368,15 +283,11 @@ central_boxinfo_mapping = {
       'memTotal':{'type':'integer'},
       'memUsed':{'type':'integer'},
       'memUsedFrac':{'type':'float'},
-#      'dataNetIn':{'type':'float'},
       'dataNetOut':{'type':'float'}
     }
-  }
 }
 
 central_hltdlogs_mapping = {
-#'hltdlog' : {
-    'doc' : {
         'properties' : {
             'doc_type'  : {'type' : 'keyword'},
 
@@ -395,32 +306,15 @@ central_hltdlogs_mapping = {
             'date':{
                 'type':'date'
             },
-#'cmsswlog': {
-#            'host': {
-#                'type': 'keyword'
-#            },
             'pid': {
                 'type': 'integer'
             },
-#            'type': {
-#                'type': 'integer'
-#            },
-#            'doctype': {
-#                'type' : 'keyword'
-#            },
-#            'severity': {
-#                'type': 'keyword'
-#            },
-#            'severityVal': {
-#                'type': 'integer'
-#            },
             'category': {
                 'type': 'keyword'
             },
             'fwkState': {
                 'type': 'keyword'
             },
-
             'module': {
                 'type': 'keyword'
             },
@@ -430,9 +324,6 @@ central_hltdlogs_mapping = {
             'moduleCall': {
                 'type': 'keyword'
             },
-#            'run' : {
-#                'type':'integer'
-#            },
             'lumi': {
                 'type': 'integer'
             },
@@ -442,19 +333,8 @@ central_hltdlogs_mapping = {
             'message': {
                 'type': 'text'
             },
-#            'lexicalId': {
-#                'type': 'keyword'
-#            },
-#            'msgtime': {
-#                'type': 'date',
-#                'format': 'YYYY-mm-dd HH:mm:ss||dd-MM-YYYY HH:mm:ss'
-#            },
             'msgtimezone': {
                 'type': 'keyword'
             }
-#            'date': {
-#                'type':'date'
-#            }
         }
-    }
 }

@@ -60,7 +60,7 @@ def bulk_index(es, index, documents):# query_params=None): #todo:ass kwargs
             raise ValueError('No document array provided for bulk_index operation')
 
         for doc in documents:
-            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index, '_type': 'doc'}}))
+            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index}}))
             body_tmp.append(jsonSerializer.dumps(doc))
 
         # Need the trailing newline.
@@ -80,7 +80,6 @@ class elasticBand():
         self.prcoutBuffer = {}
         self.fuoutBuffer = {}
         self.prcsstateBuffer = {}
-        self.es_type_name_param = True
 
         self.es = Elasticsearch(self.es_server_url,timeout=20)
         eslib_logger = logging.getLogger('elasticsearch')
@@ -101,15 +100,9 @@ class elasticBand():
             if forceShards>=0:
                 body['settings']['index']['number_of_shards']=forceShards
 
-            #disable on elasticsearch6. eventually all data will be injected with False when transition is done
-            if self.es.info()['version']['number'].startswith('6'):
-              self.es_type_name_param = False
             body.pop('index_patterns')
 
-            if self.es_type_name_param:
-              c_res = self.es.indices.create(self.indexName, body = body, include_type_name=True)
-            else:
-              c_res = self.es.indices.create(self.indexName, body = body)
+            c_res = self.es.indices.create(self.indexName, body = body)
 
             if 'acknowledged' in c_res and c_res['acknowledged']==True:
                 self.logger.info("Result of index create: " + str(c_res) )
@@ -392,7 +385,7 @@ class elasticBand():
 
     def tryIndex(self,document):
         try:
-            self.es.index(index=self.indexName,doc_type='doc',body=document)
+            self.es.index(index=self.indexName,body=document)
         except (ConnectionError,ConnectionTimeout) as ex:
             self.logger.warning("Elasticsearch connection error:"+str(ex))
             self.indexFailures+=1

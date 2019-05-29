@@ -23,8 +23,6 @@ runappliance = {
     }
   },
   "mappings": {
-#   "prc-i-state": {
-    "doc": {
       "properties": {
         "doc_type": {
           "type": "keyword"
@@ -68,11 +66,6 @@ runappliance = {
         "mclass" : {
           "type": "keyword"
         },
-
-#    "prc-s-state": {
-#        "macro": {
-#          "type": "integer"
-#        },
 
         "miniv": {
           "properties":{
@@ -130,12 +123,6 @@ runappliance = {
           "type": "integer",
           "store": True
         },
-#        "fm_date": {
-#          "type": "date"
-#        },
-#        "source" : {
-#          "type":"keyword"
-#        },
         "host": {
           "type": "keyword"
         },
@@ -145,12 +132,6 @@ runappliance = {
         "tid": {
           "type": "integer"
         },
-#        "mclass" : {
-#          "type": "keyword"
-#        },
-
-#    "prc-out": {
-#      "_source": {"enabled": "false" },
         "din": {
           "type": "integer",
           "index":"false",
@@ -192,25 +173,9 @@ runappliance = {
           "doc_values":True,
           "format":"epoch_millis"
         },
-#       "ls": {
-#          "type": "integer",
-#          "store": True
-#       },
-#        "pid": {
-#          "type": "integer"
-#        },
-#        "host": {
-#          "type": "keyword"
-#        },
         "appliance": {
           "type": "keyword"
         },
-#        "fm_date": {
-#          "type": "date"
-#        }
-
-#    "prc-in": {
-#TODO
         "data": {
           "properties": {
             "out": {
@@ -219,13 +184,9 @@ runappliance = {
             "size": {
               "type" : "long"
             },
-#fu-out data:
             "in": {
               "type": "integer"
             },
-#            "out": {
-#              "type": "integer"
-#            },
             "errorEvents": {
               "type": "integer"
             },
@@ -252,59 +213,21 @@ runappliance = {
             }
           }
         },
-#        "ls": {
-#          "type": "integer",
-#          "store": True
-#        },
         "index": {
           "type": "integer"
         },
-#        "pid": {
-#          "type": "integer"
-#        },
-#        "host": {
-#          "type": "keyword"
-#        },
-#        "appliance": {
-#          "type": "keyword"
-#        },
-#        "fm_date": {
-#          "type": "date"
-#        },
-
-#    "fu-out": {
-#        "ls": {
-#          "type": "integer",
-#          "store": True
-#        },
         "stream": {
           "type": "keyword"
         },
-#        "host": {
-#          "type": "keyword"
-#        },
         "appliance": {
           "type": "keyword"
         },
-#        "fm_date": {
-#          "type": "date"
-#        },
         "MergingTime":{
           "type": "float"
         },
         "MergingTimePerFile":{
           "type": "float"
         },
-
-#    "fu-complete": {
-#        "host": {
-#          "type": "keyword"
-#        },
-#        "fm_date": {
-#          "type": "date"
-#        },
-
-#    "qstatus": {
 
         "numQueuedLS": {
           "type": "integer"
@@ -324,21 +247,6 @@ runappliance = {
         "CMSSWMaxLS": {
           "type": "integer"
         },
-#        "fm_date": {
-#          "type": "date"
-#        },
-#        "host": {
-#          "type": "keyword"
-#        },
-
-#    "cmsswlog": {
-
-#        "host": {
-#          "type": "keyword"
-#        },
-#        "pid": {
-#          "type": "integer"
-#        },
         "doctype": {
           "type": "keyword"
         },
@@ -389,7 +297,6 @@ runappliance = {
           "type": "date"
         }
       }
-    }
   }
 }
 

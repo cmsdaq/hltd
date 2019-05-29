@@ -580,7 +580,7 @@ class CMSSWLogESWriter(threading.Thread):
                                 #check if this entry should be inserted into the central index
                                 if evt.severity>=FATALLEVEL and evt.inject_central_index:
                                     hlc.esHandler.elasticize_cmsswlog(evt.document)
-                                self.eb.es.index(index=self.eb.indexName,doc_type='doc',body=evt.document)
+                                self.eb.es.index(index=self.eb.indexName,body=evt.document)
                         except RequestError as ex:
                             if ex.error == "index_closed_exception":
                                 self.logger.warning("es index "+str(self.eb.indexName) + " index_closed_exception")
@@ -806,14 +806,8 @@ class HLTDLogIndex():
                 ip_url=getURLwithIP(es_server_url)
                 self.es = Elasticsearch(ip_url,timeout=5)
 
-                #es7 transition
-                if self.es.info()['version']['number'].startswith('6'):
-                  essuffix=''
-                else:
-                  essuffix='?include_type_name=false'
- 
                 #update in case of new documents added to mapping definition
-                self.updateMappingMaybe(s,ip_url,essuffix)
+                self.updateMappingMaybe(s,ip_url)
                 break
 
             except (ElasticsearchException,RequestsConnectionError,RequestsTimeout) as ex:
@@ -855,13 +849,13 @@ class HLTDLogIndex():
             document['lexicalId']=0
         document['msgtime']=timestamp
         try:
-            self.es.index(index=self.index_name,doc_type='doc',body=document)
+            self.es.index(index=self.index_name,body=document)
         except:
             try:
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
                 self.es = Elasticsearch(ip_url,timeout=5)
-                self.es.index(index=self.index_name,doc_type='doc',body=document)
+                self.es.index(index=self.index_name,body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
@@ -873,19 +867,19 @@ class HLTDLogIndex():
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
                 self.es = Elasticsearch(ip_url,timeout=5)
-                self.es.index(index=self.index_name,doc_type='doc',body=document)
+                self.es.index(index=self.index_name,body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
 
-    def updateMappingMaybe(self,session,ip_url,essuffix=''):
+    def updateMappingMaybe(self,session,ip_url):
 
         for key in mappings.central_hltdlogs_mapping:
             doc = mappings.central_hltdlogs_mapping[key]
-            res = session.get(ip_url+'/'+self.index_name+'/'+key+'/_mapping'+essuffix)
+            res = session.get(ip_url+'/'+self.index_name+'/_mapping')
             content = res.content.decode()
             #only update if mapping is empty
             if res.status_code==200 and content.strip()=='{}':
-                session.post(ip_url+'/'+self.index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
+                session.post(ip_url+'/'+self.index_name+'/_mapping',jsonSerializer.dumps(doc))
 
 class HLTDLogParser(threading.Thread):
     def __init__(self,dir,file,loglevel,esHandler,skipToEnd):

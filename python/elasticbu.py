@@ -170,15 +170,15 @@ class elasticBandBU:
                     self.es = Elasticsearch(self.ip_url,timeout=20)
                 #es7 transtion
 
-                if self.es.info()['version']['number'].startswith('6'):
-                  essuffix=''
-                else:
-                  essuffix='?include_type_name=true'
+                #if self.es.info()['version']['number'].startswith('6'):
+                #  essuffix=''
+                #else:
+                #  essuffix='?include_type_name=true'
  
                 #check if index alias exists
                 if s.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
                     self.logger.info('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.ip_url )
-                    self.createDocMappingsMaybe(alias_write,mapping,essuffix)
+                    self.createDocMappingsMaybe(alias_write,mapping)
                     break
                 else:
                     time.sleep(.5)
@@ -220,43 +220,40 @@ class elasticBandBU:
 
         s.close()
 
-    def createDocMappingsMaybe(self,index_name,mapping,essuffix=''):
+    def createDocMappingsMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
 
         s = requests.Session()
         s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
-        for key in mapping:
-            doc = {key:mapping[key]}
+        res = s.get(self.ip_url+'/'+index_name+'/_mapping')
+        #only update if mapping is empty
+        if res.status_code==200:
+            if res.content.decode().strip()=='{}':
+                self.logger.info('inserting new mapping for '+index_name)
+                res = s.post(self.ip_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping))
+                if res.status_code!=200:
+                    self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
+            else:
+              #still check if number of properties is identical in each type
+              inmapping = json.loads(res.content)
+              for indexname in inmapping:
+                properties = inmapping[indexname]['mappings']['properties']
 
-            res = s.get(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix)
-            #only update if mapping is empty
-            if res.status_code==200:
-                if res.content.decode().strip()=='{}':
-                    self.logger.info('inserting new mapping for '+str(key))
-                    res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
+                self.logger.info('checking mapping '+ index_name + ' which has '
+                    + str(len(mapping['properties'])) + '(index:' + str(len(properties)) + ') entries..')
+                try_inject = False
+                for pdoc in mapping['properties']:
+                    if pdoc not in properties:
+                        try_inject = True
+                        self.logger.info('inserting mapping for ' + index_name + ' which is missing mapping property ' + str(pdoc))
+                if try_inject:
+                    res = s.post(self.ip_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping))
                     if res.status_code!=200:
                         self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
-                else:
-                    #still check if number of properties is identical in each type
-                    inmapping = json.loads(res.content)
-                    for indexname in inmapping:
-                        properties = inmapping[indexname]['mappings'][key]['properties']
-
-                        self.logger.info('checking mapping '+ indexname + '/' + key + ' which has '
-                            + str(len(mapping[key]['properties'])) + '(index:' + str(len(properties)) + ') entries..')
-                        try_inject = False
-                        for pdoc in mapping[key]['properties']:
-                            if pdoc not in properties:
-                                try_inject = True
-                                self.logger.info('inserting mapping for ' + str(key) + ' which is missing mapping property ' + str(pdoc))
-                        if try_inject:
-                            res = s.post(self.ip_url+'/'+index_name+'/'+key+'/_mapping'+essuffix,jsonSerializer.dumps(doc))
-                            if res.status_code!=200:
-                                self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
-            else:
-                self.logger.warning('requests error code '+str(res.status_code)+' in mapping request: ' + res.content.decode())
+        else:
+            self.logger.warning('requests error code '+str(res.status_code)+' in mapping request: ' + res.content.decode())
         s.close()
 
     def read_line(self,fullpath):
@@ -511,16 +508,16 @@ class elasticBandBU:
                 else:
                     if update_only:
                         if doc_id:
-                          self.es.update(index=destination_index,doc_type='doc',id=doc_id,body=documents[0],params=params_)
+                          self.es.update(index=destination_index,id=doc_id,body=documents[0],params=params_)
                         else:
                           self.logger.error("can not update document " + name + " without document id")
                     else:
                       if doc_id!=None:
                         params_["op_type"] = "create" if not overwrite else "index"
                       if routing!=None:
-                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_,routing=routing)
+                        self.es.index(index=destination_index,body=documents[0],id=doc_id,params=params_,routing=routing)
                       else:
-                        self.es.index(index=destination_index,doc_type='doc',body=documents[0],id=doc_id,params=params_)
+                        self.es.index(index=destination_index,body=documents[0],id=doc_id,params=params_)
 
                 return (True,0)
 

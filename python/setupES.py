@@ -28,13 +28,10 @@ def load_template(name):
         doc = None
     return doc
 
-def send_template(es,name,doc,typename_param):
-    if typename_param:
-      es.indices.put_template(name,doc,include_type_name=True)
-    else:
-      es.indices.put_template(name,doc)
+def send_template(es,name,doc):
+    es.indices.put_template(name,doc)
 
-def create_template(es,name,label,subsystem,forceReplicas,forceShards,typename_param,send=True):
+def create_template(es,name,label,subsystem,forceReplicas,forceShards,send=True):
     doc = load_template(label)
     doc["template"]="run*"+subsystem
     doc["order"]=1
@@ -42,7 +39,7 @@ def create_template(es,name,label,subsystem,forceReplicas,forceShards,typename_p
         doc['settings']['index']['number_of_replicas']=str(forceReplicas)
     if forceShards>=0:
         doc['settings']['index']['number_of_shards']=str(forceShards)
-    if send:send_template(es,name,doc,typename_param)
+    if send:send_template(es,name,doc)
     return doc
 
 #get rid of unicode elements
@@ -70,17 +67,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
     #ip_url=getURLwithIP(es_server_url)
     es = Elasticsearch(es_server_url,timeout=5) #TODO: timeout is invalid parameter, fix this!
 
-    #transition to es7
-    if es.info()['version']['number'].startswith('6'):
-      es_type_name_param=False
-    else:
-      es_type_name_param=True
-
-    #list_template
-    if es_type_name_param:
-      templateList = es.indices.get_template(include_type_name=True)
-    else:
-      templateList = es.indices.get_template()
+    templateList = es.indices.get_template()
 
     TEMPLATES = ["runappliance_"+subsystem]
     loaddoc = None
@@ -88,9 +75,9 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
         template_label = template_name.split('_')[0]
         if template_name not in templateList:
             printout(template_name + " template not present. It will be created. ",doPrint,False)
-            loaddoc = create_template(es,template_name,template_label,subsystem,forceReplicas,forceShards,es_type_name_param)
+            loaddoc = create_template(es,template_name,template_label,subsystem,forceReplicas,forceShards)
         else:
-            loaddoc = create_template(es,None,template_label,subsystem,forceReplicas,forceShards,es_type_name_param,send=False)
+            loaddoc = create_template(es,None,template_label,subsystem,forceReplicas,forceShards,send=False)
             norm_name = convert(templateList[template_name])
             if deleteOld==0:
                 printout(template_name+" already exists. Add 'replace' parameter to update if different, or forcereplace to always  update.",doPrint,False)
@@ -119,7 +106,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
                                     break
                             except:pass
                         printout("Updating "+template_name+" ES template",doPrint,True)
-                        create_template(es,template_name,template_label,subsystem,forceReplicas,forceShards,es_type_name_param)
+                        create_template(es,template_name,template_label,subsystem,forceReplicas,forceShards)
                     else:
                         printout('runappliance ES template is up to date',doPrint,True)
 
@@ -127,10 +114,7 @@ def setupES(es_server_url='http://localhost:9200',deleteOld=1,doPrint=False,over
     if create_index_name:
         if loaddoc:
             try:
-                if es_type_name_param:
-                  c_res = es.indices.create(create_index_name, body = loaddoc, include_type_name=True)
-                else:
-                  c_res = es.indices.create(create_index_name, body = loaddoc)
+                c_res = es.indices.create(create_index_name, body = loaddoc)
                 if c_res!={'acknowledged':True}:
                     printout("Result of index " + create_index_name + " create request: " + str(c_res),doPrint,True )
             except TransportError as ex:
