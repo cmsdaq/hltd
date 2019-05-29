@@ -809,10 +809,11 @@ if __name__ == "__main__":
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
                 hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
                 if env=='vm':
+                    hltdcfg.reg('force_shards','2','[Monitoring]')
                     hltdcfg.reg('force_replicas','0','[Monitoring]')
                 else:
+                    hltdcfg.reg('force_shards','4','[Monitoring]')
                     hltdcfg.reg('force_replicas','1','[Monitoring]')
-                hltdcfg.reg('force_shards','4','[Monitoring]')
                 hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
                 hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
                 hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
@@ -854,11 +855,12 @@ if __name__ == "__main__":
             hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
             hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
             if env=='vm':
+                hltdcfg.reg('force_shards','2','[Monitoring]')
                 hltdcfg.reg('force_replicas','0','[Monitoring]')
                 hltdcfg.reg('dynamic_resources','False','[Resources]')
             else:
+                hltdcfg.reg('force_shards','4','[Monitoring]')
                 hltdcfg.reg('force_replicas','1','[Monitoring]')
-            hltdcfg.reg('force_shards','4','[Monitoring]')
             hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
             hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
             hltdcfg.reg('auto_clear_quarantined',auto_clear_quarantined,'[Recovery]')
