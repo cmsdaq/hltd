@@ -85,6 +85,11 @@ class elasticBandBU:
         self.boxinfo_write="boxinfo_"+conf.elastic_runindex_name+"_write"
         self.boxinfo_read="boxinfo_"+conf.elastic_runindex_name+"_read"
         self.boxinfo_name="boxinfo_"+conf.elastic_runindex_name
+
+        self.reshistory_write="reshistory_"+conf.elastic_runindex_name+"_write"
+        self.reshistory_read="reshistory_"+conf.elastic_runindex_name+"_read"
+        self.reshistory_name="reshistory_"+conf.elastic_runindex_name
+ 
         self.boxdoc_version=box_version
         self.runnumber = str(runnumber)
         self.startTime = startTime
@@ -99,6 +104,7 @@ class elasticBandBU:
             self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
             self.updateIndexMaybe(self.boxinfo_name,self.boxinfo_write,self.boxinfo_read,mappings.central_es_settings_boxinfo,mappings.central_boxinfo_mapping)
+            self.updateIndexMaybe(self.reshistory_name,self.reshistory_write,self.reshistory_read,mappings.central_es_settings_reshistory,mappings.central_reshistory_mapping)
         #silence
         eslib_logger = logging.getLogger('elasticsearch')
         eslib_logger.setLevel(logging.ERROR)
@@ -493,8 +499,11 @@ class elasticBandBU:
 
     def index_documents(self,name,documents,doc_id=None,params={},bulk=True,overwrite=True,update_only=False,routing=None):
         params_ = params.copy()
-        if name=='fu-box-status' or name.startswith("boxinfo") or name=='resource_summary':
+        if name=='fu-box-status' or name.startswith("boxinfo"):
             destination_index = self.boxinfo_write
+            is_box=True
+        elif name=='resource_summary':
+            destination_index = self.reshistory_write
             is_box=True
         else:
             destination_index = self.runindex_write

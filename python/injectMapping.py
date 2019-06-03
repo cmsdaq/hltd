@@ -28,6 +28,9 @@ class elasticBandInjector:
         self.boxinfo_write="boxinfo_"+subsys+"_write"
         self.boxinfo_read="boxinfo_"+subsys+"_read"
         self.boxinfo_name="boxinfo_"+subsys
+        self.reshistory_write="reshistory_"+subsys+"_write"
+        self.reshistory_read="reshistory_"+subsys+"_read"
+        self.reshistory_name="reshistory_"+subsys
         self.hltdlogs_write="hltdlogs_"+subsys+"_write"
         self.hltdlogs_read="hltdlogs_"+subsys+"_read"
         self.hltdlogs_name="hltdlogs_"+subsys
@@ -35,6 +38,7 @@ class elasticBandInjector:
             self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
             self.updateIndexMaybe(self.boxinfo_name,self.boxinfo_write,self.boxinfo_read,mappings.central_es_settings_boxinfo,mappings.central_boxinfo_mapping)
+            self.updateIndexMaybe(self.reshistory_name,self.reshistory_write,self.reshistory_read,mappings.central_es_settings_reshistory,mappings.central_reshistory_mapping)
         if update_logs_mapping:
             self.updateIndexMaybe(self.hltdlogs_name,self.hltdlogs_write,self.hltdlogs_read,mappings.central_es_settings_hltlogs,mappings.central_hltdlogs_mapping)
         #silence

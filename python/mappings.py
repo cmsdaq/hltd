@@ -33,6 +33,7 @@ central_es_settings_boxinfo = {
             }
         }
 
+central_es_settings_reshistory = central_es_settings_boxinfo
 
 central_es_settings_hltlogs = {
 
@@ -286,6 +287,8 @@ central_boxinfo_mapping = {
       'dataNetOut':{'type':'float'}
     }
 }
+
+central_reshistory_mapping = central_boxinfo_mapping
 
 central_hltdlogs_mapping = {
         'properties' : {
