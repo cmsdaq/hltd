@@ -84,6 +84,7 @@ central_runindex_mapping = {
         'special':    {'type':'integer'},
         'output':     {'type':'integer'},
         'fm_date':    {'type':'date'},
+        'injdate':    {'type':'date'},
 
         'stream':       {'type':'keyword'},
         'ls'            :{'type':'integer'},
@@ -190,8 +191,8 @@ central_runindex_mapping = {
 
 central_boxinfo_mapping = {
     'properties' : {
-      'fm_date'       :{'type':'date'
-      },
+      'fm_date'       :{'type':'date'},
+      'injdate':      {'type':'date'},
       'id'            :{'type':'keyword'},
       'host'          :{'type':'keyword'},
       'appliance'     :{'type':'keyword'},
@@ -302,6 +303,7 @@ central_hltdlogs_mapping = {
             'message'   : {'type' : 'text'},
             'lexicalId' : {'type' : 'keyword'},
             'run'       : {'type':'integer'},
+            'injdate':    {'type':'date'},
             'msgtime' : {
                 'type' : 'date',
                 'format':'YYYY-MM-dd HH:mm:ss||dd-MM-YYYY HH:mm:ss'
