@@ -15,7 +15,7 @@ import _zlibextras as zlibextras
 
 ES_DIR_NAME = "TEMP_ES_DIRECTORY"
 #file types
-UNKNOWN,OUTPUTJSD,DEFINITION,STREAM,INDEX,FAST,SLOW,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,INI,EOLS,BOLS,EOR,COMPLETE,DAT,PDAT,PJSNDATA,PIDPB,PB,CRASH,MODULELEGEND,PATHLEGEND,INPUTLEGEND,BOX,QSTATUS,FLUSH,PROCESSING = list(range(28))
+UNKNOWN,OUTPUTJSD,DEFINITION,STREAM,INDEX,FAST,SLOW,PROCMON,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,INI,EOLS,BOLS,EOR,COMPLETE,DAT,PDAT,PJSNDATA,PIDPB,PB,CRASH,MODULELEGEND,PATHLEGEND,INPUTLEGEND,BOX,QSTATUS,FLUSH,PROCESSING = list(range(29))
 TO_ELASTICIZE = [STREAM,INDEX,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT,EOLS,EOR,COMPLETE,FLUSH]
 TEMPEXT = ".recv"
 STREAMERRORNAME = 'streamError'
@@ -316,6 +316,7 @@ class fileHandler(object):
             if "_STREAM" in name and "_PID" not in name: return OUTPUT
             if name.startswith("QUEUE_STATUS"): return QSTATUS
             if name.startswith("SLOWMONI"): return SLOW
+            if name.startswith("PROCMON"): return PROCMON
         if ext==".pb":
             #if "_PID" not in name: return PB
             if "_PID" not in name: return UNKNOWN
@@ -349,6 +350,14 @@ class fileHandler(object):
             except:
                 self.run,self.pid = splitname
                 self.tid=None
+
+        elif filetype == PROCMON:
+            try:
+                pmonname,self.ls,self.pid,self.tid = splitname
+            except:
+                pmonname,self.ls,self.pid = splitname
+                self.tid=None
+
         elif filetype in [DAT,PB,OUTPUT,STREAMERR,STREAMDQMHISTOUTPUT]: self.run,self.ls,self.stream,self.host = splitname
         elif filetype == INDEX: self.run,self.ls,self.index,self.pid = splitname
         elif filetype in [EOLS,BOLS]: self.run,self.ls,self.eols = splitname

@@ -80,6 +80,7 @@ class elasticBand():
         self.prcoutBuffer = {}
         self.fuoutBuffer = {}
         self.prcsstateBuffer = {}
+        self.procmonBuffer = {}
 
         self.es = Elasticsearch(self.es_server_url,timeout=20)
         eslib_logger = logging.getLogger('elasticsearch')
@@ -240,6 +241,35 @@ class elasticBand():
         #self.tryIndex('prc-s-state',datadict)
         self.prcsstateBuffer.setdefault(infile.ls,[]).append(datadict)
 
+    def elasticize_prc_procmon(self,infile):
+        document,ret = self.imbue_jsn(infile)
+        if ret<0:return
+        self.procmonBuffer.setdefault(infile.ls,[]).append(document)
+
+    def mergeAndIndexProcmon(self,buf):
+        mdoc = {}
+        for doc in buf:
+          try:
+            mdoc["doc_type"]=doc["doc_type"]
+            mdoc.setdefault("pid",[]).append(doc["pid"])
+            mdoc["host"]=doc["host"]
+            mdoc["run"]=doc["run"]
+            mdoc["ls"]=doc["ls"]
+            mdoc.setdefault("delta_ls",[]).append(doc["delta_ls"])
+            if "date" in mdoc:mdoc["date"] =min(mdoc["date"],doc["date"])
+            else:mdoc["date"]=doc["date"]
+            mdoc.setdefault("m_id",[]).append(doc["m_id"])
+          except:
+            self.logger.exception(ex)
+        try:
+          self.es.index(index='test_conddb',body=mdoc)
+        except (ConnectionError,ConnectionTimeout) as ex:
+            self.logger.warning("Elasticsearch connection error (test_conddb):"+str(ex))
+        except SerializationError as ex:
+            self.logger.warning("Elasticsearch serializer error (test_conddb):"+str(ex))
+        except TransportError as ex:
+            self.logger.warning("Elasticsearch http error (test_conddb):"+str(ex))
+
     def elasticize_prc_out(self,infile):
         document,ret = self.imbue_jsn(infile)
         if ret<0:return
@@ -366,16 +396,19 @@ class elasticBand():
         prcoutDocs = self.prcoutBuffer.pop(ls) if ls in self.prcoutBuffer else None
         fuoutDocs = self.fuoutBuffer.pop(ls) if ls in self.fuoutBuffer else None
         prcsstateDocs = self.prcsstateBuffer.pop(ls) if ls in self.prcsstateBuffer else None
+        procmonDocs = self.procmonBuffer,pop(ls) if ls in self.procmonBuffer else None
         if prcinDocs: self.tryBulkIndex('prc-in',prcinDocs,attempts=5)
         if prcoutDocs: self.tryBulkIndex('prc-out',prcoutDocs,attempts=5)
         if fuoutDocs: self.tryBulkIndex('fu-out',fuoutDocs,attempts=10)
         if prcsstateDocs: self.tryBulkIndex('prc-s-state',prcsstateDocs,attempts=5,logErr=False)
+        if procmonDocs: self.mergeAndIndexProcmon(procmonDocs)
 
     def flushAllLS(self):
         lslist = list(  set(self.prcinBuffer.keys()) |
                         set(self.prcoutBuffer.keys()) |
                         set(self.fuoutBuffer.keys()) |
-                        set(self.prcsstateBuffer.keys()) )
+                        set(self.prcsstateBuffer.keys()) |
+                        set(self.procmonBuffer.keys()))
         for ls in lslist:
             self.flushLS(ls)
 

@@ -69,7 +69,7 @@ class elasticCollector():
         filetype = infile.filetype
         eventtype = self.eventtype
         if eventtype & (inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO) :
-            if filetype in [FAST,SLOW,QSTATUS]:
+            if filetype in [FAST,SLOW,PROCMON,QSTATUS]:
                 self.elasticize()
             elif self.esDirName in infile.dir:
                 if filetype in [INDEX,STREAM,OUTPUT,STREAMDQMHISTOUTPUT,STREAMERR]:self.elasticize()
@@ -129,6 +129,10 @@ class elasticCollector():
             if filetype == FAST:
                 es.elasticize_prc_istate(infile)
                 self.logger.debug(name+" going into prc-istate")
+            elif filetype == PROCMON:
+                es.elasticize_prc_procmon(infile)
+                self.logger.info(name+" going into procmon")
+                self.infile.deleteFile(silent=True)
             elif filetype == SLOW:
                 es.elasticize_prc_sstate(infile)
                 self.logger.debug(name+" going into prc-sstate")
