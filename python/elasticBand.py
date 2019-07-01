@@ -259,7 +259,7 @@ class elasticBand():
             if "date" in mdoc:mdoc["date"] =min(mdoc["date"],doc["date"])
             else:mdoc["date"]=doc["date"]
             mdoc.setdefault("m_id",[]).append(doc["m_id"])
-          except:
+          except Exception as ex:
             self.logger.exception(ex)
         try:
           self.es.index(index='test_conddb',body=mdoc)
