@@ -250,6 +250,7 @@ if __name__ == "__main__":
         mr.start_inotify()
 
         es = elasticBand.elasticBand('http://'+conf.es_local+':9200',rundirname,indexSuffix,expected_processes,update_modulo,conf.force_replicas,conf.force_shards,nprocid,bu_name)
+        es.setCentral(conf.elastic_runindex_url)
 
         #starting elasticCollector thread
         ec = elasticCollector(ES_DIR_NAME,inmondir)

@@ -121,6 +121,9 @@ class elasticBand():
         self.nprocid = nprocid
         self.bu_name = bu_name
 
+    def setCentral(self,central):
+        self.es_central = Elasticsearch(central,timeout=20)
+
     def imbue_jsn(self,infile,silent=False):
         with open(infile.filepath,'r') as fp:
             try:
@@ -251,7 +254,7 @@ class elasticBand():
         for doc in buf:
           try:
             mdoc["doc_type"]=doc["doc_type"]
-            mdoc.setdefault("pid",[]).append(doc["pid"])
+            #mdoc.setdefault("pid",[]).append(doc["pid"])
             mdoc["host"]=doc["host"]
             mdoc["run"]=doc["run"]
             mdoc["ls"]=doc["ls"]
@@ -261,8 +264,9 @@ class elasticBand():
             mdoc.setdefault("m_id",[]).append(doc["m_id"])
           except Exception as ex:
             self.logger.exception(ex)
+        mdoc["m_id"] = list(set(mdoc["m_id"]))
         try:
-          self.es.index(index='test_conddb',body=mdoc)
+          self.es_central.index(index='test_conddb',body=mdoc)
         except (ConnectionError,ConnectionTimeout) as ex:
             self.logger.warning("Elasticsearch connection error (test_conddb):"+str(ex))
         except SerializationError as ex:
@@ -396,7 +400,7 @@ class elasticBand():
         prcoutDocs = self.prcoutBuffer.pop(ls) if ls in self.prcoutBuffer else None
         fuoutDocs = self.fuoutBuffer.pop(ls) if ls in self.fuoutBuffer else None
         prcsstateDocs = self.prcsstateBuffer.pop(ls) if ls in self.prcsstateBuffer else None
-        procmonDocs = self.procmonBuffer,pop(ls) if ls in self.procmonBuffer else None
+        procmonDocs = self.procmonBuffer.pop(ls) if ls in self.procmonBuffer else None
         if prcinDocs: self.tryBulkIndex('prc-in',prcinDocs,attempts=5)
         if prcoutDocs: self.tryBulkIndex('prc-out',prcoutDocs,attempts=5)
         if fuoutDocs: self.tryBulkIndex('fu-out',fuoutDocs,attempts=10)
