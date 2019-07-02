@@ -16,6 +16,8 @@ import copy
 from aUtils import *
 from elasticTemplates import runappliance
 
+fuout_doc_id = False
+
 def getURLwithIP(url):
     try:
         prefix = ''
@@ -60,7 +62,13 @@ def bulk_index(es, index, documents):# query_params=None): #todo:ass kwargs
             raise ValueError('No document array provided for bulk_index operation')
 
         for doc in documents:
-            body_tmp.append(jsonSerializer.dumps({'index': {'_index': index}}))
+            desc_tmp = ({'index': {'_index': index}}
+            try:
+              desc_tmp['_id']=doc.pop('_id')
+            except:
+              pass
+            #body_tmp.append(jsonSerializer.dumps({'index': {'_index': index}}))
+            body_tmp.append(jsonSerializer.dumps(desc_tmp))
             body_tmp.append(jsonSerializer.dumps(doc))
 
         # Need the trailing newline.
@@ -340,6 +348,8 @@ class elasticBand():
         document['host']=self.hostname
         document['appliance']=self.bu_name
         document['fm_date']=str(infile.mtime)
+        if fuout_doc_id:
+          document['_id']="_".join(("fu_out",run,ls,stream,self.hostname))
         try:document.pop('definition')
         except:pass
         try:document.pop('source')

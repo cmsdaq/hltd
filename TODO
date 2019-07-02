@@ -1,5 +1,5 @@
 TODO:
-- elasticBandh: add ID to fu-out to avoid duplication in output
+- elasticBand: add ID to fu-out to avoid duplication in output
 - add exclude/include API not related to cloud (offline of something similar). should be usable from BU
 - add triggerin for hltd-libs to restart soap2file and hltd if this is updated
 - investigate why python3.4 setprocname does not work (appears not to be language related). now we are using different package
