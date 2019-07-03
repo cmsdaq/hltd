@@ -64,7 +64,7 @@ def bulk_index(es, index, documents):# query_params=None): #todo:ass kwargs
         for doc in documents:
             desc_tmp = {'index': {'_index': index}}
             try:
-              desc_tmp['_id']=doc.pop('_id')
+              desc_tmp['index']['_id']=doc.pop('_id')
             except:
               pass
             #body_tmp.append(jsonSerializer.dumps({'index': {'_index': index}}))
