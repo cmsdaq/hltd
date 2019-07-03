@@ -349,7 +349,7 @@ class elasticBand():
         document['appliance']=self.bu_name
         document['fm_date']=str(infile.mtime)
         if fuout_doc_id:
-          document['_id']="_".join(("fu_out",run,ls,stream,self.hostname))
+          document['_id']="_".join(("fu-out",run,ls,stream,self.hostname))
         try:document.pop('definition')
         except:pass
         try:document.pop('source')
