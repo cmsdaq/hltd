@@ -16,7 +16,7 @@ import copy
 from aUtils import *
 from elasticTemplates import runappliance
 
-fuout_doc_id = False
+fuout_doc_id = True
 
 def getURLwithIP(url):
     try:
@@ -62,7 +62,7 @@ def bulk_index(es, index, documents):# query_params=None): #todo:ass kwargs
             raise ValueError('No document array provided for bulk_index operation')
 
         for doc in documents:
-            desc_tmp = ({'index': {'_index': index}}
+            desc_tmp = {'index': {'_index': index}}
             try:
               desc_tmp['_id']=doc.pop('_id')
             except:
