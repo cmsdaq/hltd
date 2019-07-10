@@ -18,10 +18,7 @@ try:
   import Queue as queue
 except:
   import queue
-try:
-  import simplejson as json
-except:
-  import json
+import simplejson as json
 import logging
 import collections
 import subprocess

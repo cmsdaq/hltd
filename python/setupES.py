@@ -6,10 +6,7 @@ import six
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import TransportError
 
-try:
-  import simplejson as json
-except:
-  import json
+import simplejson as json
 import socket
 import logging
 import copy

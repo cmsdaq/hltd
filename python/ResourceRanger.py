@@ -1,9 +1,6 @@
 import os
 import time
-try:
-  import simplejson as json
-except:
-  import json
+import simplejson as json
 import dateutil
 import dateutil.parser
 import datetime

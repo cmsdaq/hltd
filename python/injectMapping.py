@@ -13,10 +13,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
 import requests
-try:
-  import simplejson as json
-except:
-  import json
+import simplejson as json
 import socket
 
 jsonSerializer = JSONSerializer()

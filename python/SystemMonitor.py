@@ -2,10 +2,7 @@ import os
 import time
 import subprocess
 import threading
-try:
-  import simplejson as json
-except:
-  import json
+import simplejson as json
 import datetime
 import logging
 import psutil
