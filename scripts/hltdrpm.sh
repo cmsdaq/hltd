@@ -51,7 +51,7 @@ echo "   ... press any key to continue ..."
 read readin
 
 
-echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
+echo "Python version - currently supported: python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -166,15 +166,17 @@ fi
 
 
 pythonlink=${lines[0]}
-while ! [ "$pythonlink" = "" ]
-do
-  pythonlinklast=$pythonlink
-  readlink /usr/bin/$pythonlink > $SCRIPTDIR/pytmp | true
-  pythonlink=`cat $SCRIPTDIR/pytmp`
-  rm -rf $SCRIPTDIR/pytmp
-  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
-done
-pythonlinklast=`basename $pythonlinklast`
+pythonlinklast=$pythonlink
+
+#while ! [ "$pythonlink" = "" ]
+#do
+#  pythonlinklast=$pythonlink
+#  readlink /usr/bin/$pythonlink > $SCRIPTDIR/pytmp | true
+#  pythonlink=`cat $SCRIPTDIR/pytmp`
+#  rm -rf $SCRIPTDIR/pytmp
+#  #echo "running readlink /usr/bin/$pythonlinklast --> /usr/bin/$pythonlink"
+#done
+#pythonlinklast=`basename $pythonlinklast`
 echo "will use python version: $pythonlinklast"
 
 #other parameters
@@ -236,7 +238,6 @@ PACKAGENAME="hltd"
 #fi
 
 
-alias python=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 
@@ -255,25 +256,16 @@ TOPDIR=$PWD
 echo "working in $PWD"
 #ls
 
-pypkgprefix="python"
+pypkgprefix=""
 pkgsuffix=""
 pkgobsoletes=""
-soappy=",SOAPpy"
+#soappy=",SOAPpy"
 if [ $pythonver = "python3.6" ]; then
   pypkgprefix="python36"
   pkgsuffix="-python36"
   pkgobsoletes=", hltd"
-  soappy=""
+  #soappy=""
 fi
-
-if [ $pythonver = "python3.4" ]; then
-  pypkgprefix="python34"
-  pkgsuffix="-python34"
-  pkgobsoletes=", hltd"
-  soappy=""
-fi
-
-
 
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
@@ -305,7 +297,8 @@ Provides:/opt/fff/init.d/fff
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
-Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
+#Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil
+Requires:hltd-libs$pkgsuffix >= 2.4.0,jsonMerger,python3-dateutil
 Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
 
@@ -367,13 +360,13 @@ mv $BASEDIR/scripts/temp_db.jsn %{buildroot}/opt/fff/db.jsn
 cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/*.py   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g' >& /dev/null
 
 touch opt/hltd/scratch/new-version
 
@@ -385,6 +378,7 @@ rm -rf opt/hltd/scripts/*rpm.sh
 rm -rf opt/hltd/scripts/postinstall.sh
 rm -rf opt/hltd/scripts/*.php
 rm -rf opt/hltd/init.d/*.service
+rm -rf opt/hltd/init.d/fff
 rm -rf opt/fff/init.d/*.service
 rm -rf opt/hltd/init.d/fff*
 rm -rf opt/hltd/python/setupmachine.py
@@ -408,14 +402,14 @@ rm -rf opt/hltd/test/*.gz
 %attr( 644 ,root, root) /usr/lib/systemd/system/fff.service
 /etc/appliance
 %attr( 755 ,root, root) /opt/fff/setupmachine.py
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
+#%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
+#%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
 %attr( 755 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/postinstall.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyc
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyo
+#%attr( 755 ,root, root) /opt/fff/dbcheck.pyc
+#%attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 700 ,root, root) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 

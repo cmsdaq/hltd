@@ -17,7 +17,7 @@ rm -rf build;
 python setup.py build
 
 It will create a library file which needs to be copied to site-packages directory:
-sudo cp build/lib.linux-x86_64-2.7/zlibextras.so /usr/lib64/python2.7/site-packages/zlibextras.so
+sudo cp build/lib.linux-x86_64-3.6/zlibextras.so /usr/lib64/python3.6/site-packages/zlibextras.so
 (notice: in this version _zlibextras.so is created, this is just a special version to avoid library name clash)
 
 Now the library can be used in python, for example:
