@@ -96,17 +96,17 @@ class RunRanger:
 
           elif prefix in ['stop']:           #FU
             if conf.role == 'fu':
-              self.stopCmd()
+              self.stopCmd(dirname)
             tryremove(fullpath)
  
           elif prefix in ['exclude']:        #FU
             if conf.role == 'fu':
-              self.excludeCmd()
+              self.excludeCmd(dirname)
             tryremove(fullpath)
   
           elif prefix in ['include']:        #FU
             if conf.role == 'fu':
-              self.includeCmd()
+              self.includeCmd(dirname,fullpath)
             tryremove(fullpath)
  
           elif prefix in ['resourceupdate']: #FU
@@ -146,7 +146,7 @@ class RunRanger:
 
           elif prefix in ['suspend']: #FU (BU:warning)
             if conf.role == 'fu':
-              self.suspendCmd(dirnum)
+              self.suspendCmd(dirnum,fullpath)
             else:
               self.logger.warning("unable to suspend on " + conf.role)
               tryremove(fullpath)
