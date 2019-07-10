@@ -12,7 +12,7 @@ import syslog
 try:
   from httplib import HTTPConnection
 except:
-  from http.client import HTTPConnection
+  from http.server import HTTPConnection
 import cgitb
 try: 
   from CGIHTTPServer import CGIHTTPRequestHandler
