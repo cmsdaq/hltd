@@ -361,7 +361,7 @@ class elasticBand():
         document,ret = self.imbue_jsn(infile)
         if ret<0:return
         document['doc_type'] = 'prc-in'
-        document['data'] = [int(f) if f.isdigit() else str(f) for f in document['data']]
+        document['data'] = [int(f) if (isinstance(f,int) or (isinstance(f,str) and f.isdigit())) else str(f) for f in document['data']]
         try:
             data_size=document['data'][1]
         except:
