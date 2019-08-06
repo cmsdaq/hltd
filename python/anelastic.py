@@ -904,10 +904,32 @@ class LumiSectionHandler():
         if len(streamDiff)==len(self.activeStreams):
             inputFileList = [item.name[:item.name.find('_pid')]+".raw" for item in self.pidList[pid]["indexFileList"]]
             inputFileEvents = [int(item.data["data"][0]) for item in self.pidList[pid]["indexFileList"]]
+            try:
+              inputFileListFromJsn = [item.data["data"][2] for item in self.pidList[pid]["indexFileList"]]
+              pathIncluded=True
+            except:
+              pathIncluded=False
+
             errorRawFiles=[]
             rawErrorEvents=0
-            for index,rawFile in enumerate(inputFileList):
+            if pathIncluded:
+              for index,rawname in enumerate(inputFileListFromJsn):
                 try:
+                    #test if original file is provided
+                    os.stat(rawname)
+                    rawFileNew = os.path.basename(rawname)
+                    rawnameNew = os.path.join(rawinputdir,rawFileNew)
+                    #rename to a unique name containing FU name and CMSSW PID (usable also for tracking other information)
+                    os.rename(rawname,rawnameNew)
+                    errorRawFiles.append(rawFileNew)
+                    rawErrorEvents+=inputFileEvents[index]
+                except OSError as ex:
+                    self.logger.info('error stream input file '+rawname+' is gone, possibly already deleted by the process ' + str(ex))
+
+            else:
+              for index,rawFile in enumerate(inputFileList):
+                try:
+                    rawname = ""
                     rawname = os.path.join(rawinputdir,rawFile)
                     #test if original file is provided
                     os.stat(rawname)
@@ -917,9 +939,9 @@ class LumiSectionHandler():
                     os.rename(rawname,rawnameNew)
                     errorRawFiles.append(rawFileNew)
                     rawErrorEvents+=inputFileEvents[index]
-                except OSError:
-                    self.logger.info('error stream input file '+rawFile+' is gone, possibly already deleted by the process')
-                    pass
+                except OSError as ex:
+                    self.logger.info('error stream input file '+rawname+' is gone, possibly already deleted by the process' + str(ex))
+
             file2merge.setFieldByName("ErrorEvents",rawErrorEvents)
             file2merge.setFieldByName("HLTErrorEvents",rawErrorEvents,warning=False)
             inputFileList = ",".join(errorRawFiles)
