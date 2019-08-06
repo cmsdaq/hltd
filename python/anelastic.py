@@ -1080,6 +1080,8 @@ class LumiSectionHandler():
                             self.datfileList.remove(datfile)
                     if not foundDat and errEntry<self.totalEvent:
                         success = False
+                        #TODO:replace hardcoded DAT extension, instead extract it from process output JSONs
+                        destinationtemp = os.path.join(self.outdir,outfile.run,outfile.stream,"data",outfile.name+".dat"+TEMPEXT)
                         destinationpath = os.path.join(self.outdir,outfile.run,outfile.stream,"data",outfile.name+".dat")
                         #destinationpath = os.path.join(self.outdir,outfile.run,outfile.stream,outfile.name+".dat")
                         try:
@@ -1088,15 +1090,16 @@ class LumiSectionHandler():
                                 self.logger.warning('file exists, but not previously detected? '+os.path.join(self.tempdir,outfile.run,outfile.name+".dat"))
                             except:
                                 pass
-                            success,copy_size = outfile.mergeDatInputs(destinationpath,conf.output_adler32,self.parent.drop_at_fu)
+                            success,copy_size = outfile.mergeDatInputs(destinationtemp,conf.output_adler32,self.parent.drop_at_fu)
                             self.data_size +=copy_size
                             #reset expiration timestamp as we don't want to set lumi_bw to zero if files are still being copied
                             self.parent.mr.data_size_last_update = time.time()
-			    #os.rename(destinationpath_tmp,destinationpath)
-                            outfile.writeout()
-                            #test
+                            #final rename. stat has been removed
                             if not self.parent.drop_at_fu:
-                                os.stat(destinationpath).st_size
+                                os.rename(destinationtemp,destinationpath)
+
+                            outfile.writeout()
+
                         except Exception as ex:
                             self.logger.fatal("Failed micro-merge: "+destinationpath)
                             self.logger.exception(ex)
