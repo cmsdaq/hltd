@@ -33,10 +33,12 @@ from elasticsearch.exceptions import ElasticsearchException,RequestError
 from elasticBand import bulk_index
 
 from hltdconf import *
-from elasticBand import elasticBand
+from elasticBand import elasticBand,parse_elastic_pwd
 from daemon2 import stdOutLog,stdErrorLog
 from elasticbu import getURLwithIP
 import mappings
+
+elasticinfo = None
 
 terminate = False
 threadEventRef = None
@@ -797,14 +799,14 @@ class HLTDLogIndex():
 
         attempts=10
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json'})
+        s.headers.update({'Content-Type':'application/json','Authorization':parsed_elastic_pwd["encoded"]})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
             try:
                 self.logger.info('writing to elastic index '+self.index_name)
                 ip_url=getURLwithIP(es_server_url)
-                self.es = Elasticsearch(ip_url,timeout=5)
+                self.es = Elasticsearch(ip_url,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=5)
 
                 #update in case of new documents added to mapping definition
                 self.updateMappingMaybe(s,ip_url)
@@ -854,7 +856,7 @@ class HLTDLogIndex():
             try:
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
-                self.es = Elasticsearch(ip_url,timeout=5)
+                self.es = Elasticsearch(ip_url,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=5)
                 self.es.index(index=self.index_name,body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
@@ -866,7 +868,7 @@ class HLTDLogIndex():
             try:
                 #retry with new ip adddress in case of a problem
                 ip_url=getURLwithIP(self.es_server_url)
-                self.es = Elasticsearch(ip_url,timeout=5)
+                self.es = Elasticsearch(ip_url,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=5)
                 self.es.index(index=self.index_name,body=document)
             except Exception as ex:
                 logger.warning('failed connection attempts to ' + self.es_server_url + ' : '+str(ex))
@@ -1125,6 +1127,9 @@ if __name__ == "__main__":
 
     clc = None
     hlc = None
+
+    #load credentials
+    elasticinfo = parse_elastic_pwd()
 
     if cmsswloglevel>=0:
         try:

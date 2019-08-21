@@ -16,6 +16,8 @@ import requests
 import simplejson as json
 import socket
 
+from elasticBand import parse_elastic_pwd
+
 jsonSerializer = JSONSerializer()
 
 class elasticBandInjector:
@@ -34,6 +36,8 @@ class elasticBandInjector:
         self.hltdlogs_write="hltdlogs_"+subsys+"_write"
         self.hltdlogs_read="hltdlogs_"+subsys+"_read"
         self.hltdlogs_name="hltdlogs_"+subsys
+        self.elasticinfo = parse_elastic_pwd()
+        self.headers = {'Content-Type':'application/json','Authorization':elasticinfo['encoded']}
         if update_run_mapping:
             self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
@@ -44,7 +48,7 @@ class elasticBandInjector:
         #silence
 
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
-        self.es = Elasticsearch(self.es_server_url,timeout=20) #is this needed? (using requests)
+        #self.es = Elasticsearch(self.es_server_url,http_auth=(self.elasticinfo["user"],self.elasticinfo["pass"]),timeout=20) #is this needed? (using requests)
 
         if requests.get(self.es_server_url+'/_alias/'+alias_write).status_code == 200:
             print('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.es_server_url)
@@ -58,7 +62,7 @@ class elasticBandInjector:
             if res.status_code==200:
                 if res.content.decode().strip()=='{}':
                     print('inserting new mapping for ' + index_name)
-                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers={'Content-Type':'application/json'})
+                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers=self.headers)
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
@@ -72,7 +76,7 @@ class elasticBandInjector:
                                 try_inject=True
                                 print('inserting mapping for ' + index_name + ' which is missing mapping property ' + str(pdoc))
                         if try_inject:
-                            rres = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers = {'Content-Type':'application/json'})
+                            rres = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers = self.headers)
                             if rres.status_code!=200:
                                 print(rres.content)
             else:

@@ -18,6 +18,20 @@ from elasticTemplates import runappliance
 
 fuout_doc_id = True
 
+#HTTP auth for elasticsearch
+elastic_user_conf = "/opt/fff/db.jsn"
+elastic_username = "riverwriter"
+def parse_elastic_pwd():
+  with open(elastic_user_conf,'r') as fp:
+    authjsn = json.load(fp)
+    elasticvar = {
+      "user":elastic_username,
+      "pass":authjsn["elasticpwd"],
+      "encoded":"Basic %s" % base64.standard_b64encode((elastic_user+":"+authjsn["elasticpwd"]).encode('ascii'))
+    }
+    return elasticvar
+  return None
+
 def getURLwithIP(url):
     try:
         prefix = ''
@@ -89,7 +103,7 @@ class elasticBand():
         self.fuoutBuffer = {}
         self.prcsstateBuffer = {}
         self.procmonBuffer = {}
-
+        #only used for eslocal
         self.es = Elasticsearch(self.es_server_url,timeout=20)
         eslib_logger = logging.getLogger('elasticsearch')
         eslib_logger.setLevel(logging.ERROR)
@@ -130,7 +144,8 @@ class elasticBand():
         self.bu_name = bu_name
 
     def setCentral(self,central):
-        self.es_central = Elasticsearch(central,timeout=20)
+        elasticinfo = parse_elastic_pwd()
+        self.es_central = Elasticsearch(central,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=20)
 
     def imbue_jsn(self,infile,silent=False):
         with open(infile.filepath,'r') as fp:

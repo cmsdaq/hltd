@@ -3,4 +3,4 @@ TODO:
 - add exclude/include API not related to cloud (offline of something similar). should be usable from BU
 - add triggerin for hltd-libs to restart soap2file and hltd if this is updated
 - investigate why python3.4 setprocname does not work (appears not to be language related). now we are using different package
-
+- get rid of direct usage of requests and only use official Elasticsearch

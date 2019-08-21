@@ -5,7 +5,7 @@ cd $SCRIPTDIR/..
 BASEDIR=$PWD
 
 PARAMCACHE="paramcache"
-NLINES=14
+NLINES=15
 ASK="1"
 
 if [ -n "$1" ]; then
@@ -142,7 +142,6 @@ if [ ${#readin} != "0" ]; then
 lines[12]=$readin
 fi
 
-
 echo "hltd log collection level (DEBUG,INFO,WARNING,ERROR or FATAL - default is ERROR) (press enter for: ${lines[13]}):"
 readin=""
 read readin
@@ -150,12 +149,21 @@ if [ ${#readin} != "0" ]; then
 lines[13]=$readin
 fi
 
+echo "password for elasticsearch user hltdwriter (press enter for: ${lines[14]}):"
+readin=""
+read readin
+if [ ${#readin} != "0" ]; then
+lines[14]=$readin
+fi
+
+
 fi #ask
 
 #database rpm build parameters
 dbsid=${lines[4]}
 dblogin=${lines[5]}
 dbpwd=${lines[6]}
+elasticpwd=${lines[14]}
 
 #special RPM revision suffix, if defined
 revsuffix=""
@@ -208,7 +216,8 @@ cat > $SCRIPTDIR/temp_db.jsn <<EOF
   "hltdloglevel":"${hltdloglevel}",
   "login":"${dblogin}",
   "password":"${dbpwd}",
-  "sid":"${dbsid}"
+  "sid":"${dbsid}",
+  "elasticpwd":"${dbpwd}"
 }
 EOF
 
@@ -279,7 +288,7 @@ fi
 cat > hltd.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
 Version: 2.6.3
-Release: 0
+Release: 1
 Summary: hlt daemon
 License: gpl
 Group: DAQ
@@ -393,6 +402,7 @@ rm -rf opt/hltd/TODO
 rm -rf opt/hltd/test/*.gz
 
 %post
+chown daqlocal /opt/fff/db.jsn #possibly not needed
 /opt/fff/postinstall.sh
 
 %files
@@ -416,7 +426,7 @@ rm -rf opt/hltd/test/*.gz
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyc
 %attr( 755 ,root, root) /opt/fff/dbcheck.pyo
-%attr( 700 ,root, root) /opt/fff/db.jsn
+%attr( 400 ,daqlocal, daqlocal) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 
 

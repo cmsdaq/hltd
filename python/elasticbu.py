@@ -25,7 +25,8 @@ from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 from elasticsearch.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
-from elasticBand import bulk_index
+
+from elasticBand import bulk_index,parse_elastic_pwd
 
 import csv
 import requests
@@ -35,8 +36,12 @@ from requests.exceptions import Timeout as RequestsTimeout
 import simplejson as json
 import socket
 
+#TODO: update to use elasticsearch library instead of requests
+
 #silence HTTP connection info from requests package
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+elasticinfo = None
 
 GENERICJSON,SUMMARYJSON = list(range(2)) #injected JSON range
 
@@ -164,7 +169,7 @@ class elasticBandBU:
         retry=False
 
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json'})
+        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
@@ -173,7 +178,7 @@ class elasticBandBU:
             try:
                 if retry or self.ip_url==None:
                     self.ip_url=getURLwithIP(self.es_server_url,self.nsslock)
-                    self.es = Elasticsearch(self.ip_url,timeout=20)
+                    self.es = Elasticsearch(self.ip_url,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=20)
                 #es7 transtion
 
                 #if self.es.info()['version']['number'].startswith('6'):
@@ -230,7 +235,7 @@ class elasticBandBU:
         #update in case of new documents added to mapping definition
 
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json'})
+        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         res = s.get(self.ip_url+'/'+index_name+'/_mapping')
@@ -540,7 +545,7 @@ class elasticBandBU:
                     self.logger.error('elasticsearch connection error:' + str(ex)+'. retry.')
                 if self.stopping:return (False,0)
                 ip_url=getURLwithIP(self.es_server_url,self.nsslock)
-                self.es = Elasticsearch(ip_url,timeout=20)
+                self.es = Elasticsearch(ip_url,http_auth=(elasticinfo["user"],elasticinfo["pass"]),timeout=20)
                 time.sleep(0.1)
                 if is_box==True:#give up on too many box retries as they are indexed again every 5 seconds
                   break
@@ -860,7 +865,7 @@ class RunCompletedChecker(threading.Thread):
         total_es_elapsed=0
 
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json'})
+        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while self.stopping==False:
@@ -963,6 +968,7 @@ if __name__ == "__main__":
 
         mr.start_inotify()
 
+        elasticinfo = parse_elastic_pwd()
         es = elasticBandBU(conf,runnumber,startTime)
 
         def checkEoR():
