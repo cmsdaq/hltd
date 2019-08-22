@@ -673,7 +673,7 @@ class CMSSWLogCollector(object):
         self.logger.info("MonitorRanger: Join inotify wrapper")
         self.inotifyWrapper.join()
         self.logger.info("MonitorRanger: Inotify wrapper returned")
-        for rn in self.indices[:]:
+        for rn in self.indices.copy():
             self.indices[rn].stop()
 
     def process_IN_CREATE(self, event):
@@ -685,7 +685,7 @@ class CMSSWLogCollector(object):
 
         rn,pid = self.parseFileName(event.fullpath)
         if rn and rn > 0 and pid:
-            if rn not in self.indices[:]:
+            if rn not in self.indices.copy():
                 self.indices[rn] = CMSSWLogESWriter(rn)
                 if self.indices[rn].initialized==False:
                     self.logger.warning('Unable to initialize CMSSWLogESWriter. Skip handling '+event.fullpath)
@@ -705,7 +705,7 @@ class CMSSWLogCollector(object):
             self.indices[rn].addParser(event.fullpath,pid)
 
         #cleanup
-        for rn in self.indices[:]:
+        for rn in self.indices.copy():
             alive = self.indices[rn].clearFinished()
             if alive == 0:
                 self.logger.info('removing old run'+str(rn)+' from the list')
