@@ -217,7 +217,7 @@ cat > $SCRIPTDIR/temp_db.jsn <<EOF
   "login":"${dblogin}",
   "password":"${dbpwd}",
   "sid":"${dbsid}",
-  "elasticpwd":"${dbpwd}"
+  "elasticpwd":"${elasticpwd}"
 }
 EOF
 

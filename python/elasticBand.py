@@ -12,6 +12,7 @@ import csv
 import math
 import logging
 import copy
+import base64
 
 from aUtils import *
 from elasticTemplates import runappliance
@@ -20,14 +21,14 @@ fuout_doc_id = True
 
 #HTTP auth for elasticsearch
 elastic_user_conf = "/opt/fff/db.jsn"
-elastic_username = "riverwriter"
+elastic_username = "hltdwriter"
 def parse_elastic_pwd():
   with open(elastic_user_conf,'r') as fp:
     authjsn = json.load(fp)
     elasticvar = {
       "user":elastic_username,
-      "pass":authjsn["elasticpwd"],
-      "encoded":"Basic %s" % base64.standard_b64encode((elastic_user+":"+authjsn["elasticpwd"]).encode('ascii'))
+      "pass":authjsn["elasticpwd"]#,
+      #"encoded":"Basic %s" % base64.standard_b64encode((elastic_username+":"+authjsn["elasticpwd"]).encode('ascii'))
     }
     return elasticvar
   return None

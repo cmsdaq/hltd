@@ -105,6 +105,10 @@ class elasticBandBU:
         self.boxinfoFUMap = {}
         self.ip_url=None
         self.nsslock=nsslock
+        global elasticinfo
+        if not elasticinfo:
+          elasticinfo = parse_elastic_pwd()
+        self.logger.info("using es writer " + str(elasticinfo["user"]))
         if update_run_mapping:
             self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
@@ -167,9 +171,10 @@ class elasticBandBU:
     def updateIndexMaybe(self,index_name,alias_write,alias_read,settings,mapping):
         connectionAttempts=0
         retry=False
-
+      
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
+        s.auth = (elasticinfo["user"],elasticinfo["pass"])
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while True:
@@ -187,14 +192,16 @@ class elasticBandBU:
                 #  essuffix='?include_type_name=true'
  
                 #check if index alias exists
-                if s.get(self.ip_url+'/_alias/'+alias_write).status_code == 200:
+                alias_ret = s.get(self.ip_url+'/_alias/'+alias_write)
+                if alias_ret.status_code == 200:
                     self.logger.info('writing to elastic index '+alias_write + ' on '+self.es_server_url+' - '+self.ip_url )
                     self.createDocMappingsMaybe(alias_write,mapping)
                     break
                 else:
                     time.sleep(.5)
                     if (connectionAttempts%10)==0:
-                        self.logger.error('unable to access to elasticsearch alias ' + alias_write + ' on '+self.es_server_url+' / '+self.ip_url)
+                        self.logger.error('unable to access to elasticsearch alias ' + alias_write + ' on '+self.es_server_url+' / '+self.ip_url
+                                          + " status:" + str(alias_ret.status_code) + " reply:" + str(alias_ret.content))
                     continue
 
             except (socket.gaierror,ConnectionError,ConnectionTimeout,RequestsConnectionError,RequestsTimeout) as ex:
@@ -235,7 +242,8 @@ class elasticBandBU:
         #update in case of new documents added to mapping definition
 
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
+        s.auth = (elasticinfo["user"],elasticinfo["pass"])
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         res = s.get(self.ip_url+'/'+index_name+'/_mapping')
@@ -858,6 +866,9 @@ class RunCompletedChecker(threading.Thread):
         self.url_query = '{  "query": { "term" {"doc_type": "fu-complete"}}, "sort": { "fm_date": { "order": "desc" }}}'
         self.stopping = False
         self.threadEvent = threading.Event()
+        global elasticinfo
+        if not elasticinfo:
+          elasticinfo = parse_elastic_pwd()
 
     def run(self):
 
@@ -865,7 +876,8 @@ class RunCompletedChecker(threading.Thread):
         total_es_elapsed=0
 
         s = requests.Session()
-        s.headers.update({'Content-Type':'application/json','Authorization':elasticinfo['encoded']})
+        s.auth = (elasticinfo["user"],elasticinfo["pass"])
+        s.headers.update({'Content-Type':'application/json'})
         s.mount('http://', HTTPAdapter(max_retries=0))
 
         while self.stopping==False:
@@ -968,7 +980,6 @@ if __name__ == "__main__":
 
         mr.start_inotify()
 
-        elasticinfo = parse_elastic_pwd()
         es = elasticBandBU(conf,runnumber,startTime)
 
         def checkEoR():

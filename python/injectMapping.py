@@ -37,7 +37,7 @@ class elasticBandInjector:
         self.hltdlogs_read="hltdlogs_"+subsys+"_read"
         self.hltdlogs_name="hltdlogs_"+subsys
         self.elasticinfo = parse_elastic_pwd()
-        self.headers = {'Content-Type':'application/json','Authorization':elasticinfo['encoded']}
+        self.headers = {'Content-Type':'application/json'}
         if update_run_mapping:
             self.updateIndexMaybe(self.runindex_name,self.runindex_write,self.runindex_read,mappings.central_es_settings_runindex,mappings.central_runindex_mapping)
         if update_box_mapping:
@@ -62,7 +62,8 @@ class elasticBandInjector:
             if res.status_code==200:
                 if res.content.decode().strip()=='{}':
                     print('inserting new mapping for ' + index_name)
-                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers=self.headers)
+                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),
+                                        auth=(elasticinfo["user"],elasticinfo["pass"]),headers=self.headers)
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content)
