@@ -855,45 +855,39 @@ class system_monitor(threading.Thread):
           os.lseek(fd,0xe8,os.SEEK_SET)
           aperf = struct.unpack("Q",os.read(fd,8))[0]
 
-          #os.lseek(fd,MSR_CORE_C1_RES,os.SEEK_SET)
-          #c1 = struct.unpack("Q",os.read(fd,8))[0]
-          #if cnt<self.cpu_cores:
-          os.lseek(fd,MSR_CORE_C3_RESIDENCY,os.SEEK_SET)
-          c3 = struct.unpack("Q",os.read(fd,8))[0]
+          c3 = c6 = c7 = s0 = s1 = s2 = s3 = 0
 
-          os.lseek(fd,MSR_CORE_C6_RESIDENCY,os.SEEK_SET)
-          c6 = struct.unpack("Q",os.read(fd,8))[0]
+          #following will work only on Intel devices:
+          try:
+            os.lseek(fd,MSR_CORE_C3_RESIDENCY,os.SEEK_SET)
+            c3 = struct.unpack("Q",os.read(fd,8))[0]
 
-          os.lseek(fd,MSR_CORE_C7_RESIDENCY,os.SEEK_SET)
-          c7 = struct.unpack("Q",os.read(fd,8))[0]
+            os.lseek(fd,MSR_CORE_C6_RESIDENCY,os.SEEK_SET)
+            c6 = struct.unpack("Q",os.read(fd,8))[0]
 
-#          else:
-              #info only extracted for 1st hyperthread on a core
-              #c3 = ret[cnt-self.cpu_cores][4]
-              #c6 = ret[cnt-self.cpu_cores][5]
-              #c7 = ret[cnt-self.cpu_cores][6]
-#              ret.append([tsc,mperf,aperf])
-          s0 = s1 = s2 = s3 = 0
-          #try:
-          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state0/usage",'r') as fr:
-            val = fr.read()
-            s0 = int(val)
-          #except:pass
+            os.lseek(fd,MSR_CORE_C7_RESIDENCY,os.SEEK_SET)
+            c7 = struct.unpack("Q",os.read(fd,8))[0]
 
-          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state1/usage",'r') as fr:
-            val = fr.read()
-            s1 = int(val)
+            with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state0/usage",'r') as fr:
+              val = fr.read()
+              s0 = int(val)
+
+            with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state1/usage",'r') as fr:
+              val = fr.read()
+              s1 = int(val)
 
 
-          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state2/usage",'r') as fr:
-            val = fr.read()
-            s2 = int(val)
+            with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state2/usage",'r') as fr:
+              val = fr.read()
+              s2 = int(val)
 
 
-          with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state3/usage",'r') as fr:
-            val = fr.read()
-            s3 = int(val)
+            with open("/sys/devices/system/cpu/cpu"+str(cnt)+"/cpuidle/state3/usage",'r') as fr:
+              val = fr.read()
+              s3 = int(val)
 
+          except:
+            pass
 
           ret.append([tsc,mperf,aperf,0,c3,c6,c7,s0,s1,s2,s3])
             
