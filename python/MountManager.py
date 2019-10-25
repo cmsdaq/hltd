@@ -14,6 +14,15 @@ def preexec_function():
     prctl.set_pdeathsig(SIGKILL)
     #    os.setpgrp()
 
+class MountManagerDummy:
+
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.buBootId=None
+        self.stale_handle_remount_required=False
+
+
 class MountManager:
 
     def __init__(self,confClass):
@@ -384,5 +393,33 @@ class MountManager:
                     break
                 else:
                     self.logger.info('Failed output disk cleanup (return code:'+str(p.returncode)+') in attempt '+str(10-tries))
+
+
+#helper
+def find_nfs_mount_addr(mount_paths):
+  lines = []
+  with open('/proc/mounts','r') as mountfile:
+    lines = mountfile.readlines()
+  for line in lines:
+    words = line.split(' ')
+    if len(words)>=3 and words[1]==mount_path and words[2].startswith('nfs'):
+      return words[0].split(':')[0]
+  return None
+      #found match
+
+
+def find_nfs_mountpoints(prefix_list):
+  ret = []
+  lines = []
+  with open('/proc/mounts','r') as mountfile:
+    lines = mountfile.readlines()
+  for line in lines:
+    words = line.split(' ')
+    if len(words)>=3 and words[2].startswith('nfs'):
+      for pre in prefix_list:
+        if words[1].startswith(pre):
+          ret.append(words[1])
+  return ret
+      #found match
 
 

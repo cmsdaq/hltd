@@ -14,7 +14,7 @@ from aUtils import fileHandler
 
 class ResourceRanger:
 
-    def __init__(self,confClass,stateInfo,resInfo,runList,mountMgr,boxInfo,monitor,resource_lock):
+    def __init__(self,confClass,stateInfo,resInfo,runList,boxInfo,monitor,resource_lock):
         self.inotifyWrapper = InotifyWrapper(self)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.state = stateInfo
@@ -24,7 +24,6 @@ class ResourceRanger:
         self.managed_monitor.preStart()
         self.managed_monitor.start()
         self.regpath = []
-        self.mm = mountMgr
         self.boxInfo = boxInfo
         self.resource_lock = resource_lock
         self.hostname = os.uname()[1]
@@ -259,7 +258,7 @@ class ResourceRanger:
         if conf.dqm_machine:return
         basename = os.path.basename(event.fullpath)
         if basename.startswith('resource_summary'):return
-        if basename=='blacklist':return
+        if basename in ['blacklist','whitelist']:return
         if basename.startswith('test'):return
         if conf.role!='bu' or basename.endswith(self.hostname):
             return
@@ -284,16 +283,26 @@ class ResourceRanger:
         if conf.role=='fu':return
         if basename == os.uname()[1]:return
         if basename.startswith('test'):return
-        if basename == 'blacklist':
-            with open(os.path.join(conf.watch_directory,'appliance','blacklist'),'r') as fi:
+        if basename in ['blacklist','whitelist']:
+            with open(os.path.join(conf.watch_directory,'appliance',basename),'r') as fi:
                 try:
-                    self.boxInfo.machine_blacklist = json.load(fi)
-                except:
+                    self.boxInfo.setattr('machine_'+basename,json.load(fi))
+                    #if basename == 'blacklist': self.boxInfo.machine_blacklist = json.load(fi)
+                    #elif basename == 'whitelist': self.boxInfo.machine_whitelist = json.load(fi)
+                except Exception as ex:
+                    #self.logger.error(basename + " parsing error")
+                    self.logger.exception(ex)
+                    #TODO:hadle consequences of not finding a blacklist/whitelist file with dynamic_mounts
                     pass
         if resourcepath.endswith('boxes'):
             if basename in self.boxInfo.machine_blacklist:
                 try:self.boxInfo.FUMap.pop(basename)
                 except:pass
+            elif self.boxInfo.has_whitelist and basename not in self.boxInfo.machine_whitelist:
+                #machine has not moved yet, ignore it
+                try:self.boxInfo.FUMap.pop(basename)
+                except:pass
+                #treat as belonging to other BU. Im absence of real whitelist or a backup there will be no whitelist
             else:
                 current_time = time.time()
                 current_datetime = datetime.datetime.utcfromtimestamp(current_time)

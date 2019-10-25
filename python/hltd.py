@@ -45,6 +45,8 @@ from WebCtrl import WebCtrl
 class BoxInfo:
     def __init__(self):
         self.machine_blacklist=[]
+        self.machine_whitelist=[]
+        self.has_whitelist=False
         self.FUMap = {}
         self.boxdoc_version = 5
         self.updater = None
@@ -409,7 +411,10 @@ class hltd(Daemon2,object):
 
         nsslock = threading.Lock()
         resource_lock = threading.Lock()
-        mm = MountManager(conf)
+        mm = None
+        #no static mountpoint if dynamic_mounts parameter is set
+        if not conf.dynamic_mounts:
+          mm = MountManager(conf)
 
         if conf.role == 'fu':
             """
@@ -505,7 +510,7 @@ class hltd(Daemon2,object):
                 p = subprocess.Popen("rm -rf " + conf.watch_directory+'/*',shell=True)
                 p.wait()
 
-            if not mm.cleanup_mountpoints(nsslock):
+            if mm and not mm.cleanup_mountpoints(nsslock):
                 logger.fatal("error mounting - terminating service")
                 os._exit(10)
 
@@ -532,7 +537,7 @@ class hltd(Daemon2,object):
 
         #BU mode threads
         if conf.role == 'bu':
-            #update_success,machine_blacklist=updateBlacklist()
+            #update_success,machine_blacklist=updateFUlist("blacklist")
             boxInfo.machine_blacklist=[]
             mm.ramdisk_submount_size=0
             if self.instance == 'main':
@@ -548,7 +553,7 @@ class hltd(Daemon2,object):
                 boxInfo.updater = BoxInfoUpdater(conf,nsslock,boxInfo.boxdoc_version)
                 boxInfo.updater.start()
 
-        rr = ResourceRanger(conf,state,resInfo,runList,mm,boxInfo,sm,resource_lock)
+        rr = ResourceRanger(conf,state,resInfo,runList,boxInfo,sm,resource_lock)
 
         #init resource ranger
         try:
@@ -571,7 +576,7 @@ class hltd(Daemon2,object):
 
 
         #start monitoring new runs
-        runRanger = RunRanger(self.instance,conf,state,resInfo,runList,rr,mm,logCollector,nsslock,resource_lock)
+        runRanger = RunRanger(self.instance,conf,state,resInfo,runList,rr,mm,sm,logCollector,nsslock,resource_lock)
         runRanger.register_inotify_path(conf.watch_directory,inotify.IN_CREATE)
         runRanger.start_inotify()
         logger.info("started RunRanger  - watch_directory " + conf.watch_directory)
@@ -625,7 +630,7 @@ class hltd(Daemon2,object):
             httpd.socket.close()
             logger.info(threading.enumerate())
             logger.info("unmounting mount points")
-            if not mm.cleanup_mountpoints(nsslock,remount=False):
+            if mm and not mm.cleanup_mountpoints(nsslock,remount=False):
                 time.sleep(1)
                 mm.cleanup_mountpoints(nsslock,remount=False)
 

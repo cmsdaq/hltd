@@ -28,41 +28,43 @@ def preexec_function():
     prctl.set_pdeathsig(SIGKILL)
     #    os.setpgrp()
 
-def updateBlacklist(conf,logger,blfile):
-    if conf.static_blacklist:
-        blfile = '/etc/appliance/blacklist'
-        logger.warning('using static blacklist file: '+blfile)
-    black_list=[]
-    active_black_list=[]
-    if conf.role=='bu':
-        try:
-            if os.stat(blfile).st_size>0:
-                with open(blfile,'r') as fi:
-                    try:
-                        static_black_list = json.load(fi)
-                        for item in static_black_list:
-                            black_list.append(item)
-                        logger.info("found these resources in " + blfile + " : " + str(black_list))
-                    except ValueError:
-                        logger.error("error parsing" + blfile)
-        except:
-                #no blacklist file, this is ok
-            pass
-        black_list=list(set(black_list))
-        try:
-            forceUpdate=False
-            with open(os.path.join(conf.watch_directory,'appliance','blacklist'),'r') as fi:
-                active_black_list = json.load(fi)
-        except:
-            forceUpdate=True
-        if forceUpdate==True or active_black_list != black_list:
+def updateFUListOnBU(conf,logger,lfilein,listname):
+
+    lfiles = [lfilein] if lfilein else []
+    if getattr(conf,'static_'+listname):
+        lfiles.append('/etc/appliance/'+listname)
+        logger.warning('using static '+listname+' file: '+lfiles[-1])
+    fu_list=[]
+    active_fu_list=[]
+    success=False
+    for lfile in lfiles:
+      try:
+        if os.stat(lfile).st_size>0:
+            with open(lfile,'r') as fi:
+                try:
+                    static_fu_list = json.load(fi)
+                    for item in static_fu_list:
+                        fu_list.append(item)
+                    logger.info("found these resources in " + lfile + " : " + str(fu_list))
+                except ValueError:
+                    logger.error("error parsing" + lfile)
+      except:
+        #no fu file, this is ok
+        pass
+    fu_list=list(set(fu_list))
+    try:
+        with open(os.path.join(conf.watch_directory,'appliance',listname),'r') as fi:
+            active_fu_list = json.load(fi)
+            success=True
+    except:
+        if forceUpdate==True or active_fu_list != fu_list:
             try:
-                with open(os.path.join(conf.watch_directory,'appliance','blacklist'),'w') as fi:
-                    json.dump(black_list,fi)
-            except:
-                return False,black_list
-    #TODO:check on FU if blacklisted
-    return True,black_list
+                with open(os.path.join(conf.watch_directory,'appliance',listname),'w') as fi:
+                    json.dump(fu_list,fi)
+                    success=True
+            except: pass
+    #TODO:check on FU if it is blacklisted or whitelisted
+    return success,fu_list
 
 
 def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):

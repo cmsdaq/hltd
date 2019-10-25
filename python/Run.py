@@ -12,7 +12,8 @@ from signal import SIGKILL
 import logging
 
 import Resource
-from HLTDCommon import updateBlacklist,dqm_globalrun_filepattern
+from HLTDCommon import updateFUList,dqm_globalrun_filepattern
+from MountManager import  find_nfs_mount_addr
 from setupES import setupES
 
 def preexec_function():
@@ -91,7 +92,7 @@ class RunList:
 
 class Run:
 
-    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,resource_lock):
+    def __init__(self,nr,dirname,bu_base_ram_dirs,bu_dir,bu_output_base_dir,instance,confClass,stateInfo,resInfo,runList,rr,nsslock,resource_lock):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.pending_shutdown=False
@@ -100,13 +101,13 @@ class Run:
         self.num_errors_res = 0
 
         self.runnumber = nr
+        self.bu_base_ram_dirs = bu_base_ram_dirs
         self.dirname = dirname
         self.instance = instance
         self.state = stateInfo
         self.resInfo = resInfo
         self.runList = runList
         self.rr = rr
-        self.mm = mountMgr
         self.nsslock = nsslock
         self.resource_lock = resource_lock
 
@@ -122,7 +123,8 @@ class Run:
 
         self.arch = None
         self.version = None
-        self.transfermode = None
+        self.buDataAddr = None
+        self.transferMode = None
         self.waitForEndThread = None
         self.beginTime = datetime.datetime.now()
         self.anelasticWatchdog = None
@@ -144,27 +146,28 @@ class Run:
         #            if int(self.runnumber) in active_runs:
         #                raise Exception("Run "+str(self.runnumber)+ "already active")
 
-        self.hlt_directory = os.path.join(bu_dir,conf.menu_directory)
-        self.menu_path = os.path.join(self.hlt_directory,conf.menu_name)
-        self.paramfile_path = os.path.join(self.hlt_directory,conf.paramfile_name)
+        if conf.role=='fu':
+            self.hlt_directory = os.path.join(bu_dir,conf.menu_directory)
+            self.menu_path = os.path.join(self.hlt_directory,conf.menu_name)
+            self.paramfile_path = os.path.join(self.hlt_directory,conf.paramfile_name)
 
-        readMenuAttempts=0
-        #polling for HLT menu directory
-        def paramsPresent():
-            return os.path.exists(self.hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(self.paramfile_path)
+            readMenuAttempts=0
+            #polling for HLT menu directory
+            def paramsPresent():
+                return os.path.exists(self.hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(self.paramfile_path)
 
-        paramsDetected = False
-        while conf.dqm_machine==False and conf.role=='fu':
-            if paramsPresent():
+            paramsDetected = False
+            while conf.dqm_machine==False:
+              if paramsPresent():
                 try:
                     with open(self.paramfile_path,'r') as fp:
                         fffparams = json.load(fp)
 
                         self.arch = fffparams['SCRAM_ARCH']
                         self.version = fffparams['CMSSW_VERSION']
-                        self.transfermode = fffparams['TRANSFER_MODE']
+                        self.transferMode = fffparams['TRANSFER_MODE']
                         paramsDetected = True
-                        self.logger.info("Run " + str(self.runnumber) + " uses " + self.version + " ("+self.arch + ") with " + str(conf.menu_name) + ' transferDest:'+self.transfermode)
+                        self.logger.info("Run " + str(self.runnumber) + " uses " + self.version + " ("+self.arch + ") with " + str(conf.menu_name) + ' transferDest:'+self.transferMode)
                     break
 
                 except ValueError as ex:
@@ -176,33 +179,40 @@ class Run:
                         self.logger.exception(ex)
                         break
 
-            else:
+              else:
                 if readMenuAttempts>50:
                     if not os.path.exists(bu_dir):
                         self.logger.info("FFF parameter or HLT menu files not found in ramdisk - BU run directory is gone")
                     else:
                         self.logger.error('RUN:'+str(self.runnumber) + " - FFF parameter or HLT menu files not found in ramdisk")
                     break
-            readMenuAttempts+=1
-            time.sleep(.1)
-            continue
+              readMenuAttempts+=1
+              time.sleep(.1)
+              #continue
+
+        try:
+          self.buDataAddr = find_nfs_mount_addr(bu_base_ram_dirs[0]) # todo: make function of mount manager?
+        except Exception as ex:
+          #if this fails, give up right away to avoid starting processes without proper BU data address
+          self.logger.exception(ex)
+          return
 
         if not paramsDetected:
             self.arch = conf.cmssw_arch
             self.version = conf.cmssw_default_version
             self.menu_path = conf.test_hlt_config1
-            self.transfermode = 'null'
+            self.transferMode = 'null'
             if conf.role=='fu':
                 self.logger.warning("Using default values for run " + str(self.runnumber) + ": " + self.version + " (" + self.arch + ") with " + self.menu_path)
 
         #give this command line parameter quoted in case it is empty
-        if len(self.transfermode)==0:
-            self.transfermode='null'
+        if len(self.transferMode)==0:
+            self.transferMode='null'
 
         #backup HLT menu and parameters
         if conf.role=='fu':
             try:
-                hltTargetName = 'HltConfig.py_run'+str(self.runnumber)+'_'+self.arch+'_'+self.version+'_'+self.transfermode
+                hltTargetName = 'HltConfig.py_run'+str(self.runnumber)+'_'+self.arch+'_'+self.version+'_'+self.transferMode
                 shutil.copy(self.menu_path,os.path.join(conf.log_dir,'pid',hltTargetName))
             except:
                 self.logger.warning('Unable to backup HLT menu')
@@ -221,7 +231,7 @@ class Run:
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - could not create mon dir inside the run input directory")
         else:
-            self.rawinputdir= os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'run' + str(self.runnumber).zfill(conf.run_number_padding))
+            self.rawinputdir= os.path.join(bu_base_ram_dirs[0],'run' + str(self.runnumber).zfill(conf.run_number_padding))
 
         #verify existence of the input directory
         if conf.role=='fu':
@@ -245,7 +255,7 @@ class Run:
                     elastic_args = ['/opt/hltd/scratch/python/elasticbu.py',str(self.runnumber),self.instance]
                 else:
                     self.logger.info("starting elastic.py with arguments:"+self.dirname)
-                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',str(self.resInfo.expected_processes)]
+                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',bu_output_base_dir,str(self.resInfo.expected_processes)]
 
                 self.elastic_monitor = subprocess.Popen(elastic_args,
                                                         preexec_fn=preexec_function,
@@ -264,7 +274,7 @@ class Run:
         if conf.role == "fu" and conf.dqm_machine==False:
             try:
                 self.logger.info("starting anelastic.py with arguments:"+self.dirname)
-                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,self.mm.bu_disk_list_output_instance[0]]
+                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,bu_output_base_dir]
                 self.anelastic_monitor = subprocess.Popen(elastic_args,
                                                     preexec_fn=preexec_function,
                                                     close_fds=True
@@ -371,20 +381,27 @@ class Run:
         count = 0
         cpu_group=[]
 
-        bldir = os.path.join(self.dirname,'hlt')
+        hltdir = os.path.join(self.dirname,'hlt')
         blpath = os.path.join(self.dirname,'hlt','blacklist')
+        wlpath = os.path.join(self.dirname,'hlt','whitelist')
         if conf.role=='bu':
             attempts=100
-            while not os.path.exists(bldir) and attempts>0:
+            while not os.path.exists(hltdir) and attempts>0:
                 time.sleep(0.05)
                 attempts-=1
                 if attempts<=0:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - timeout waiting for directory '+ bldir)
+                    self.logger.error('RUN:'+str(self.runnumber)+' - timeout waiting for directory '+ hltdir)
                     break
             if os.path.exists(blpath):
-                update_success,self.rr.boxInfo.machine_blacklist=updateBlacklist(conf,self.logger,blpath)
+                update_success,self.rr.boxInfo.machine_blacklist = updateFUlistOnBU(conf,self.logger,blpath,'blacklist')
             else:
-                self.logger.error('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+bldir)
+                self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+hltdir)
+
+            if os.path.exists(wlpath):
+                rr.boxInfo.has_whitelist,self.rr.boxInfo.machine_whitelist = updateFUlistOnBU(conf,self.logger,wlpath,'whitelist')
+            else:
+                self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find whitelist file in "+hltdir)
+
 
         for cpu in dirlist:
             #skip self
@@ -394,6 +411,11 @@ class Run:
                 if cpu in self.rr.boxInfo.machine_blacklist:
                     self.logger.info("skipping blacklisted resource "+str(cpu))
                     continue
+
+                if self.rr.boxInfo.has_whitelist and cpu not in self.rr.boxInfo.machine_whitelist:
+                    self.logger.info("skipping non-whitelisted resource "+str(cpu))
+                    continue
+
                 is_stale,f_ip = self.checkStaleResourceFileAndIP(os.path.join(res_dir,cpu)) 
                 if is_stale:
                     self.logger.error('RUN:'+str(self.runnumber)+" - skipping stale resource "+str(cpu))
@@ -501,6 +523,10 @@ class Run:
             if resourcename in self.rr.boxInfo.machine_blacklist:
                 self.logger.info("skipping blacklisted resource "+str(resource.cpu))
                 return None
+            if self.rr.boxInfo.has_whitelist and resourcename not in self.rr.boxInfo.machine_whitelist:
+                self.logger.info("skipping non-whitelisted resource "+str(resource.cpu))
+                return None
+
         current_time = time.time()
         age = current_time - resourceage
         self.logger.info("found resource "+resourcename+" which is "+str(age)+" seconds old")
@@ -513,15 +539,18 @@ class Run:
     def StartOnResource(self, resource,is_locked):
         self.logger.debug("StartOnResource called")
         resource.assigned_run_dir=conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
-        new_index = self.online_resource_list.index(resource)%len(self.mm.bu_disk_list_ramdisk_instance)
+        #support dir rotation in case of static mountpoints
+        in_dir = self.bu_base_ram_dirs[self.online_resource_list.index(resource)%len(self.bu_base_ram_dirs)]
+
         resource.StartNewProcess(self.runnumber,
-                                 self.mm.bu_disk_list_ramdisk_instance[new_index],
+                                 in_dir,
                                  self.arch,
                                  self.version,
                                  self.menu_path,
-                                 self.transfermode,
                                  int(round((len(resource.cpu)*float(self.resInfo.nthreads)/self.resInfo.nstreams))),
                                  len(resource.cpu),
+                                 self.buDataAddr,
+                                 self.transferMode,
                                  is_locked)
         self.logger.debug("StartOnResource process started")
 

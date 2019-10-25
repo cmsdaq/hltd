@@ -112,7 +112,7 @@ class OnlineResource:
         except Exception as ex:
             self.logger.exception(ex)
 
-    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, transfermode, num_threads, num_streams, is_locked):
+    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, num_threads, num_streams, buDataAddr, transferMode, is_locked):
         self.logger.debug("OnlineResource: StartNewProcess called")
         self.runnumber = runnumber
         self.remove_resources_flag=False
@@ -141,12 +141,14 @@ class OnlineResource:
                             conf.exec_directory,
                             full_release,
                             menu,
-                            transfermode,
                             str(runnumber),
                             input_disk,
                             conf.watch_directory,
                             str(num_threads),
-                            str(num_streams)]
+                            str(num_streams),
+                            buDataAddr,
+                            transferMode,
+                            ]
         else: # a dqm machine
             dqm_globalrun_file = input_disk + '/' + dqm_globalrun_filepattern.format(str(runnumber).zfill(conf.run_number_padding))
             runkey = ''

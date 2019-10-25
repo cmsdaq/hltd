@@ -480,6 +480,7 @@ if __name__ == "__main__":
       hltdcfg.commit()
       sys.exit(0)
     elif 'setbusconfig' == selection:
+      #note: this doesn't change dynamic_mounts option
       with open(busconfig,'w+') as f:
         f.writelines([sys.argv[2]])
       sys.exit(0)
@@ -684,6 +685,7 @@ if __name__ == "__main__":
     if cluster=='hilton':
         clusterName='appliance_hilton'
 
+    bus_config_used = False
     if True:
 
         #first prepare bus.config file
@@ -697,7 +699,7 @@ if __name__ == "__main__":
 
             #write bu ip address
             if cluster!='hilton':
-                f = open(busconfig,'w+')
+              with  open(busconfig,'w+') as f:
                 #swap entries based on name (only C6100 hosts with two data interfaces):
                 if len(buDataAddr)>1 and name_identifier()==1:
                     temp = buDataAddr[0]
@@ -715,7 +717,7 @@ if __name__ == "__main__":
                         #write bus.config even if name is not yet available by DNS
                         nameToWrite = addr
                     f.writelines(nameToWrite)
-                f.close()
+                    if len(nameToWrite) and dqmmachine=='False': bus_config_used=True
 
         #FU should have one instance assigned, BUs can have multiple
         watch_dir_bu = '/fff/ramdisk'
@@ -802,8 +804,10 @@ if __name__ == "__main__":
 
                 if cluster=='daq2val' or cluster=='daq3val':
                     hltdcfg.reg('static_blacklist','True','[General]')
+                    hltdcfg.reg('static_whitelist','False','[General]') #!
                 else:
                     hltdcfg.reg('static_blacklist','False','[General]')
+                    hltdcfg.reg('static_whitelist','False','[General]')
 
                 #hltdcfg.reg('micromerge_output',out_dir_bu,'[General]')
                 hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
@@ -838,6 +842,9 @@ if __name__ == "__main__":
             hltdcfg.reg('instance',instances[0],'[General]')
             if cluster=='hilton':
                 hltdcfg.reg('bu_base_dir','/fff/BU0','[General]')
+            #not set for Hilton, DQM and any setup not using NFS
+            if  bus_config_used:
+                hltdcfg.reg('dynamic_mounts','True','[General]')
 
             hltdcfg.reg('exec_directory',execdir,'[General]')
             hltdcfg.reg('watch_directory','/fff/data','[General]')
@@ -848,6 +855,7 @@ if __name__ == "__main__":
               #hltdcfg.reg('drop_at_fu','True','[General]')
 
             hltdcfg.reg('static_blacklist','False','[General]')
+            hltdcfg.reg('static_whitelist','False','[General]')
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
             hltdcfg.reg('soap2file_port','0','[Web]')

@@ -28,4 +28,6 @@ touch /opt/hltd/scratch/new-version || true
 /usr/bin/systemctl restart soap2file
 
 #start hltd if not running (ensures hltd startup on new installation)
+rm -rf /var/cache/whitelist.last >& /dev/null || true
+rm -rf /var/cache/blacklist.last >& /dev/null || true
 /usr/bin/systemctl start hltd

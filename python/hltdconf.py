@@ -16,6 +16,7 @@ class hltdConf:
         self.elastic_bu_test = None
         self.elastic_runindex_url = None
         self.elastic_runindex_name = 'cdaq'
+        self.fff_base = '/fff'
         self.watch_directory = None
         self.ramdisk_subdirectory = 'ramdisk' #local mountpoint
         self.output_subdirectory = 'output' #local mountpoint
@@ -34,7 +35,18 @@ class hltdConf:
         #override default values into imposed types
         self.enabled = cfg.getboolean('General','enabled')
         self.mount_control_path = cfg.getboolean('General','mount_control_path')
-        self.static_blacklist = cfg.getboolean('General','static_blacklist')
+        try:
+          self.dynamic_mounts = cfg.getboolean('Resources','dynamic_mounts')
+        except:
+          self.dynamic_mounts = False
+        try:
+          self.static_blacklist = cfg.getboolean('General','static_blacklist')
+        except:
+          self.static_blacklist = False
+        try:
+          self.static_whitelist = cfg.getboolean('General','static_whitelist')
+        except:
+          self.static_whitelist = False
 
         #default
         try:

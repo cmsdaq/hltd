@@ -119,6 +119,8 @@ class elasticBandBU:
         eslib_logger.setLevel(logging.ERROR)
 
         self.black_list=None
+        self.white_list=None
+        self.has_whitelist=False
         if self.conf.instance=='main':
             self.hostinst = self.host
         else:
@@ -414,7 +416,6 @@ class elasticBandBU:
         #check box file against blacklist
         if bu_doc or self.black_list==None:
             self.black_list=[]
-
             try:
                 with open(os.path.join(self.conf.watch_directory,'appliance','blacklist'),"r") as fi:
                     try:
@@ -426,7 +427,25 @@ class elasticBandBU:
                 #blacklist file is not present, do not filter
                 pass
 
+        if bu_doc or self.white_list==None:
+            self.white_list=[]
+            self.has_whitelist=False
+            try:
+                with open(os.path.join(self.conf.watch_directory,'appliance','whitelist'),"r") as fi:
+                    try:
+                        self.white_list = json.load(fi)
+                        self.has_whitelist = True
+                    except ValueError:
+                        #file is being written or corrupted
+                        return
+            except:
+                #blacklist file is not present, do not filter
+                pass
+
+
         if basename in self.black_list:return
+        if self.has_whitelist and basename not in self.white_list:return
+
 
         if bu_doc==False:
             try:
@@ -463,6 +482,8 @@ class elasticBandBU:
             document['instance']=self.conf.instance
             if bu_doc==True:
                 document['blacklist']=self.black_list
+                if self.has_whitelist:
+                  document['whitelist']=self.white_list
             #only here
             document['host']=basename
             try:document.pop('version')

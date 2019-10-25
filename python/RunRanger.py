@@ -17,6 +17,7 @@ import pwd
 
 import Run
 from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
+from MountManager import find_nfs_mountpoints
 from inotifywrapper import InotifyWrapper
 from buemu import BUEmu
 
@@ -32,7 +33,7 @@ def tryremove(fpath):
 
 class RunRanger:
 
-    def __init__(self,instance,confClass,stateInfo,resInfo,runList,resourceRanger,mountMgr,logCollector,nsslock,resource_lock):
+    def __init__(self,instance,confClass,stateInfo,resInfo,runList,resourceRanger,mountMgr,sysMon,logCollector,nsslock,resource_lock):
         self.inotifyWrapper = InotifyWrapper(self)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.instance = instance
@@ -41,6 +42,7 @@ class RunRanger:
         self.runList = runList
         self.rr = resourceRanger
         self.mm = mountMgr
+        self.sm = sysMon
         self.logCollector = logCollector
         self.nsslock = nsslock
         self.resource_lock = resource_lock
@@ -64,6 +66,11 @@ class RunRanger:
         fullpath = event.fullpath
         self.logger.info('event '+fullpath)
         dirname=fullpath[fullpath.rfind("/")+1:]
+        suffix=''
+        s_pos = dirname.find('_')
+        if s_pos >=0:
+          dirname = dirname[:s_pos]
+          suffix = dirname[s_pos+1:]
 
         #detect if number is appended to the end of the command
         numChar = -1
@@ -84,7 +91,7 @@ class RunRanger:
 
         try:
           if prefix in ['run']:              #BU,FU
-            self.newRunCmd(dirname,dirnum,fullpath)
+            self.newRunCmd(dirname,dirnum,suffix,fullpath)
 
           elif prefix in ['end']:            #FU
             self.endRunCmd(dirnum,fullpath)
@@ -146,7 +153,7 @@ class RunRanger:
 
           elif prefix in ['suspend']: #FU (BU:warning)
             if conf.role == 'fu':
-              self.suspendCmd(dirnum,fullpath)
+              self.suspendCmd(dirnum,fullpath,suffix)
             else:
               self.logger.warning("unable to suspend on " + conf.role)
               tryremove(fullpath)
@@ -162,12 +169,14 @@ class RunRanger:
                   self.harakiriCmd()
 
           elif prefix in ['emu']: #BU (deprecated)
-            self.buEMUCmd(dirnum)
+            #self.buEMUCmd(dirnum) #preparing to remove this
             tryremove(fullpath)
 
           elif prefix=="cgi-bin":
             pass
- 
+          elif dirname.startswith("switchbu_"):
+            tryremove(fullpath)
+
           else:
             self.logger.warning("unrecognized command "+fullpath)
             tryremove(fullpath)
@@ -182,7 +191,7 @@ class RunRanger:
         filename=event.fullpath[event.fullpath.rfind("/")+1:]
 
 
-    def newRunCmd(self,dirname,rn,fullpath):
+    def newRunCmd(self,dirname,rn,suffix,fullpath):
         if os.path.islink(fullpath):
             self.logger.info('directory ' + fullpath + ' is link. Ignoring this run')
             return
@@ -192,6 +201,23 @@ class RunRanger:
 
         #check and fix directory ownership if not created as correct user and group (in case of manual creation)
         if conf.role=='fu' and not conf.dqm_machine:
+
+            #look for directory suffix containing BU name (dynamic mountpoint)
+            rundir_tokens = suffix.split('_')
+            if len(rundir_tokens)==1:
+                self.logger.error("can not parse directory name ", dirname)
+                return
+            bu_mount_suffix=None
+            if len(rundir_tokens)>1:
+              #rename to the usual run directory
+              os.rename(fullpath,fullpath[:fullpath.rfind('/')+1]+dirname)
+              if rundir_tokens[0]=="mnt":
+                #should not have dot, but drop it just in case
+                bu_mount_suffix=rundir_tokens[1].split('.')[0]
+                #signal to monitoring and heartbeat handler to switch to a different mount point
+                #this could block in case of network issue
+                self.sm.notifyMaybeChangeBU(bu_mount_suffix)
+
             try:
                 stat_res = os.stat(fullpath)
                 if self.pw_record.pw_uid!=stat_res.st_uid or self.pw_record.pw_gid!=stat_res.st_gid:
@@ -221,16 +247,28 @@ class RunRanger:
                             os.rmdir(fullpath)
                             return
                         self.state.masked_resources=False #clear this flag for run that was stopped manually
+                        bu_dir_base = [None]
+                        bu_out_dir_base = None
+                        bu_dir = None
                         if conf.role == 'fu':
-                            bu_dir = self.mm.bu_disk_list_ramdisk_instance[0]+'/'+dirname
+                            if self.mm and not bu_mount_suffix:
+                              bu_dir_base = self.mm.bu_disk_list_ramdisk_instance
+                              bu_out_dir_base = self.mm.bu_disk_list_output_instance[0]
+                            else:
+                              if not bu_mount_suffix:
+                                self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
+                                return
+                              #set dynamic mountpoint to start the run in
+                              bu_dir_base = [os.path.join(conf.fff_base,"ramdisk_"+bu_mount_suffix)]
+                              bu_out_dir_base = os.path.join(conf.fff_base,"output_"+bu_mount_suffix)
+
+                            bu_dir = os.path.join(bu_dir_base_vec[0],dirname)
                             try:
                                 os.symlink(bu_dir+'/jsd',fullpath+'/jsd')
                             except:
                                 if not conf.dqm_machine:
                                     self.logger.warning('jsd directory symlink error, continuing without creating link')
                                 pass
-                        else:
-                            bu_dir = ''
 
                         #check if this run is a duplicate
                         if self.runList.getRun(rn)!=None:
@@ -253,7 +291,7 @@ class RunRanger:
                               tmp_change = self.resInfo.updateIdles(tmp_os_cpuconfig_change,checkLast=False)
                               self.state.os_cpuconfig_change=tmp_change
 
-                        run = Run.Run(rn,fullpath,bu_dir,self.instance,conf,self.state,self.resInfo,self.runList,self.rr,self.mm,self.nsslock,self.resource_lock)
+                        run = Run.Run(rn,fullpath,bu_dir_base_vec,bu_dir,bu_out_dir_base,self.instance,conf,self.state,self.resInfo,self.runList,self.rr,self.nsslock,self.resource_lock)
                         if not run.inputdir_exists and conf.role=='fu':
                             self.logger.info('skipping '+ fullpath + ' with raw input directory missing')
                             shutil.rmtree(fullpath)
@@ -301,8 +339,6 @@ class RunRanger:
                     """
                     start a new BU emulator run here - this will trigger the start of the HLT test run
                     """
-                    #TODO:fix this constructor in buemu.py
-                    #self.bu_emulator = BUEmu(conf,self.mm.bu_disk_list_ramdisk_instance,preexec_function)
                     self.bu_emulator = BUEmu(conf,self.mm.bu_disk_list_ramdisk_instance)
                     self.bu_emulator.startNewRun(rn)
 
@@ -498,8 +534,8 @@ class RunRanger:
                         self.logger.exception(ex)
 
 
-    def suspendCmd(self,dirnum,fullpath):
-
+    def suspendCmd(self,dirnum,fullpath,suffix):
+            #command received on FU
             self.logger.info('suspend mountpoints initiated')
             self.state.suspended=True
             replyport = dirnum if dirnum!=-1 else conf.cgi_port
@@ -511,15 +547,38 @@ class RunRanger:
 
             time.sleep(.5)
             #local request used in case of stale file handle
-            if replyport==0:
-                umount_success = self.mm.cleanup_mountpoints(self.nsslock)
+
+            bu_name = suffix.split('_')[0]
+
+            def do_umount():
+
+                umount_success = self.mm.cleanup_mountpoints(self.nsslock,remount=False) if self.mm else True
+                self.logger.warning("running suspend (check) for dynamic mounts")
+                for found in find_nfs_mountpoints([os.path.join(conf.fff_base,"ramdisk_"),os.path.join(conf.fff_base,"output_")]):
+                  #will force unmount in case of a process keeping mount busy
+                  self.logger.warning("running umount for "+found)
+                  try:
+                    subprocess.check_call(['umount','-f',found])
+                    #subprocess.check_call(['umount','-l',found]) #could also use lazy unmount
+                  except Exception as ex:
+                    self.logger.error(str(ex))
+                    umount_success=False
+
+            def do_mount():
+                umount_sucess = umount_success and (self.mm.cleanup_mountpoints(self.nsslock) if self.mm else True)
+                self.logger.info("Remount for replyport="+str(replyport) + " host=" + bu_name + " is performed.")
                 try:os.remove(fullpath)
                 except:pass
                 self.state.suspended=False
-                self.logger.info("Remount requested locally is performed.")
-                return
 
-            umount_success = self.mm.cleanup_mountpoints(self.nsslock,remount=False)
+            do_umount()
+
+            if replyport==0 or len(suffix)==0:
+              if len(suffix)==0:
+                self.logger.error("no BU reply address provided!")
+              do_mount()
+              return
+
 
             if umount_success==False:
                 time.sleep(1)
@@ -531,50 +590,20 @@ class RunRanger:
                 fp.close()
                 return
 
-            #find out BU name from bus_config
-            bu_name=None
-            bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-            try:
-                if os.path.exists(bus_config):
-                    for line in open(bus_config,'r'):
-                        bu_name=line.split('.')[0]
-                        break
-            except:
-                pass
-
             #first report to BU that umount was done
             try:
-                if bu_name==None:
-                    self.logger.fatal("No BU name was found in the bus.config file. Leaving mount points unmounted until the hltd service restart.")
-                    os.remove(fullpath)
-                    return
                 connection = HTTPConnection(bu_name, replyport+20,timeout=5)
                 connection.request("GET",'cgi-bin/report_suspend_cgi.py?host='+os.uname()[1])
                 response = connection.getresponse()
             except Exception as ex:
                 self.logger.error("Unable to report suspend state to BU "+str(bu_name)+':'+str(replyport+20))
                 self.logger.exception(ex)
+                #BU could already be down, continue to a polling loop
+                sleep(1)
 
             #loop while BU is not reachable
             while True:
                 try:
-                    #reopen bus.config in case is modified or moved around
-                    bu_name=None
-                    bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-                    if os.path.exists(bus_config):
-                        try:
-                            for line in open(bus_config):
-                                bu_name=line.split('.')[0]
-                                break
-                        except:
-                            self.logger.info('exception test 1')
-                            time.sleep(5)
-                            continue
-                    if bu_name==None:
-                        self.logger.info('exception test 2')
-                        time.sleep(5)
-                        continue
-
                     self.logger.info('checking if BU hltd is available...')
                     connection = HTTPConnection(bu_name, replyport,timeout=5)
                     connection.request("GET",'cgi-bin/getcwd_cgi.py')
@@ -589,13 +618,8 @@ class RunRanger:
                         self.logger.info('Failed to contact BU hltd service '+str(ex))
                     time.sleep(5)
 
-            #mount again
-            self.mm.cleanup_mountpoints(self.nsslock)
-            try:os.remove(fullpath)
-            except:pass
-            self.state.suspended=False
-
-            self.logger.info("Remount is performed")
+            #mount again when BU is back
+            do_mount()
 
 
     def stopCmd(self,dirname):
@@ -822,6 +846,10 @@ class RunRanger:
             time.sleep(2)
             self.logger.info('cloud mode in hltd has been switched off')
 
+    def notifyBUSwitch(self,dirname,fullpath):
+            #call notify script to move resource file to another NFS path
+            #next run should be started from the new NFS path
+            pass
 
     def resourceUpdateCmd(self):
 

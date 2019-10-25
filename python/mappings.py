@@ -245,6 +245,7 @@ central_boxinfo_mapping = {
       'cloudState'    :{'type':'keyword'},
       'detectedStaleHandle':{'type':'boolean'},
       'blacklist' : {'type':'keyword'},
+      'whitelist' : {'type':'keyword'},
       'cpuName' : {'type':'keyword'},
       'cpu_phys_cores':{'type':'integer'},
       'cpu_hyperthreads':{'type':'integer'},
