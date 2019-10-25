@@ -47,6 +47,7 @@ class system_monitor(threading.Thread):
         self.threadEventStat = threading.Event()
         self.threadEventESBox = threading.Event()
         self.bu_mount_suffix = None
+        self.bu_mount_suffix_short = None
         self.dummyMountMgr = MountManagerDummy()
 
         self.resetRunningState()
@@ -94,6 +95,7 @@ class system_monitor(threading.Thread):
           self.stop()
           self.resetRunningState()
           self.bu_mount_suffix = bu_mount_suffix
+          if bu_mount_suffix: self.bu_mount_suffix_short = bu_mount_suffix.split('.')[0]
           self.startESBox()
           self.preStart()
           self.start()
@@ -270,11 +272,18 @@ class system_monitor(threading.Thread):
 
     def buBootIdFetch(self,buboxdir):
         try:
-          for bf in os.listdir(buboxdir):
+          listed = os.listdir(buboxdir)
+          for bf in listed:
             if bf.startswith('bu-') or bf.startswith('dvbu-')  or bf.startswith('d3vrubu-') or (self.hostname.startswith('dvfu-') and bf.startswith('dvrubu-')):
               with open(os.path.join(buboxdir,bf),'r') as fp:
                 return json.load(fp)['boot_id']
-              break
+          #make this work for test host which doesn't begin with *bu- name
+          for bf in listed:
+            bf_short = bf.split('.')[0]
+            if self.bu_mount_suffix_short and bf_short == self.bu_mount_suffix_short:
+              with open(os.path.join(buboxdir,bf),'r') as fp:
+                return json.load(fp)['boot_id']
+
         except Exception as ex:
           self.logger.warning('unable to read BU boot_id: '+str(ex))
         return None

@@ -64,8 +64,29 @@ def updateFUListOnBU(conf,logger,lfilein,listname):
                     success=True
             except: pass
     #TODO:check on FU if it is blacklisted or whitelisted
+
+    #make a backup copy on local drive of last blacklist used
+    try:
+      shutil.copy(os.path.join(conf.watch_directory,'appliance',listname),os.path.join('/var/cache/hltd',listname+".last"))
+    except:
+      pass
     return success,fu_list
 
+def restoreFUListOnBU(conf,logger,listname):
+    if getattr(conf,'static_'+listname):
+        logger.info('static '+listname+' used')
+        return []
+    dest = os.path.join(conf.watch_directory,'appliance',listname)
+    try:
+        shutil.copy(os.path.join('/var/cache/hltd',listname+".last"),dest)
+    except:
+        return []
+    try:
+        with open(dest,'r') as fi:
+            return json.load(fi)
+    except Exception as ex:
+        logger.info(dest + ' could not be read ' + str(ex))
+        return []
 
 def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
   if not doLock: return None

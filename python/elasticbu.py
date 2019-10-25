@@ -99,6 +99,7 @@ class elasticBandBU:
         self.runnumber = str(runnumber)
         self.startTime = startTime
         self.host = os.uname()[1]
+        self.host_short = os.uname()[1].split('.')[0]
         self.stopping=False
         self.threadEvent = threading.Event()
         self.runMode=runMode
@@ -404,13 +405,14 @@ class elasticBandBU:
     def elasticize_box(self,infile):
 
         basename = infile.basename
+        basename_short = infile.basename.split('.')[0]
         self.logger.debug(basename)
         current_time = time.time()
 
         if infile.data=={}:return
 
         bu_doc=False
-        if basename.startswith('bu') or basename.startswith('dvbu') or basename.startswith('d3vrubu'):
+        if basename.startswith('bu') or basename.startswith('dvbu') or basename.startswith('d3vrubu') or basename_short == self.host_short:
             bu_doc=True
 
         #check box file against blacklist

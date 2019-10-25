@@ -16,10 +16,6 @@ try:
     import cx_Oracle
 except ImportError:
     pass
-try:
-    import MySQLdb
-except ImportError:
-    pass
 
 backup_dir = '/opt/fff/backup'
 try:
@@ -32,7 +28,6 @@ busconfig = '/etc/appliance/bus.config'
 cnhostname = ''
 
 cred=None
-dbhost = 'empty'
 dbsid = 'empty'
 dblogin = 'empty'
 dbpwd = 'empty'
@@ -69,6 +64,7 @@ vm_override_buHNs = {
                      }
 #vm_bu_override = ['bu-vm-01-01.cern.ch']
 
+#NOTE: DAQ2 tag will change when DB is updated to generate a new tag
 
 def getmachinetype():
 
@@ -86,6 +82,7 @@ def getmachinetype():
     elif myhost.startswith('fu-') : return 'daq2','fu'
     elif myhost.startswith('hilton-') : return 'hilton','fu'
     elif myhost.startswith('bu-') : return 'daq2','bu'
+    elif myhost.startswith('cc7-ws'): return 'daq2','bu' #TESTING
     else:
         print("unknown machine type")
         return 'unknown','unknown'
@@ -137,66 +134,57 @@ def name_identifier():
     except:
         return 0
 
-def setupDirs(role,fu_dir,bu_dir):
+def setupDirsFU(fu_dir):
     #prepare and set permissions for the watch directory on FU
-    if role=='fu':
+    try:
+        os.umask(0)
+        os.makedirs(fu_dir)
+    except OSError:
         try:
-            os.umask(0)
-            os.makedirs(fu_dir)
-        except OSError:
-            try:
-                os.chmod(fu_dir,0o777)
-            except:
-                pass
+            os.chmod(fu_dir,0o777)
+        except:
+            pass
 
-    elif role=='bu':
-        #ramdisk should already be present, but create subdirectory where hltd will write resource file
+def setupDirsBU(bu_dir):
+    #ramdisk should already be present, but create subdirectory where hltd will write resource file
+    try:
+        os.umask(0)
+        os.makedirs(bu_dir+'/appliance')
+    except OSError:
         try:
-            os.umask(0)
-            os.makedirs(bu_dir+'/appliance')
-        except OSError:
-            try:
-                os.chmod(bu_dir+'/appliance',0o777)
-            except:
-                pass
+            os.chmod(bu_dir+'/appliance',0o777)
+        except:
+            pass
 
 
-def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=True):
+def getBUAddr(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
+
+    retval = []
+    if env_ == "vm":
+        try:
+            #cluster in openstack that is not (yet) in mysql
+            for bu_hn in vm_override_buHNs[hostname]:
+                retval.append(["myBU",bu_hn])
+        except:pass
+        return retval
 
     try:
-        if env_ == "vm":
-            try:
-            #cluster in openstack that is not (yet) in mysql
-                retval = []
-                for bu_hn in vm_override_buHNs[hostname]:
-                    retval.append(["myBU",bu_hn])
-                return retval
-            except:
-                pass
-            #con = MySQLdb.connect( host= dbhost_, user = dblogin_, passwd = dbpwd_, db = dbsid_)
-        else:
-            session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
-            if parentTag == 'daq2':
-                if dbhost_.strip()=='empty':
-                #con = cx_Oracle.connect('CMS_DAQ2_HW_CONF_W','pwd','cms_rcms',
-                    con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
-                              cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-                else:
-                    sys.exit(2)
-                    #con = cx_Oracle.connect(dblogin_+'/'+dbpwd_+'@'+dbhost_+':10121/'+dbsid_,
-                    #          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-            elif parentTag == 'daq2_904':
-                con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
-                              cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-            else: #daq2val,daq3val
-                con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
-                              cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+        session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
+        if parentTag == 'daq2':
+            con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+        elif parentTag == 'daq2_904':
+            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+        else: #daq2val,daq3val
+            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
 
     except Exception as ex:
         syslog.syslog('setupmachine.py: '+ str(ex))
         time.sleep(0.1)
         if retry:
-            return getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=False)
+            return getBUAddr(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=False)
         else:
             raise ex
     #print con.version
@@ -247,11 +235,62 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retr
     for res in cur:
         retval.append(res)
     cur.close()
+    con.close()
     if len(retval)==0:
         print('warning: query did not find anu BU for this FU')
         syslog.syslog('warning: query did not find anu BU for this FU')
     #print retval
     return retval
+
+def countBU_FUs(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=True):
+
+    fu_count=0
+    if env_ == "vm":
+        for fu_hn in vm_override_buHNs:
+            if vm_override_buHNs[fu_hn].strip('.')[0]==hostname.strip('.')[0]:
+                fu_count+=1
+        return fu_count
+    try:
+        session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
+        if parentTag == 'daq2':
+            con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+        elif parentTag == 'daq2_904':
+            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+        else: #daq2val,daq3val
+            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+
+    except Exception as ex:
+        syslog.syslog('setupmachine.py: '+ str(ex))
+        return 0
+
+    cur = con.cursor()
+
+    qstring = "select d.dnsname from \
+               DAQ_EQCFG_HOST_ATTRIBUTE ha, \
+               DAQ_EQCFG_HOST_NIC hn, \
+               DAQ_EQCFG_DNSNAME d \
+               where \
+               ha.eqset_id=hn.eqset_id AND \
+               hn.eqset_id=d.eqset_id AND \
+               ha.host_id = hn.host_id AND \
+               ha.attr_name like 'myBU' AND \
+               ha.attr_value = '"+hostname+"' AND \
+               hn.nic_id = d.nic_id AND \
+               (d.dnsname like '%fu-%' OR d.dnsname like '%d?vfu-%') AND \
+               d.dnsname not like '%.%.cms' \
+               AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
+               where tag='"+parentTag.upper()+"' AND \
+               ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
+
+    cur.execute(qstring)
+    for result in cur:
+      fu_count+=1
+    cur.close()
+    con.close()
+    return fu_count
 
 #was used only for tribe:
 #def getAllBU(requireFU=False):
@@ -497,7 +536,7 @@ if __name__ == "__main__":
     tmphost = os.uname()[1]
 
     #override environment for certain hostnames if "prod" detected:
-    if tmphost.startswith("fu-vm-") or tmphost.startswith("bu-vm-") and env=="prod":
+    if tmphost.startswith("fu-vm-") or tmphost.startswith("bu-vm-") or tmphost.startswith('cc7-ws') and env=="prod":
       env="vm"
       cred = {
         "env":"vm",
@@ -586,6 +625,8 @@ if __name__ == "__main__":
 
     cluster,mtype = getmachinetype()
 
+    isHilton = (cluster == "hilton")
+
     use_elasticsearch = 'True'
     cmssw_version = 'CMSSW_7_1_4_patch1' #stub
     dqmmachine = 'False'
@@ -643,96 +684,65 @@ if __name__ == "__main__":
         runindex_name = 'b904'
         use_elasticsearch = 'False'
         elastic_host_url = 'http://localhost:9200' #will be changed in future
-    elif cluster == 'hilton':
+    elif isHilton:
         runindex_name = 'dv'
         use_elasticsearch = 'False'
         elastic_host_url = 'http://localhost:9200'
 
     buName = None
     buDataAddr=[]
+    num_cfgdb_fus = 0
+    bu_check_err = False
 
     if mtype == 'fu':
-        if cluster == 'daq2val' or cluster == 'daq3val' or cluster == 'daq2' or cluster == 'daq2_904':
-            for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dbhost,dblogin,dbpwd,dbsid):
-                if buName==None:
-                    buName = addr[1].split('.')[0]
+        if cluster in ['daq2val','daq3val','daq2','daq2_904']:
+            for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dblogin,dbpwd,dbsid):
+                if buName == None:
+                    if isinstance(addr[1],str):
+                      if len(addr[1])==0:
+                        print("BU interface name is empty!")
+                        continue
+                      buName = addr[1].split('.')[0]
+                    #this probably shouldn't happen
+                    if buName == None:
+                        msg = "no BU found for this FU in the dabatase. Setting dynamic mounts mode."
+                        print(msg)
+                        syslog.syslog(msg)
+                        break
                 elif buName != addr[1].split('.')[0]:
                     print("BU name not same for all interfaces:",buName,addr[1].split('.')[0])
-                    continue
+                    bu_check_err = True
+                    break
+                #add to list
                 buDataAddr.append(addr[1])
-                #if none are pingable, first one is picked
-                if buName == None or len(buDataAddr)==0:
-                    print("no BU found for this FU in the dabatase")
-                    syslog.syslog("no BU found for this FU in the database")
-                    sys.exit(-1)
-        elif cluster == 'hilton':
-            pass
-        else:
-            print("FU configuration in cluster",cluster,"not supported yet !!")
+
+        elif not isHilton:
+            print("FU configuration in cluster",cluster,"not supported yet !")
             sys.exit(-2)
 
     elif mtype == 'bu':
-        if env == "vm":
-            buName = os.uname()[1].split(".")[0]
-        else:
-            buName = os.uname()[1]
+        buName = os.uname()[1].split(".")[0]
+        #find out if any FUs are configured to this machine (statically)
+        if cluster in ['daq2val','daq3val','daq2','daq2_904']:
+            num_cfgdb_fus = countBU_FUs(cluster,cnhostname,env,equipmentSet,dblogin,dbpwd,dbsid)
 
     print("running configuration for machine",cnhostname,"of type",mtype,"in cluster",cluster,"; appliance bu is:",buName)
-    if buName==None: buName=""
 
-    clusterName='appliance_'+buName
+    hltdEdited = checkModifiedConfigInFile(hltdconf)
+    if hltdEdited == False:
+        shutil.copy(hltdconf,os.path.join(backup_dir,os.path.basename(hltdconf)))
 
-    if cluster=='hilton':
-        clusterName='appliance_hilton'
+    ###############################################################################
 
-    bus_config_used = False
-    if True:
+    if mtype=='bu':
+            watch_dir_bu = '/fff/ramdisk'
+            #out_dir_bu = '/fff/output'
+            log_dir_bu = '/var/log/hltd'
 
-        #first prepare bus.config file
-        if mtype == 'fu':
+            #FU should have one instance assigned, BUs can have multiple
+            instances,sizes=getInstances(os.uname()[1])
+            if len(instances)==0: instances=['main']
 
-        #permissive:try to remove old bus.config
-            try:os.remove(os.path.join(backup_dir,os.path.basename(busconfig)))
-            except:pass
-            try:os.remove(busconfig)
-            except:pass
-
-            #write bu ip address
-            if cluster!='hilton':
-              with  open(busconfig,'w+') as f:
-                #swap entries based on name (only C6100 hosts with two data interfaces):
-                if len(buDataAddr)>1 and name_identifier()==1:
-                    temp = buDataAddr[0]
-                    buDataAddr[0]=buDataAddr[1]
-                    buDataAddr[1]=temp
-
-                newline=False
-                for addr in buDataAddr:
-                    if newline:f.writelines('\n')
-                    newline=True
-                    try:
-                        nameToWrite = getIPs(addr)[0]
-                    except Exception as ex:
-                        print(ex)
-                        #write bus.config even if name is not yet available by DNS
-                        nameToWrite = addr
-                    f.writelines(nameToWrite)
-                    if len(nameToWrite) and dqmmachine=='False': bus_config_used=True
-
-        #FU should have one instance assigned, BUs can have multiple
-        watch_dir_bu = '/fff/ramdisk'
-        out_dir_bu = '/fff/output'
-        log_dir_bu = '/var/log/hltd'
-
-        instances,sizes=getInstances(os.uname()[1])
-        if len(instances)==0: instances=['main']
-
-        hltdEdited = checkModifiedConfigInFile(hltdconf)
-
-        if hltdEdited == False:
-            shutil.copy(hltdconf,os.path.join(backup_dir,os.path.basename(hltdconf)))
-
-        if mtype=='bu':
             try:os.remove('/etc/hltd.instances')
             except:pass
 
@@ -756,29 +766,29 @@ if __name__ == "__main__":
                     break
             for idx, instance in enumerate(instances):
 
-                watch_dir_bu = '/fff/ramdisk'
-                out_dir_bu = '/fff/output'
-                log_dir_bu = '/var/log/hltd'
+                watch_dir_bu_inst = watch_dir_bu
+                log_dir_bu_inst = '/var/log/hltd'
 
                 cfile = hltdconf
                 if instance != 'main':
                     cfile = '/etc/hltd-'+instance+'.conf'
                     shutil.copy(hltdconf,cfile)
-                    watch_dir_bu = os.path.join(watch_dir_bu,instance)
-                    out_dir_bu = os.path.join(out_dir_bu,instance)
-                    log_dir_bu = os.path.join(log_dir_bu,instance)
+                    watch_dir_bu_inst = os.path.join(watch_dir_bu_inst,instance)
+                    log_dir_bu_inst = os.path.join(log_dir_bu,instance)
 
                     #run loopback setup for non-main instances (is done on every boot since ramdisk is volatile)
                     try:
-                        subprocess.check_call(['/opt/hltd/scripts/makeloopfs.sh', watch_dir_bu, instance, str(sizes[idx])])
+                        subprocess.check_call(['/opt/hltd/scripts/makeloopfs.sh', watch_dir_bu_inst, instance, str(sizes[idx])])
                     except subprocess.CalledProcessError as err1:
                         print('failed to configure loopback device mount in ramdisk')
 
                 soap2file_port='0'
 
-                if myhost in dqm_list or myhost in dqmtest_list or myhost in detdqm_list or cluster == 'daq2val' or cluster == 'daq3val' or env=='vm':
+                if myhost in dqm_list or myhost in dqmtest_list or myhost in detdqm_list or cluster in ['daq2val','daq3val'] or env=='vm':
                     soap2file_port='8010'
 
+                ################
+                #write hltd.conf
                 hltdcfg = FileManager(cfile,hltdconftemplate,'=',hltdEdited,' ',' ')
 
                 hltdcfg.reg('enabled','True','[General]')
@@ -786,15 +796,15 @@ if __name__ == "__main__":
 
                 hltdcfg.reg('user',username,'[General]')
                 hltdcfg.reg('instance',instance,'[General]')
+                if num_cfgdb_fus==0 and dqmmachine=='False':
+                  hltdcfg.reg('dynamic_mounts','True','[General]')
 
                 #port for multiple instances
                 hltdcfg.reg('cgi_port',str(cgibase+idx),'[Web]')
                 hltdcfg.reg('cgi_instance_port_offset',str(idx),'[Web]')
                 hltdcfg.reg('soap2file_port',soap2file_port,'[Web]')
 
-                #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
-
-                hltdcfg.reg('watch_directory',watch_dir_bu,'[General]')
+                hltdcfg.reg('watch_directory',watch_dir_bu_inst,'[General]')
                 if myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
                   hltdcfg.reg('output_subdirectory_remote','output','[General]')
                 if cluster=='daq3val': 
@@ -823,27 +833,71 @@ if __name__ == "__main__":
                 hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
                 hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
                 hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
-                hltdcfg.reg('log_dir',log_dir_bu,'[Logs]')
+                hltdcfg.reg('log_dir',log_dir_bu_inst,'[Logs]')
                 hltdcfg.commit()
+
+                setupDirsBU(watch_dir_bu_inst)
 
             #write all instances in a file
             if 'main' not in instances or len(instances)>1:
                 with open('/etc/hltd.instances',"w") as fi:
                     for instance in instances: fi.write(instance+"\n")
 
-        if mtype=='fu':
+    if mtype=='fu':
+            #first prepare bus.config file
+            #try to remove old bus.config
+            try:
+              os.remove(os.path.join(backup_dir,os.path.basename(busconfig)))
+            except:
+              pass
+            try:
+              os.remove(busconfig)
+            except:
+              pass
+
+            busconfig_used = True if (len(buDataAddr) or bu_check_err) else False 
+
+            #write bu ip address
+            if busconfig_used and not isHilton:
+              with  open(busconfig,'w+') as f:
+                #swap entries based on name (only C6100 hosts with two data interfaces):
+                if len(buDataAddr)>1 and name_identifier()==1:
+                    temp = buDataAddr[0]
+                    buDataAddr[0]=buDataAddr[1]
+                    buDataAddr[1]=temp
+
+                newline=False
+                for addr in buDataAddr:
+                    if newline:f.writelines('\n')
+                    newline=True
+                    try:
+                        nameToWrite = getIPs(addr)[0]
+                    except Exception as ex:
+                        print(ex)
+                        #write bus.config even if name is not yet available by DNS
+                        nameToWrite = addr
+                    f.writelines(nameToWrite)
+
+
+            ################
+            #write hltd.conf
+
             hltdcfg = FileManager(hltdconf,hltdconftemplate,'=',hltdEdited,' ',' ')
 
             hltdcfg.reg('enabled','True','[General]')
             hltdcfg.reg('role','fu','[General]')
 
             hltdcfg.reg('user',username,'[General]')
+
             #FU can only have one instance (so we take instance[0] and ignore others)
+            instances=['main']
             hltdcfg.reg('instance',instances[0],'[General]')
-            if cluster=='hilton':
+
+            if isHilton:
                 hltdcfg.reg('bu_base_dir','/fff/BU0','[General]')
+
             #not set for Hilton, DQM and any setup not using NFS
-            if  bus_config_used:
+            if  not busconfig_used and dqmmachine=='False':
                 hltdcfg.reg('dynamic_mounts','True','[General]')
 
             hltdcfg.reg('exec_directory',execdir,'[General]')
@@ -859,7 +913,6 @@ if __name__ == "__main__":
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
             hltdcfg.reg('soap2file_port','0','[Web]')
-            #hltdcfg.reg('elastic_cluster',clusterName,'[Monitoring]')
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
             hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
@@ -885,8 +938,8 @@ if __name__ == "__main__":
             #else:
             #    hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
             hltdcfg.commit()
+            setupDirsFU('/fff/data')
 
-    setupDirs(mtype, '/fff/data',watch_dir_bu)
     if 'forceConfigure' == selection:
         from fillresources import runFillResources
         runFillResources(force=True)

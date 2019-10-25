@@ -417,6 +417,7 @@ class hltd(Daemon2,object):
           mm = MountManager(conf)
 
         if conf.role == 'fu':
+
             """
             cleanup resources
             """
@@ -537,8 +538,13 @@ class hltd(Daemon2,object):
 
         #BU mode threads
         if conf.role == 'bu':
-            #update_success,machine_blacklist=updateFUlist("blacklist")
+
             boxInfo.machine_blacklist=[]
+            #restore blacklist and whitelist from cache if service restarted
+            if conf.dynamic_mounts:
+              update_success,machine_blacklist=restoreFUListOnBU(conf,logger,"blacklist")
+              update_success,machine_whitelist=restoreFUListOnBU(conf,logger,"whitelist")
+
             mm.ramdisk_submount_size=0
             if self.instance == 'main':
                 #if there are other instance mountpoints in ramdisk, they will be subtracted from size estimate
