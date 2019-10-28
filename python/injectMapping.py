@@ -63,7 +63,7 @@ class elasticBandInjector:
                 if res.content.decode().strip()=='{}':
                     print('inserting new mapping for ' + index_name)
                     res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),
-                                        auth=(elasticinfo["user"],elasticinfo["pass"]),headers=self.headers)
+                                        auth=(self.elasticinfo["user"],self.elasticinfo["pass"]),headers=self.headers)
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content.decode())

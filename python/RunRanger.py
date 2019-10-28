@@ -205,7 +205,7 @@ class RunRanger:
             #look for directory suffix containing BU name (dynamic mountpoint)
             rundir_tokens = suffix.split('_')
             if len(rundir_tokens)==1:
-                self.logger.error("can not parse directory name ", dirname)
+                self.logger.error("can not parse directory name "+ dirname)
                 return
             bu_mount_suffix=None
             if len(rundir_tokens)>1:
@@ -247,19 +247,19 @@ class RunRanger:
                             os.rmdir(fullpath)
                             return
                         self.state.masked_resources=False #clear this flag for run that was stopped manually
-                        bu_dir_base = [None]
+                        bu_dir_base_vec = [None]
                         bu_out_dir_base = None
                         bu_dir = None
                         if conf.role == 'fu':
                             if self.mm and not bu_mount_suffix:
-                              bu_dir_base = self.mm.bu_disk_list_ramdisk_instance
+                              bu_dir_base_vec = self.mm.bu_disk_list_ramdisk_instance
                               bu_out_dir_base = self.mm.bu_disk_list_output_instance[0]
                             else:
                               if not bu_mount_suffix:
                                 self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
                                 return
                               #set dynamic mountpoint to start the run in
-                              bu_dir_base = [os.path.join(conf.fff_base,"ramdisk_"+bu_mount_suffix)]
+                              bu_dir_base_vec = [os.path.join(conf.fff_base,"ramdisk_"+bu_mount_suffix)]
                               bu_out_dir_base = os.path.join(conf.fff_base,"output_"+bu_mount_suffix)
 
                             bu_dir = os.path.join(bu_dir_base_vec[0],dirname)
@@ -549,10 +549,11 @@ class RunRanger:
             #local request used in case of stale file handle
 
             bu_name = suffix.split('_')[0]
+            umount_success = True
 
             def do_umount():
-
-                umount_success = self.mm.cleanup_mountpoints(self.nsslock,remount=False) if self.mm else True
+                nonlocal umount_success
+                umount_success = self.mm.cleanup_mountpoints(self.nsslock,remount=False) if self.mm else umount_success
                 self.logger.warning("running suspend (check) for dynamic mounts")
                 for found in find_nfs_mountpoints([os.path.join(conf.fff_base,"ramdisk_"),os.path.join(conf.fff_base,"output_")]):
                   #will force unmount in case of a process keeping mount busy
@@ -565,6 +566,7 @@ class RunRanger:
                     umount_success=False
 
             def do_mount():
+                nonlocal umount_success
                 umount_sucess = umount_success and (self.mm.cleanup_mountpoints(self.nsslock) if self.mm else True)
                 self.logger.info("Remount for replyport="+str(replyport) + " host=" + bu_name + " is performed.")
                 try:os.remove(fullpath)
@@ -599,7 +601,7 @@ class RunRanger:
                 self.logger.error("Unable to report suspend state to BU "+str(bu_name)+':'+str(replyport+20))
                 self.logger.exception(ex)
                 #BU could already be down, continue to a polling loop
-                sleep(1)
+                time.sleep(1)
 
             #loop while BU is not reachable
             while True:

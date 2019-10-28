@@ -1,9 +1,11 @@
 #import subprocess
 #import logging
 import os
+import sys
 import json
-
 import subprocess
+import shutil
+
 import demote
 import prctl
 from signal import SIGKILL
@@ -52,17 +54,19 @@ def updateFUListOnBU(conf,logger,lfilein,listname):
         #no fu file, this is ok
         pass
     fu_list=list(set(fu_list))
+    workdir_file = os.path.join(conf.watch_directory,'appliance',listname)
     try:
-        with open(os.path.join(conf.watch_directory,'appliance',listname),'r') as fi:
+        with open(workdir_file,'r') as fi:
             active_fu_list = json.load(fi)
             success=True
-    except:
-        if forceUpdate==True or active_fu_list != fu_list:
+    finally:
+        if not success or active_fu_list != fu_list:
             try:
-                with open(os.path.join(conf.watch_directory,'appliance',listname),'w') as fi:
+                with open(workdir_file,'w') as fi:
                     json.dump(fu_list,fi)
                     success=True
-            except: pass
+            except Exception as ex:
+                logger.exception(ex)
     #TODO:check on FU if it is blacklisted or whitelisted
 
     #make a backup copy on local drive of last blacklist used
@@ -96,7 +100,7 @@ def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
     return lock.release()
   except RuntimeError as ex:
     import inspect
-    if sys.version_info.major==3 and sys.version_info_minor>=5:
+    if sys.version_info.major==3 and sys.version_info.minor>=5:
        funcname = inspect.stack()[1].function
     else:
       funcname = inspect.stack()[1][3]

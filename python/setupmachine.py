@@ -242,12 +242,12 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
     #print retval
     return retval
 
-def countBU_FUs(parentTag,hostname,env_,eqset_,dbhost_,dblogin_,dbpwd_,dbsid_,retry=True):
+def countBU_FUs(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
 
     fu_count=0
     if env_ == "vm":
         for fu_hn in vm_override_buHNs:
-            if vm_override_buHNs[fu_hn].strip('.')[0]==hostname.strip('.')[0]:
+            if vm_override_buHNs[fu_hn][0].strip('.')==hostname.strip('.')[0]:
                 fu_count+=1
         return fu_count
     try:

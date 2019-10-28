@@ -42,7 +42,7 @@ class InotifyWrapper(threading.Thread):
     def registerPath(self,path,mask):
         try:
             if self.recursiveMode == True:
-                self.w.add_all(path,mask,reportError)
+                self.w.add_all(path,mask,self.reportError)
             else:
                 self.w.add(path,mask)
         except OSError as err:

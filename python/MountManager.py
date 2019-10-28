@@ -339,7 +339,7 @@ class MountManager:
     def submount_size(self,basedir):
       loop_size=0
       try:
-        p = subprocess.Popen("mount", shell=False, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("mount", shell=False, stdout=subprocess.PIPE)
         out=proc.communicate()[0]
         if not isinstance(out,str): out = out.decode("utf-8")
         std_out_list=out.split("\n")
@@ -396,7 +396,7 @@ class MountManager:
 
 
 #helper
-def find_nfs_mount_addr(mount_paths):
+def find_nfs_mount_addr(mount_path):
   lines = []
   with open('/proc/mounts','r') as mountfile:
     lines = mountfile.readlines()

@@ -31,7 +31,7 @@ from daemon2 import Daemon2
 from hltdconf import initConf
 from inotifywrapper import InotifyWrapper
 
-from HLTDCommon import restartLogCollector
+from HLTDCommon import restartLogCollector,restoreFUListOnBU
 from Run import RunList
 from ResourceRanger import ResourceRanger
 from RunRanger import RunRanger
@@ -39,7 +39,7 @@ from MountManager import MountManager
 import SystemMonitor
 
 from elasticbu import BoxInfoUpdater
-from WebCtrl import WebCtrl
+#from WebCtrl import WebCtrl
 
 #shared info classes
 class BoxInfo:

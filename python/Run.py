@@ -12,7 +12,7 @@ from signal import SIGKILL
 import logging
 
 import Resource
-from HLTDCommon import updateFUList,dqm_globalrun_filepattern
+from HLTDCommon import updateFUListOnBU,dqm_globalrun_filepattern
 from MountManager import  find_nfs_mount_addr
 from setupES import setupES
 
@@ -393,12 +393,12 @@ class Run:
                     self.logger.error('RUN:'+str(self.runnumber)+' - timeout waiting for directory '+ hltdir)
                     break
             if os.path.exists(blpath):
-                update_success,self.rr.boxInfo.machine_blacklist = updateFUlistOnBU(conf,self.logger,blpath,'blacklist')
+                update_success,self.rr.boxInfo.machine_blacklist = updateFUListOnBU(conf,self.logger,blpath,'blacklist')
             else:
                 self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+hltdir)
 
             if os.path.exists(wlpath):
-                rr.boxInfo.has_whitelist,self.rr.boxInfo.machine_whitelist = updateFUlistOnBU(conf,self.logger,wlpath,'whitelist')
+                self.rr.boxInfo.has_whitelist,self.rr.boxInfo.machine_whitelist = updateFUListOnBU(conf,self.logger,wlpath,'whitelist')
             else:
                 self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find whitelist file in "+hltdir)
 
