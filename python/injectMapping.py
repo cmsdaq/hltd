@@ -66,7 +66,7 @@ class elasticBandInjector:
                                         auth=(elasticinfo["user"],elasticinfo["pass"]),headers=self.headers)
                 else:
                     #still check if number of properties is identical in each type
-                    inmapping = json.loads(res.content)
+                    inmapping = json.loads(res.content.decode())
                     for indexname in inmapping:
                         properties = inmapping[indexname]['mappings']['properties']
 

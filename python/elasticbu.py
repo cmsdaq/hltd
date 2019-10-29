@@ -256,7 +256,7 @@ class elasticBandBU:
                     self.logger.warning('insert mapping reply status code '+str(res.status_code)+': '+res.content.decode())
             else:
               #still check if number of properties is identical in each type
-              inmapping = json.loads(res.content)
+              inmapping = json.loads(res.content.decode())
               for indexname in inmapping:
                 properties = inmapping[indexname]['mappings']['properties']
 
@@ -885,11 +885,11 @@ class RunCompletedChecker(threading.Thread):
             if check_es_complete:
                 try:
                     resp = s.post(self.url, '',timeout=5)
-                    data = json.loads(resp.content)
+                    data = json.loads(resp.content.decode())
                     if int(data['hits']['total']) >= len(self.runObj.online_resource_list):
                         try:
                             respq = s.post(self.urlsearch,self.url_query,timeout=5)
-                            dataq = json.loads(respq.content)
+                            dataq = json.loads(respq.content.decode())
                             fm_time = str(dataq['hits']['hits'][0]['_source']['fm_date'])
                             #fill in central index completition time
                             postq = "{runNumber\":\"" + str(self.runObj.runnumber) + "\",\"completedTime\" : \"" + fm_time + "\"}"
