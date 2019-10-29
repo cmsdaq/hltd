@@ -1,6 +1,6 @@
 import os
 import time
-import simplejson as json
+import json
 import dateutil
 import dateutil.parser
 import datetime

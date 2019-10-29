@@ -33,7 +33,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import Timeout as RequestsTimeout
-import simplejson as json
+import json
 import socket
 
 #TODO: update to use elasticsearch library instead of requests

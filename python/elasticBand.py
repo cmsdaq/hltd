@@ -7,7 +7,7 @@ from elasticsearch.serializer import JSONSerializer
 from elasticsearch.exceptions import (ConnectionError, ConnectionTimeout,
                                       TransportError, SerializationError)
 
-import simplejson as json
+import json
 import csv
 import math
 import logging

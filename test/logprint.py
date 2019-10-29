@@ -2,10 +2,7 @@
 from __future__ import print_function
 
 import requests
-try:
-    import simplejson as json
-except:
-    import json
+import json
 import sys
 import datetime
 import time

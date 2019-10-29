@@ -13,7 +13,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
 import requests
-import simplejson as json
+import json
 import socket
 
 from elasticBand import parse_elastic_pwd

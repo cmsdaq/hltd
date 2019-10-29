@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import time
-import simplejson as json
+import json
 import subprocess
 import threading
 import datetime

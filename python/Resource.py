@@ -1,6 +1,6 @@
 import os
 import time
-import simplejson as json
+import json
 import re
 
 try:

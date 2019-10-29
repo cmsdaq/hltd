@@ -2,7 +2,7 @@ import sys,traceback
 import os,stat
 import time,datetime
 import shutil
-import simplejson as json
+import json
 import logging
 import zlib
 import subprocess

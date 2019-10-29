@@ -249,7 +249,7 @@ BuildRoot: %{_tmppath}
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
 #Provides:/usr/lib64/$python_dir/site-packages/prctl.pyc
-Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-simplejson >= 3.3.1,${pypkgprefix}-requests $extradeps
+Requires:${pypkgprefix},libcap,${pypkgprefix}-six >= 1.9,${pypkgprefix}-requests $extradeps
 
 %global __python %{__${pythonver}}
 

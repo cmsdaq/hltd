@@ -14,7 +14,7 @@ try:
   import Queue as queue
 except:
   import queue
-import simplejson as json
+import json
 import logging
 
 
