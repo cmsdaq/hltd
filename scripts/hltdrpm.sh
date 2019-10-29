@@ -51,7 +51,7 @@ echo "   ... press any key to continue ..."
 read readin
 
 
-echo "Python version - supported v2.7: python, python2 or python2.7, v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
+echo "Python version - v3.6: python3.4 or python3.6 (press enter for \"${lines[0]}\"):"
 readin=""
 read readin
 if [ ${#readin} != "0" ]; then
@@ -245,7 +245,6 @@ PACKAGENAME="hltd"
 #fi
 
 
-alias python=`readlink /usr/bin/python2`
 # set the RPM build architecture
 #BUILD_ARCH=$(uname -i)      # "i386" for SLC4, "x86_64" for SLC5
 
@@ -314,7 +313,7 @@ Provides:/opt/fff/init.d/fff
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
-Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
+Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil
 Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
 #force python bytecompile to use proper python version
