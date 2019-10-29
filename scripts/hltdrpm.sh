@@ -317,6 +317,8 @@ Provides:/usr/lib/systemd/system/fff.service
 Requires:hltd-libs$pkgsuffix >= 2.4.0 $soappy,jsonMerger,${pypkgprefix}-psutil,${pypkgprefix}-dateutil,cx_Oracle
 Obsoletes: fffmeta <= 2.4.0, fffmeta-vm <= 2.4.0 $pkgobsoletes
 
+#force python bytecompile to use proper python version
+%global __python %{__${pythonver}}
 
 %description
 fff hlt daemon
@@ -387,7 +389,6 @@ grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/test/*.py    | xargs sed -i
 touch opt/hltd/scratch/new-version
 
 echo "Deleting unnecessary files"
-rm -rf opt/hltd/python/{*.pyc,*.pyo}
 rm -rf opt/hltd/{bin,rpm,lib}
 rm -rf opt/hltd/scripts/paramcache*
 rm -rf opt/hltd/scripts/*rpm.sh
@@ -418,14 +419,10 @@ chown daqlocal /opt/fff/db.jsn #possibly not needed
 %attr( 644 ,root, root) /usr/lib/systemd/system/fff.service
 /etc/appliance
 %attr( 755 ,root, root) /opt/fff/setupmachine.py
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyc
-%attr( 755 ,root, root) /opt/fff/setupmachine.pyo
 %attr( 755 ,root, root) /opt/fff/instances.input
 %attr( 755 ,root, root) /opt/fff/configurefff.sh
 %attr( 755 ,root, root) /opt/fff/postinstall.sh
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyc
-%attr( 755 ,root, root) /opt/fff/dbcheck.pyo
 %attr( 400 ,daqlocal, daqlocal) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
 
