@@ -329,6 +329,7 @@ fff hlt daemon
 %install
 rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
+%__install -d "%{buildroot}/var/cache/hltd"
 %__install -d "%{buildroot}/var/log/hltd"
 %__install -d "%{buildroot}/var/log/hltd/pid"
 %__install -d "%{buildroot}/opt/fff"
@@ -378,8 +379,8 @@ cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/*.py   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-#grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/scripts/*.py | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
@@ -395,7 +396,6 @@ rm -rf opt/hltd/scripts/postinstall.sh
 rm -rf opt/hltd/scripts/*.php
 rm -rf opt/hltd/init.d/*.service
 rm -rf opt/fff/init.d/*.service
-rm -rf opt/hltd/init.d/fff*
 rm -rf opt/hltd/python/setupmachine.py
 rm -rf opt/hltd/python/dbcheck.py
 rm -rf opt/hltd/TODO
@@ -406,6 +406,7 @@ chown daqlocal /opt/fff/db.jsn #possibly not needed
 /opt/fff/postinstall.sh
 
 %files
+%dir %attr(777, -, -) /var/cache/hltd
 %dir %attr(777, -, -) /var/log/hltd
 %dir %attr(777, -, -) /var/log/hltd/pid
 %defattr(-, root, root, -)
