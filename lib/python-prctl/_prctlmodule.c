@@ -362,7 +362,7 @@ static PyObject *
 prctl_set_proctitle(PyObject *self, PyObject *args)
 {
     int argc = 0;
-    char **argv;
+    char **argv = NULL;
     int len;
     char *title;
     if(!PyArg_ParseTuple(args, "s", &title)) {
@@ -383,7 +383,7 @@ prctl_set_proctitle(PyObject *self, PyObject *args)
         return NULL;
     }
     /* Determine up to where we can write */
-    len = (int)(argv[argc-1]) + strlen(argv[argc-1]) - (int)(argv[0]);
+    len = (int)(argv[argc-1]-argv[0]) + strlen(argv[argc-1]);
     strncpy(argv[0], title, len);
     memset(argv[0] + strlen(title), 0, len);
     Py_RETURN_NONE;
