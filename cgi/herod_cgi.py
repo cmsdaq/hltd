@@ -16,10 +16,16 @@ print()
 print("<TITLE>CGI script output</TITLE>")
 print("Hey I'm still here !")
 
+
+#add BU suffix
+bu_suffix = "_"+form["buname"].value if "buname" in form else ""
+
 try:
     command=form['command'].value
 except:
     command='herod'
+
+command+=bu_suffix
 
 try:os.remove(command)
 except:pass

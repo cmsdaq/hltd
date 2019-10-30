@@ -17,9 +17,12 @@ import pwd
 
 import Run
 from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
-from MountManager import find_nfs_mountpoints
+from MountManager import find_nfs_mountpoints,find_nfs_mount_addr
 from inotifywrapper import InotifyWrapper
 from buemu import BUEmu
+
+this_machine=os.uname()[1]
+this_machine_short=this_machine.split('.')[0]
 
 def preexec_function():
     dem = demote.demote(conf.user)
@@ -69,8 +72,8 @@ class RunRanger:
         suffix=''
         s_pos = dirname.find('_')
         if s_pos >=0:
-          dirname = dirname[:s_pos]
           suffix = dirname[s_pos+1:]
+          dirname = dirname[:s_pos]
 
         #detect if number is appended to the end of the command
         numChar = -1
@@ -139,7 +142,7 @@ class RunRanger:
                       self.cleanDisksCmd(dirnum,clrRamdisk=True,clrOutput=True)
               elif conf.role == 'fu':
                   tryremove(fullpath)
-                  self.cleanupFUCmd(prefix,dirnum)
+                  self.cleanupFUCmd(prefix,dirnum,suffix)
 
           elif prefix in ['cleanoutput']: #BU
               tryremove(fullpath)
@@ -153,7 +156,7 @@ class RunRanger:
 
           elif prefix in ['suspend']: #FU (BU:warning)
             if conf.role == 'fu':
-              self.suspendCmd(dirnum,fullpath,suffix)
+              self.suspendCmd(dirnum,fullpath,suffix.split('_'))
             else:
               self.logger.warning("unable to suspend on " + conf.role)
               tryremove(fullpath)
@@ -204,7 +207,7 @@ class RunRanger:
 
             #look for directory suffix containing BU name (dynamic mountpoint)
             rundir_tokens = suffix.split('_')
-            if len(rundir_tokens)==1:
+            if not len(rundir_tokens):
                 self.logger.error("can not parse directory name "+ dirname)
                 return
             bu_mount_suffix=None
@@ -259,8 +262,8 @@ class RunRanger:
                                 self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
                                 return
                               #set dynamic mountpoint to start the run in
-                              bu_dir_base_vec = [os.path.join(conf.fff_base,"ramdisk_"+bu_mount_suffix)]
-                              bu_out_dir_base = os.path.join(conf.fff_base,"output_"+bu_mount_suffix)
+                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote + bu_mount_suffix)]
+                              bu_out_dir_base = os.path.join(conf.fff_base_autofs,conf.output_subdirectory_remote.replace('/','_')+'_'+bu_mount_suffix)
 
                             bu_dir = os.path.join(bu_dir_base_vec[0],dirname)
                             try:
@@ -378,7 +381,7 @@ class RunRanger:
                                   +'*never* happen')
 
 
-    def cleanupFUCmd(self,prefix,rn):
+    def cleanupFUCmd(self,prefix,rn,suffix):
 
         kill_all_runs = True if rn<=0 else False
 
@@ -391,10 +394,20 @@ class RunRanger:
         timeLeft=5
         while timeLeft>0:
                   try:
-                    bu_files = os.listdir(os.path.join('/',conf.bu_base_dir+'0',conf.ramdisk_subdirectory))
-                  except Exception as ex:
-                    self.logger.exception(ex)
-                    break
+                      bu_files = [] #no files in case of failure
+                      if suffix:
+                          bu_dir_autofs = os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory+'_'+suffix)
+                          try:
+                              os.stat(bu_dir_autofs)
+                              bu_files = os.listdir(bu_dir_autofs)
+                          except OSError:
+                              bu_dir_static = os.path.join('/',conf.bu_base_dir+'0',conf.ramdisk_subdirectory)
+                              static_addr = find_nfs_mount_addr(bu_dir_static)
+                              if static_addr and static_addr.split('.')[0]==suffix:
+                                  bu_files = os.listdir(bu_dir_static)
+                  except Exception as ex: #catch-all
+                      self.logger.exception(ex)
+                      break
                   found_marker=False
                   for bu_file in bu_files:
                     if bu_file.startswith('herod') or bu_file.startswith('tsunami') or bu_file.startswith('brutus'):
@@ -434,7 +447,7 @@ class RunRanger:
                     self.logger.info("sending "+dirname+" to child FUs")
                     herod_threads = []
                     for name in dirlist:
-                        if name == os.uname()[1]:continue
+                        if name == this_machine:continue
                         age = current_time - os.path.getmtime(boxdir+name)
                         self.logger.info('found box '+name+' with keepalive age '+str(age))
                         if age < 300:
@@ -456,7 +469,7 @@ class RunRanger:
                                     try:
                                         connection = HTTPConnection(hostip, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
                                         time.sleep(0.2)
-                                        connection.request("GET",'cgi-bin/herod_cgi.py?command='+str(dirname))
+                                        connection.request("GET",'cgi-bin/herod_cgi.py?command='+str(dirname)+'&buname='+this_machine_short)
                                         time.sleep(0.3)
                                         response = connection.getresponse()
                                         self.logger.info("sent "+ dirname +" to child FUs")
@@ -534,11 +547,11 @@ class RunRanger:
                         self.logger.exception(ex)
 
 
-    def suspendCmd(self,dirnum,fullpath,suffix):
+    def suspendCmd(self,dirnum,fullpath,suffix_arr):
             #command received on FU
             self.logger.info('suspend mountpoints initiated')
             self.state.suspended=True
-            replyport = dirnum if dirnum!=-1 else conf.cgi_port
+            replyport = dirnum if dirnum!=-1 else 0
 
             #terminate all ongoing runs
             self.runList.clearOngoingRunFlags()
@@ -548,35 +561,40 @@ class RunRanger:
             time.sleep(.5)
             #local request used in case of stale file handle
 
-            bu_name = suffix.split('_')[0]
+            bu_name_ip = suffix_arr[0]
             umount_success = True
 
             def do_umount():
                 nonlocal umount_success
                 umount_success = self.mm.cleanup_mountpoints(self.nsslock,remount=False) if self.mm else umount_success
                 self.logger.warning("running suspend (check) for dynamic mounts")
-                for found in find_nfs_mountpoints([os.path.join(conf.fff_base,"ramdisk_"),os.path.join(conf.fff_base,"output_")]):
-                  #will force unmount in case of a process keeping mount busy
-                  self.logger.warning("running umount for "+found)
-                  try:
-                    subprocess.check_call(['umount','-f',found])
-                    #subprocess.check_call(['umount','-l',found]) #could also use lazy unmount
-                  except Exception as ex:
-                    self.logger.error(str(ex))
-                    umount_success=False
+                bu_name_short = suffix_arr[1] if len(suffix_arr)>1 else ""
+                #run this either for BU which asked for suspend, or for any local mountpoint if command is initiated locally
+                if len(suffix_arr)>1 or replyport==0:
+                  found_mps = find_nfs_mountpoints([os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote+'_'+bu_name_short),
+                                                    os.path.join(conf.fff_base_autofs,conf.output_subdirectory_remote.replace('/','_')+'_'+bu_name_short)])
+                  for found in found_mps:
+                    #will force unmount in case of a process keeping mount busy
+                    self.logger.warning("running umount for "+found)
+                    try:
+                      subprocess.check_call(['umount','-f',found])
+                      #subprocess.check_call(['umount','-l',found]) #could also use lazy unmount
+                    except Exception as ex:
+                      self.logger.error(str(ex))
+                      umount_success=False
 
             def do_mount():
                 nonlocal umount_success
                 umount_sucess = umount_success and (self.mm.cleanup_mountpoints(self.nsslock) if self.mm else True)
-                self.logger.info("Remount for replyport="+str(replyport) + " host=" + bu_name + " is performed.")
+                self.logger.info("Remount for replyport="+str(replyport) + " host=" + bu_name_ip + " is performed.")
                 try:os.remove(fullpath)
                 except:pass
                 self.state.suspended=False
 
             do_umount()
 
-            if replyport==0 or len(suffix)==0:
-              if len(suffix)==0:
+            if replyport==0 or len(suffix_arr)==0:
+              if len(suffix_arr)==0:
                 self.logger.error("no BU reply address provided!")
               do_mount()
               return
@@ -594,11 +612,11 @@ class RunRanger:
 
             #first report to BU that umount was done
             try:
-                connection = HTTPConnection(bu_name, replyport+20,timeout=5)
-                connection.request("GET",'cgi-bin/report_suspend_cgi.py?host='+os.uname()[1])
+                connection = HTTPConnection(bu_name_ip, replyport+20,timeout=5)
+                connection.request("GET",'cgi-bin/report_suspend_cgi.py?host='+this_machine)
                 response = connection.getresponse()
             except Exception as ex:
-                self.logger.error("Unable to report suspend state to BU "+str(bu_name)+':'+str(replyport+20))
+                self.logger.error("Unable to report suspend state to BU "+str(bu_name_ip)+':'+str(replyport+20))
                 self.logger.exception(ex)
                 #BU could already be down, continue to a polling loop
                 time.sleep(1)
@@ -607,7 +625,7 @@ class RunRanger:
             while True:
                 try:
                     self.logger.info('checking if BU hltd is available...')
-                    connection = HTTPConnection(bu_name, replyport,timeout=5)
+                    connection = HTTPConnection(bu_name_ip, replyport,timeout=5)
                     connection.request("GET",'cgi-bin/getcwd_cgi.py')
                     response = connection.getresponse()
                     self.logger.info('BU hltd is running !...')
@@ -961,7 +979,6 @@ class RunRanger:
                 if process.returncode==0:fus = out.split(',')
                 else:
                   dirlist = os.listdir(os.path.join(conf.watch_directory,'appliance','boxes'))
-                  this_machine=os.uname()[1]
                   for machine in dirlist:
                     if machine == this_machine:continue
                     fus.append(machine)

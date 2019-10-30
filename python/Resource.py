@@ -16,6 +16,9 @@ from signal import SIGKILL
 import logging
 
 from HLTDCommon import dqm_globalrun_filepattern
+
+gl_host_short = os.uname()[1].split('.')[0]
+
 def preexec_function():
     dem = demote.demote(conf.user)
     dem()
@@ -63,16 +66,16 @@ class OnlineResource:
         if conf.role == 'bu':
             if not os.system("ping -c 1 "+self.cpu[0])==0: pass #self.hoststate = 0
 
-    def NotifyNewRunStart(self,runnumber):
+    def NotifyNewRunStart(self,runnumber,send_bu):
         self.runnumber = runnumber
-        self.notifyNewRunThread = threading.Thread(target=self.NotifyNewRun,args=[runnumber])
+        self.notifyNewRunThread = threading.Thread(target=self.NotifyNewRun,args=[runnumber,send_bu])
         self.notifyNewRunThread.start()
 
     def NotifyNewRunJoin(self):
         self.notifyNewRunThread.join()
         self.notifyNewRunThread=None
 
-    def NotifyNewRun(self,runnumber):
+    def NotifyNewRun(self,runnumber,send_bu):
         self.runnumber = runnumber
         self.logger.info("calling start of run on "+self.cpu[0])
         attemptsLeft=3
@@ -82,7 +85,9 @@ class OnlineResource:
                 if self.hostip: resaddr = self.hostip
                 else: resaddr = self.cpu[0]
                 connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
-                connection.request("GET",'cgi-bin/start_cgi.py?run='+str(runnumber))
+                req = 'cgi-bin/start_cgi.py?run='+str(self.runnumber)
+                if send_bu: req+='&buname='+gl_host_short
+                connection.request("GET",req)
                 response = connection.getresponse()
                 #do something intelligent with the response code
                 self.logger.info("response was "+str(response.status))
@@ -137,13 +142,12 @@ class OnlineResource:
             new_run_args = [conf.cmssw_script_location+'/startRun.sh',
                             conf.cmssw_base,
                             arch,
-                            version,
-                            conf.exec_directory,
                             full_release,
+                            version,
                             menu,
                             str(runnumber),
-                            input_disk,
                             conf.watch_directory,
+                            input_disk,
                             str(num_threads),
                             str(num_streams),
                             buDataAddr,

@@ -110,6 +110,7 @@ def stopFUs(instance):
     maxTimeout=60 #sec
 
     myhost = os.uname()[1]
+    myhost_short = myhost.split('.')[0]
 
     receiver = None
 
@@ -131,7 +132,7 @@ def stopFUs(instance):
             try:
                 #subtract cgi offset when connecting machine
                 connection = HTTPConnection(machine, cgi_port-cgi_offset,timeout=5)
-                connection.request("GET",'cgi-bin/suspend_cgi.py?port='+str(cgi_port))
+                connection.request("GET",'cgi-bin/suspend_cgi.py?port='+str(cgi_port)+"&buname"+myhost_short)
                 response = connection.getresponse()
                 machinelist.append(machine)
             except:

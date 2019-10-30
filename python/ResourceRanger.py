@@ -366,7 +366,7 @@ class ResourceRanger:
             #end of locked section
 
             if newRes:
-                newRes.NotifyNewRun(lrun.runnumber)
+                newRes.NotifyNewRun(lrun.runnumber,lrun.send_bu)
         except Exception as ex:
             self.logger.exception(ex)
 

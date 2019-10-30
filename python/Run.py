@@ -110,6 +110,7 @@ class Run:
         self.rr = rr
         self.nsslock = nsslock
         self.resource_lock = resource_lock
+        self.send_bu = False
 
         global conf
         conf = confClass
@@ -123,6 +124,8 @@ class Run:
 
         self.arch = None
         self.version = None
+        self.menu_path = None
+
         self.buDataAddr = None
         self.transferMode = None
         self.waitForEndThread = None
@@ -147,20 +150,21 @@ class Run:
         #                raise Exception("Run "+str(self.runnumber)+ "already active")
 
         if conf.role=='fu':
-            self.hlt_directory = os.path.join(bu_dir,conf.menu_directory)
-            self.menu_path = os.path.join(self.hlt_directory,conf.menu_name)
-            self.paramfile_path = os.path.join(self.hlt_directory,conf.paramfile_name)
+            hlt_directory = os.path.join(bu_dir,conf.menu_directory)
+            paramfile_path = os.path.join(hlt_directory,conf.paramfile_name)
+
+            self.menu_path = os.path.join(hlt_directory,conf.menu_name)
 
             readMenuAttempts=0
             #polling for HLT menu directory
             def paramsPresent():
-                return os.path.exists(self.hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(self.paramfile_path)
+                return os.path.exists(hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(paramfile_path)
 
             paramsDetected = False
             while conf.dqm_machine==False:
               if paramsPresent():
                 try:
-                    with open(self.paramfile_path,'r') as fp:
+                    with open(paramfile_path,'r') as fp:
                         fffparams = json.load(fp)
 
                         self.arch = fffparams['SCRAM_ARCH']
@@ -197,20 +201,18 @@ class Run:
           self.logger.exception(ex)
           return
 
-        if not paramsDetected:
-            self.arch = conf.cmssw_arch
-            self.version = conf.cmssw_default_version
-            self.menu_path = conf.test_hlt_config1
-            self.transferMode = 'null'
-            if conf.role=='fu':
+        if conf.role=='fu':
+            if not paramsDetected:
+                self.arch = conf.cmssw_arch
+                self.version = conf.cmssw_default_version
+                self.menu_path = conf.test_hlt_config1
+                self.transferMode = 'null'
                 self.logger.warning("Using default values for run " + str(self.runnumber) + ": " + self.version + " (" + self.arch + ") with " + self.menu_path)
 
-        #give this command line parameter quoted in case it is empty
-        if len(self.transferMode)==0:
-            self.transferMode='null'
+            #give this command line parameter quoted in case it is empty
+            if not len(self.transferMode):self.transferMode='null'
 
-        #backup HLT menu and parameters
-        if conf.role=='fu':
+            #backup HLT menu and parameters
             try:
                 hltTargetName = 'HltConfig.py_run'+str(self.runnumber)+'_'+self.arch+'_'+self.version+'_'+self.transferMode
                 shutil.copy(self.menu_path,os.path.join(conf.log_dir,'pid',hltTargetName))
@@ -254,8 +256,13 @@ class Run:
                     self.logger.info("starting elasticbu.py with arguments:"+self.dirname)
                     elastic_args = ['/opt/hltd/scratch/python/elasticbu.py',str(self.runnumber),self.instance]
                 else:
+                    if self.buDataAddr is None: self.buDataAddr="unknown"
+                    else:
+                      appliance_name = self.buDataAddr.split('.')[0]
+                      if self.buDataAddr.endswith('.cern.ch'): appliance_name =  self.buDataAddr #VM test setup
+
                     self.logger.info("starting elastic.py with arguments:"+self.dirname)
-                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',bu_output_base_dir,str(self.resInfo.expected_processes)]
+                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',appliance_name,str(self.resInfo.expected_processes)]
 
                 self.elastic_monitor = subprocess.Popen(elastic_args,
                                                         preexec_fn=preexec_function,
@@ -398,6 +405,7 @@ class Run:
                 self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+hltdir)
 
             if os.path.exists(wlpath):
+                self.send_bu = True
                 self.rr.boxInfo.has_whitelist,self.rr.boxInfo.machine_whitelist = updateFUListOnBU(conf,self.logger,wlpath,'whitelist')
             else:
                 self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find whitelist file in "+hltdir)
@@ -493,7 +501,7 @@ class Run:
         elif conf.role == 'bu':
             for resource in self.online_resource_list:
                 self.logger.info('start run '+str(self.runnumber)+' on resources '+str(resource.cpu))
-                resource.NotifyNewRunStart(self.runnumber)
+                resource.NotifyNewRunStart(self.runnumber,self.send_bu)
             #update begin time at this point
             self.beginTime = datetime.datetime.now()
             for resource in self.online_resource_list:

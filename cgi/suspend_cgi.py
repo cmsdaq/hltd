@@ -17,11 +17,13 @@ def mkfile(filename):
     with open(filename,'w+') as fp:
       pass
 
-if str(portsuffx)!="" and str(portsuffix)!="0":
+if str(portsuffix)!="" and str(portsuffix)!="0":
+    bu_suffix = "_"+form["buname"].value if "buname" in form else ""
     try:
-        ipaddress = cgi.escape(os.environ["REMOTE_ADDR"])
-        mkfile('suspend')+portsuffix+'_'+ipaddress
+        ipaddress = '_'+cgi.escape(os.environ["REMOTE_ADDR"])
+        mkfile('suspend'+portsuffix+ipaddress+bu_suffix)
     except:
-        mkfile('suspend'+portsuffix)
+        #no-reply version
+        mkfile('suspend0')
 else:
     mkfile('suspend'+portsuffix)

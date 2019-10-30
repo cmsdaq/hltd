@@ -11,6 +11,8 @@ if "run" not in form:
     print("<H1>Error</H1>")
     print("Please fill in the run number ")
 else:
-    os.mkdir('run'+str(form["run"].value).zfill(RUNNUMBER_PADDING))
+    #add BU suffix
+    bu_suffix = "_"+form["buname"].value if "buname" in form else ""
+    os.mkdir('run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)+bu_suffix)
     print("<H1>run "+str(form["run"].value)+" created</H1>")
     print("in dir "+os.getcwd())

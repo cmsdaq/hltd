@@ -195,25 +195,13 @@ if __name__ == "__main__":
 
     dirname = sys.argv[2]
     inmondir = sys.argv[3]
-    expected_processes = int(float(sys.argv[4]))
+    bu_name = sys.argv[4]
+    expected_processes = int(float(sys.argv[5]))
     indexSuffix = conf.elastic_cluster
     update_modulo=conf.fastmon_insert_modulo
     rundirname = os.path.basename(os.path.normpath(dirname))
     monDir = os.path.join(dirname,"mon")
     tempDir = os.path.join(dirname,ES_DIR_NAME)
-
-    #find out BU name from bus_config
-    bu_name="unknown"
-    bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-    try:
-        if os.path.exists(bus_config):
-            for line in open(bus_config,'r'):
-                bu_name=line.split('.')[0]
-                break
-    except:
-        pass
-
-
 
     #find out total number of logical cores
     pnproc = subprocess.Popen("nproc",shell=True, stdout=subprocess.PIPE)
@@ -229,7 +217,7 @@ if __name__ == "__main__":
     monMask = inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO
     tempMask = inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO
 
-    logger.info("starting elastic for "+rundirname[:3]+' '+rundirname[3:])
+    logger.info("starting elastic for "+rundirname[:3]+' '+rundirname[3:] + ' on appliance ' +bu_name)
 
     try:
         os.makedirs(monDir)

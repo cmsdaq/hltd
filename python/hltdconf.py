@@ -17,6 +17,7 @@ class hltdConf:
         self.elastic_runindex_url = None
         self.elastic_runindex_name = 'cdaq'
         self.fff_base = '/fff'
+        self.fff_base_autofs = '/fff/BUs'
         self.watch_directory = None
         self.ramdisk_subdirectory = 'ramdisk' #local mountpoint
         self.output_subdirectory = 'output' #local mountpoint
