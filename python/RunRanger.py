@@ -194,7 +194,7 @@ class RunRanger:
         filename=event.fullpath[event.fullpath.rfind("/")+1:]
 
 
-    def newRunCmd(self,dirname,rn,suffix,fullpath):
+    def newRunCmd(self,dirname,rn,bu_mount_suffix,fullpath):
         if os.path.islink(fullpath):
             self.logger.info('directory ' + fullpath + ' is link. Ignoring this run')
             return
@@ -205,20 +205,13 @@ class RunRanger:
         #check and fix directory ownership if not created as correct user and group (in case of manual creation)
         if conf.role=='fu' and not conf.dqm_machine:
 
-            #look for directory suffix containing BU name (dynamic mountpoint)
-            rundir_tokens = suffix.split('_')
-            if not len(rundir_tokens):
-                self.logger.error("can not parse directory name "+ dirname)
-                return
-            bu_mount_suffix=None
-            if len(rundir_tokens)>1:
-              #rename to the usual run directory
-              os.rename(fullpath,fullpath[:fullpath.rfind('/')+1]+dirname)
-              if rundir_tokens[0]=="mnt":
-                #should not have dot, but drop it just in case
-                bu_mount_suffix=rundir_tokens[1].split('.')[0]
-                #signal to monitoring and heartbeat handler to switch to a different mount point
-                #this could block in case of network issue
+            if bu_mount_suffix:
+                #rename to non-suffix version
+                fullpath_old = fullpath
+                fullpath = fullpath[:fullpath.rfind('/')+1]+dirname
+                os.rename(fullpath_old,fullpath)
+                #signal to monitoring and heartbeat handler to switch to a different BU mount point (dynamic)
+                #NOTE:this could block in case of network issue
                 self.sm.notifyMaybeChangeBU(bu_mount_suffix)
 
             try:
@@ -262,7 +255,7 @@ class RunRanger:
                                 self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
                                 return
                               #set dynamic mountpoint to start the run in
-                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote + bu_mount_suffix)]
+                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote + '_' + bu_mount_suffix)]
                               bu_out_dir_base = os.path.join(conf.fff_base_autofs,conf.output_subdirectory_remote.replace('/','_')+'_'+bu_mount_suffix)
 
                             bu_dir = os.path.join(bu_dir_base_vec[0],dirname)

@@ -23,7 +23,7 @@ MSR_CORE_C7_RESIDENCY=0x3fe
 class system_monitor(threading.Thread):
 
     def __init__(self,confClass,stateInfo,resInfo,runList,mountMgr,boxInfo,num_cpus_initial):
-        threading.Thread.__init__(self)
+        #threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
         global conf
         conf = confClass
@@ -47,7 +47,6 @@ class system_monitor(threading.Thread):
         self.threadEventStat = threading.Event()
         self.threadEventESBox = threading.Event()
         self.bu_mount_suffix = None
-        self.bu_mount_suffix_short = None
         self.dummyMountMgr = MountManagerDummy()
 
         self.resetRunningState()
@@ -71,6 +70,7 @@ class system_monitor(threading.Thread):
 
     def resetRunningState(self):
 
+        threading.Thread.__init__(self)
         self.running = True
         self.directory = []
         self.files = []
@@ -95,7 +95,6 @@ class system_monitor(threading.Thread):
           self.stop()
           self.resetRunningState()
           self.bu_mount_suffix = bu_mount_suffix
-          if bu_mount_suffix: self.bu_mount_suffix_short = bu_mount_suffix.split('.')[0]
           self.startESBox()
           self.preStart()
           self.start()
@@ -127,7 +126,7 @@ class system_monitor(threading.Thread):
             else:
                 self.logger.info('Updating box info via data interface')
                 if self.bu_mount_suffix:
-                    self.directory = [os.path.join(self.bu_mount_suffix,'appliance','boxes')]
+                    self.directory = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote+'_'+self.bu_mount_suffix,'appliance','boxes')]
                 elif self.mm and len(self.mm.bu_disk_list_ramdisk_instance):
                     self.directory = [os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'appliance','boxes')]
 
@@ -280,7 +279,7 @@ class system_monitor(threading.Thread):
           #make this work for test host which doesn't begin with *bu- name
           for bf in listed:
             bf_short = bf.split('.')[0]
-            if self.bu_mount_suffix_short and bf_short == self.bu_mount_suffix_short:
+            if self.bu_mount_suffix and bf_short == self.bu_mount_suffix:
               with open(os.path.join(buboxdir,bf),'r') as fp:
                 return json.load(fp)['boot_id']
 
@@ -1033,7 +1032,7 @@ class system_monitor(threading.Thread):
         self.logger.info("started ES box thread")
         bu_name="unknown"
         if self.bu_mount_suffix:
-          bu_name = self.bu_mount_suffix.split('.')[0]
+          bu_name = self.bu_mount_suffix
         else:
           #parse bus.config to find BU name 
           bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
@@ -1203,5 +1202,8 @@ class system_monitor(threading.Thread):
             self.statThread.join()
         if self.esBoxThread:
             self.esBoxThread.join()
+        try:
+            self.join()
+        except:pass
 
 
