@@ -196,9 +196,9 @@ class system_monitor(threading.Thread):
                 if ex.errno == 116:
                     if fu_stale_counter==0 or fu_stale_counter%500==0:
                         self.logger.fatal('detected stale file handle: '+str(disk))
-                        #if BU boot id not same, trigger local suspend (suspend0) mechanism which will perform remount
+                        #if BU boot id not same, trigger local suspend (suspend) mechanism which will perform remount
                         if not self.buBootIdCheck():
-                            with open(os.path.join(conf.watch_directory,'suspend0'),'w'):pass
+                            with open(os.path.join(conf.watch_directory,'suspend'),'w'):pass
                 else:
                     self.logger.warning('stat mountpoint ' + str(disk) + ' caught Error: '+str(ex))
                 fu_stale_counter+=1
@@ -735,9 +735,9 @@ class system_monitor(threading.Thread):
                             #detecting stale file handle on recreated loop fs and remount
                             if conf.instance!='main' and (ex.errno==116 or ex.errno==2) and boxinfo_update_attempts>=5:
                                 boxinfo_update_attempts=0
-                                try:os.unlink(os.path.join(conf.watch_directory,'suspend0'))
+                                try:os.unlink(os.path.join(conf.watch_directory,'suspend'))
                                 except:pass
-                                with open(os.path.join(conf.watch_directory,'suspend0'),'w'):
+                                with open(os.path.join(conf.watch_directory,'suspend'),'w'):
                                     pass
                                 time.sleep(1)
                             boxinfo_update_attempts+=1

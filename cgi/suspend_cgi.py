@@ -24,6 +24,6 @@ if str(portsuffix)!="" and str(portsuffix)!="0":
         mkfile('suspend'+portsuffix+ipaddress+bu_suffix)
     except:
         #no-reply version
-        mkfile('suspend0')
+        mkfile('suspend')
 else:
-    mkfile('suspend'+portsuffix)
+    mkfile('suspend')
