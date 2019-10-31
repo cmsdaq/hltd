@@ -12,7 +12,6 @@ sys.path.append('/opt/hltd/python')
 #sys.path.append('/opt/hltd/lib')
 import demote
 import hltdconf
-from daemon2 import Daemon2
 
 def writeToFile(filename,content,overwrite):
     try:
@@ -42,10 +41,9 @@ def renamePath(oldpath,newpath):
     except Exception as ex:
         return  "Failed to rename file: "+str(ex)
 
-class Soap2file(Daemon2):
+class Soap2file:
 
     def __init__(self):
-        Daemon2.__init__(self,'soap2file','main','hltd')
         self._conf=hltdconf.hltdConf('/etc/hltd.conf')
         self._hostname = os.uname()[1]
 

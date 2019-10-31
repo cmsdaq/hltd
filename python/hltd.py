@@ -27,7 +27,6 @@ import prctl
 import inotify._inotify as inotify
 
 #modules which are part of hltd
-from daemon2 import Daemon2
 from hltdconf import initConf
 from inotifywrapper import InotifyWrapper
 
@@ -384,10 +383,9 @@ def setFromConf(myinstance,resInfo):
     conf.dump()
 
 #main class
-class hltd(Daemon2,object):
+class hltd:
     def __init__(self, instance):
         self.instance=instance
-        Daemon2.__init__(self,'hltd',instance,'hltd')
 
     def run(self):
         """

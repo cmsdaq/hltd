@@ -1,9 +1,8 @@
 #!/bin/env python
-from __future__ import print_function
 import os,sys
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')
-from daemon2 import Daemon2
+from daemon2 import emergencyUmount
 from hltdconf import initConf
 from subprocess import Popen,check_call
 from subprocess import PIPE
@@ -11,6 +10,8 @@ from applianceumount import stopFUs
 from applianceumount import checkMode
 import time
 import syslog
+
+hltdconf = '/etc/hltd.conf'
 
 def preStartHLTD():
     if os.getuid() != 0:
@@ -73,8 +74,7 @@ def suspendRemoteClientsMaybe(instance,force):
 
 def tryEmergencyUmount(instance):
     print("Running post-stop emergencyUmount check")
-    daemon = Daemon2('hltd',instance)
-    daemon.emergencyUmount()
+    emergencyUmount(hltdconf)
 
 
 
@@ -95,7 +95,6 @@ if __name__ == "__main__":
         instances = [sys.argv[2]]
 
     for instance in instances:
-        #daemon = Daemon2('hltd',instance)
 
         if len(sys.argv) >= 2:
             if 'pre-start' == sys.argv[1]:
