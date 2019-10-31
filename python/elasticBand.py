@@ -54,6 +54,7 @@ def getURLwithIP(url):
     return prefix+str(ip)+suffix
 
 def getCPUInfoIntel():
+   #TODO: parse AMD
     cpu_name = ""
     try:
         with open('/proc/cpuinfo','r') as fi:
@@ -65,6 +66,8 @@ def getCPUInfoIntel():
                         else:
                             if cpu_name: cpu_name = cpu_name+" "+word
                             else: cpu_name=word
+    except:
+        pass
     finally:
         return cpu_name
 

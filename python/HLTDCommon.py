@@ -59,6 +59,7 @@ def updateFUListOnBU(conf,logger,lfilein,listname):
         with open(workdir_file,'r') as fi:
             active_fu_list = json.load(fi)
             success=True
+    except:pass
     finally:
         if not success or active_fu_list != fu_list:
             try:

@@ -286,7 +286,7 @@ class ResourceRanger:
         if basename in ['blacklist','whitelist']:
             with open(os.path.join(conf.watch_directory,'appliance',basename),'r') as fi:
                 try:
-                    self.boxInfo.setattr('machine_'+basename,json.load(fi))
+                    setattr(self.boxInfo,'machine_'+basename,json.load(fi))
                     #if basename == 'blacklist': self.boxInfo.machine_blacklist = json.load(fi)
                     #elif basename == 'whitelist': self.boxInfo.machine_whitelist = json.load(fi)
                 except Exception as ex:

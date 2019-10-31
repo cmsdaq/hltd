@@ -675,25 +675,25 @@ class Run:
                 self.logger.exception(ex)
             self.logger.info("anelastic script has been terminated/finished")
             if conf.use_elasticsearch == True:
-                try:
-                    if self.elastic_monitor:
+                if self.elastic_monitor:
+                    try:
                         if killScripts:
                             self.elastic_monitor.terminate()
                         #allow monitoring thread to finish, but no more than 30 seconds after others
                         killtimer = threading.Timer(30., self.elastic_monitor.kill)
-                        try:
-                            killtimer.start()
-                            self.elastic_monitor.wait()
-                        finally:
-                            killtimer.cancel()
-                        try:self.elastic_monitor=None
+                        killtimer.start()
+                        self.elastic_monitor.wait()
+                    except OSError as ex:
+                        if ex.errno==3:
+                            self.logger.info("elastic.py for run " + str(self.runnumber) + " is not running")
+                        else:self.logger.exception(ex)
+                    except Exception as ex:
+                        self.logger.exception(ex)
+                    finally:
+                        try:killtimer.cancel()
                         except:pass
-                except OSError as ex:
-                    if ex.errno==3:
-                        self.logger.info("elastic.py for run " + str(self.runnumber) + " is not running")
-                    else:self.logger.exception(ex)
-                except Exception as ex:
-                    self.logger.exception(ex)
+                        self.elastic_monitor=None
+
             if self.waitForEndThread is not None:
                 self.waitForEndThread.join()
             self.logger.info("elastic script has been terminated/finished")
