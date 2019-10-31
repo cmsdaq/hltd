@@ -16,6 +16,9 @@ from HLTDCommon import updateFUListOnBU,dqm_globalrun_filepattern
 from MountManager import  find_nfs_mount_addr
 from setupES import setupES
 
+this_machine = os.uname()[1]
+this_machine_short = os.uname()[1].split('.')[0]
+
 def preexec_function():
     dem = demote.demote(conf.user)
     dem()
@@ -140,6 +143,7 @@ class Run:
         #stats on usage of resources
         self.n_used = 0
         self.n_quarantined = 0
+        self.skip_notification_list = []
 
         self.inputdir_exists = False
 
@@ -366,8 +370,8 @@ class Run:
                     return res.cpu
         return None
 
-    def ContactResource(self,resourcename,f_ip):
-        newres = Resource.OnlineResource(self,resourcename,self.resource_lock,f_ip)
+    def ContactResource(self,resourcenames,f_ip):
+        newres = Resource.OnlineResource(self,resourcenames,self.resource_lock,f_ip)
         self.online_resource_list.append(newres)
         self.online_resource_list_join.append(newres)
         #self.online_resource_list[-1].ping() #@@MO this is not doing anything useful, afaikt
@@ -410,12 +414,11 @@ class Run:
             else:
                 self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find whitelist file in "+hltdir)
 
-
         for cpu in dirlist:
             #skip self
             f_ip = None
             if conf.role=='bu':
-                if cpu == os.uname()[1]:continue
+                if cpu == this_machine:continue
                 if cpu in self.rr.boxInfo.machine_blacklist:
                     self.logger.info("skipping blacklisted resource "+str(cpu))
                     continue
@@ -445,6 +448,22 @@ class Run:
                         self.ContactResource(cpus,f_ip)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring resource '+str(cpu)+':'+str(ex))
+
+        #look also at whitelist entries which are not currently found in box directory
+        if conf.role == 'bu' and self.rr.boxInfo.has_whitelist:
+            for cpu in [x for x in self.rr.boxInfo.machine_whitelist if x not in dirlist]: 
+                if cpu == this_machine:continue
+                if cpu in self.rr.boxInfo.machine_blacklist:
+                    self.logger.error("skipping blacklisted resource "+str(cpu)+" which is also in whitelist")
+                    continue
+                count = count+1
+                self.logger.info("contacting resource "+cpu+" which is only in whitelist")
+                try:
+                    self.skip_notification_list.append(cpu)
+                    self.ContactResource([cpu],None)
+                except Exception as ex:
+                    self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring whitelisted resource '+str(cpu)+':'+str(ex))
+
         return True
 
     def checkStaleResourceFileAndIP(self,resourcepath):
@@ -526,8 +545,15 @@ class Run:
 
         for resource in self.online_resource_list:
             if resourcename in resource.cpu and not override_mask:
-                self.logger.error('RUN:'+str(self.runnumber)+' - resource '+str(resource.cpu)+' was already processing run. Will not participate in this run.')
-                return None
+                if resourcename in self.skip_notification_list:
+                    #BU only: update box file IP (data) address and drop from this list in case if disappears later
+                    self.logger.info("resource file " + resourcename + " of whitelisted resource has appeared")
+                    resource.hostip = f_ip
+                    self.skip_notification_list.remove(resourcename)
+                    return None
+                else:
+                    self.logger.error('RUN:'+str(self.runnumber)+' - resource '+str(resource.cpu)+' was already participating in the run. Ignoring until the next run.')
+                    return None
             if resourcename in self.rr.boxInfo.machine_blacklist:
                 self.logger.info("skipping blacklisted resource "+str(resource.cpu))
                 return None

@@ -100,7 +100,7 @@ class MountManager:
 
       #reset vars
       self.reset()
-      if self.conf.bu_base_dir[0] == '/':
+      if self.conf.bu_base_dir[0] == '/': #FU special case with no BU mountpoint
         self.bu_disk_list_ramdisk = [os.path.join(self.conf.bu_base_dir,self.conf.ramdisk_subdirectory)]
         self.bu_disk_list_output = [os.path.join(self.conf.bu_base_dir,self.conf.output_subdirectory)]
         if self.conf.instance=="main":
@@ -111,7 +111,7 @@ class MountManager:
             self.bu_disk_list_output_instance = [os.path.join(self.bu_disk_list_output[0],self.conf.instance)]
 
         #make subdirectories if necessary and return
-        if remount==True:
+        if not remount:
             try:
                 #there is no BU mount, so create subdirectory structure on FU
                 os.makedirs(os.path.join(self.conf.bu_base_dir,self.conf.ramdisk_subdirectory,'appliance','boxes'))
@@ -123,10 +123,10 @@ class MountManager:
                 pass
         return True
       try:
-        process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
-        out=process.communicate()[0]
-        if not isinstance(out,str): out = out.decode("utf-8")
-        mounts = re.findall('/'+self.conf.bu_base_dir+'[0-9]+',out) + re.findall('/'+self.conf.bu_base_dir+'-CI/',out)
+        mounts = []
+        with open('/proc/mounts','r') as fpm:
+          out = fpm.read()
+          mounts = re.findall('/'+self.conf.bu_base_dir+'[0-9]+',out) + re.findall('/'+self.conf.bu_base_dir+'-CI/',out)
 
         mounts = sorted(list(set(mounts)))
         self.logger.info("cleanup_mountpoints: found following mount points: ")
@@ -153,7 +153,7 @@ class MountManager:
                         os.rmdir(os.path.join('/'+point,self.conf.output_subdirectory))
             except Exception as ex:
                 self.logger.exception(ex)
-        if remount==False:
+        if not remount:
             if umount_failure:
               self.logger.info('finishing mount cleanup with mount failure')
             else:

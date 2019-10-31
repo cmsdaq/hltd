@@ -16,7 +16,7 @@ except:
     print("No ConfigParser")
 
 
-#Output redirection class
+#Output redirection class (used to set up redirections)
 class stdOutLog:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -45,6 +45,7 @@ class Daemon2:
     attn: May change in the near future to use PEP daemon
     """
 
+    #NOTE: used as hltd and soapfile base class, but mostly obsolete (remaining could be absorbed in inheriting class)
     def __init__(self, processname, instance, confname=None, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null', kill_timeout=12):
         self.stdin = stdin
         self.stdout = stdout
@@ -65,7 +66,7 @@ class Daemon2:
         self.kill_timeout = kill_timeout
 
 
-
+    #NOTE: used only by start (which is unused)
     def daemonize(self):
 
         """
@@ -115,9 +116,12 @@ class Daemon2:
         open(self.pidfile,'w+').write("%s\n" % pid)
         return 0
 
+    #NOTE: used only by daemonize (i.e. unused)
     def delpid(self):
         if os.path.exists(self.pidfile):
             os.remove(self.pidfile)
+
+    #NOTE: this is unused since forking is no longer used
     def start(self,req_conf=True):
         """
         Start the daemon
@@ -146,6 +150,7 @@ class Daemon2:
             ret = 0
         return ret
 
+    #NOTE: this appears to be unused for HLTD service and could be removed
     def status(self):
         """
         Get the daemon status from the pid file and ps
@@ -177,6 +182,7 @@ class Daemon2:
         sys.stdout.write(message % self.pidfile)
         return retval
 
+    #NOTE: this appears to be unused for HLTD service and could be removed
     def silentStatus(self):
         """
         Get the daemon status from the pid file and ps
@@ -200,6 +206,7 @@ class Daemon2:
 
         return retval
 
+    #NOTE: this appears to be unused for HLTD service and could be removed
     def stop(self,do_umount=True):
         """
         Stop the daemon
@@ -278,6 +285,7 @@ class Daemon2:
         sys.stdout.write('\t\t\t [  \033[1;32mOK\033[0;39m  ]\n')
         sys.stdout.flush()
 
+    #NOTE:unused
     def restart(self,do_umount_=True):
         """
         Restart the daemon
@@ -285,12 +293,14 @@ class Daemon2:
         self.stop(do_umount_)
         return self.start()
 
+    #NOTE:unused (override)
     def run(self):
         """
         You should override this method when you subclass Daemon2. It will be called after the process has been
         daemonized by start() or restart().
         """
 
+    #NOTE: this is used by systemd hltd post-stop through emergencyUmount
     def do_umount(self,mpoint):
         try:
             subprocess.check_call(['umount',mpoint])
@@ -313,6 +323,7 @@ class Daemon2:
             sys.stdout.write(ex.args[0]+"\n")
         return True
 
+    #NOTE: this is used by systemd hltd post-stop
     def emergencyUmount(self):
 
         cfg = SafeConfigParser()
@@ -344,6 +355,7 @@ class Daemon2:
             if not point.rstrip('/').endswith("-CI"):
                 if self.do_umount(os.path.join('/'+point,output_subdirectory))==False:return False
 
+    #NOTE:unused
     def touchLockFile(self):
         try:
             with open(self.lockfile,"w+") as fi:
@@ -351,6 +363,7 @@ class Daemon2:
         except:
             pass
 
+    #NOTE:unused
     def removeLockFile(self):
         try:
             os.unlink(self.lockfile)

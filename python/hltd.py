@@ -413,7 +413,7 @@ class hltd(Daemon2,object):
         resource_lock = threading.Lock()
         mm = None
         #no static mountpoint if dynamic_mounts parameter is set
-        if not conf.dynamic_mounts:
+        if not conf.dynamic_mounts or conf.role == 'bu':
           mm = MountManager(conf)
 
         if conf.role == 'fu':
@@ -636,9 +636,10 @@ class hltd(Daemon2,object):
             httpd.socket.close()
             logger.info(threading.enumerate())
             logger.info("unmounting mount points")
-            if mm and not mm.cleanup_mountpoints(nsslock,remount=False):
-                time.sleep(1)
-                mm.cleanup_mountpoints(nsslock,remount=False)
+            if conf.role == 'fu' and mm:
+                if not mm.cleanup_mountpoints(nsslock,remount=False):
+                    time.sleep(1)
+                    mm.cleanup_mountpoints(nsslock,remount=False)
 
             logger.info("shutdown of service (main thread) completed")
             os._exit(0)
@@ -657,15 +658,11 @@ class hltd(Daemon2,object):
 if __name__ == "__main__":
     import setproctitle
     setproctitle.setproctitle('hltd')
+
     p_instance = "main"
-    do_forking = False
     if len(sys.argv)>1:
-      for param in sys.argv[1:]:
-        if param=="--forking":do_forking=True
-        else: p_instance=param
+      p_instance=sys.argv[1]
+
     daemon = hltd(p_instance)
-    if do_forking:
-      daemon.start()
-    else: #default
-      os.umask(0)
-      daemon.run()
+    os.umask(0)
+    daemon.run()

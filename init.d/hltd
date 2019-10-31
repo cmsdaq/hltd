@@ -25,12 +25,6 @@ def preStartHLTD():
     check_call(['cp','-R', '/opt/hltd/cgi','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/scripts','/opt/hltd/scratch/'])
 
-#old style (forking)
-#def startHLTD(instance):
-#    proc = Popen(["/opt/hltd/scratch/python/hltd.py",instance,"--forking"], stdout=PIPE)
-#    output = proc.communicate()[0]
-
-
 def suspendRemoteClientsMaybe(instance,force):
     #determine target (runlevel). If host is BU and machine is shutting doen, this will trigger temporary umount on FUs
     shutdown_active=False
@@ -128,7 +122,7 @@ if __name__ == "__main__":
                 sys.exit(2)
 
         else:
-            print("usage: %s start|stop|restart|status all|main|instance" % sys.argv[0])
+            print("usage: %s pre-start|post-stop|stop-appliance all|main|instance" % sys.argv[0])
             sys.exit(2)
 
 sys.exit(0)

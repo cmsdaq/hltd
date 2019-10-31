@@ -70,20 +70,10 @@ if __name__ == "__main__":
       setproctitle.setproctitle('soap2file')
     except:
       pass
-
-    if len(sys.argv)>1 and sys.argv[1]=='stop':
-        sys.stdout.write("Stopping soap2file:")
-        daemon.stop(do_umount=False)
-        sys.exit(0)
+    #NOTE:forking mode is unused and obsolete
 
     if daemon.checkEnabled():
-        if len(sys.argv)>1 and sys.argv[1]=='--no-forking':
-            #if os.path.exists('/var/run/soap2file.pid'):
-            #    daemon.stop(do_umount=False)
-            #    #os.remove('/var/run/soap2file.pid')
-            daemon.run()
-        else:
-            daemon.start()
+        daemon.run()
     else:
         print("Soap2file service is disabled")
         sys.exit(0)

@@ -85,7 +85,7 @@ class system_monitor(threading.Thread):
 
 
     def preStart(self):
-        if not self.mm and not self.bu_mount_suffix: return
+        if conf.role == 'fu' and not self.mm and not self.bu_mount_suffix: return
         self.rehash()
         if conf.mount_control_path:
             self.startStatNFS()
@@ -192,7 +192,7 @@ class system_monitor(threading.Thread):
                 #check for NFS stale file handle
                 if self.bu_mount_suffix:
                         pass
-                        #TODO
+                        #TODO: implement check of the active submount
                 elif self.mm:
                   for disk in  self.mm.bu_disk_list_ramdisk:
                     mpstat = os.stat(disk)
@@ -313,7 +313,7 @@ class system_monitor(threading.Thread):
             if conf.mon_bu_cpus:
                 vtmp_old = self.getIntelCPUPerfVec()
                 ts_old_percpu = time.time()
-            if not self.mm and not self.bu_mount_suffix:
+            if conf.role == 'fu' and not self.mm and not self.bu_mount_suffix:
                 return
 
             while self.running:

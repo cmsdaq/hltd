@@ -171,10 +171,6 @@ class RunRanger:
               if conf.role == 'fu':
                   self.harakiriCmd()
 
-          elif prefix in ['emu']: #BU (deprecated)
-            #self.buEMUCmd(dirnum) #preparing to remove this
-            tryremove(fullpath)
-
           elif prefix=="cgi-bin":
             pass
           elif dirname.startswith("switchbu_"):
@@ -327,20 +323,6 @@ class RunRanger:
                 except Exception as ex:
                         self.logger.error("RUN:"+str(rn)+" - RunRanger: unexpected exception encountered in forking hlt slave")
                         self.logger.exception(ex)
-
-
-    def buEMUCmd(self,rn):
-            if rn>0:
-                try:
-                    """
-                    start a new BU emulator run here - this will trigger the start of the HLT test run
-                    """
-                    self.bu_emulator = BUEmu(conf,self.mm.bu_disk_list_ramdisk_instance)
-                    self.bu_emulator.startNewRun(rn)
-
-                except Exception as ex:
-                    self.logger.info("exception encountered in starting BU emulator run")
-                    self.logger.info(ex)
 
 
     def endRunCmd(self,rn,fullpath):
