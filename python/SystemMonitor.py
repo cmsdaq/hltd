@@ -71,6 +71,9 @@ class system_monitor(threading.Thread):
     def resetRunningState(self):
 
         threading.Thread.__init__(self)
+        self.threadEvent.clear()
+        self.threadEventStat.clear()
+        self.threadEventESBox.clear()
         self.running = True
         self.directory = []
         self.files = []
@@ -78,6 +81,7 @@ class system_monitor(threading.Thread):
         self.esBoxThread = None
         self.stale_flag = False
         self.dummyMountMgr.reset()
+        self.no_delete_list = []
 
 
     def preStart(self):
@@ -92,6 +96,15 @@ class system_monitor(threading.Thread):
           return
         if not self.bu_mount_suffix or self.bu_mount_suffix!=bu_mount_suffix:
           self.logger.info("Changing BU mountpoint, from:"+str(self.bu_mount_suffix)+" to:",bu_mount_suffix)
+
+          #check if this mount point is moving to identical BU from static conf. Then don't delete, just update the file
+          #this avoids refusing to join this FU (caused by mechanism to detect FUs which reboot during a run)
+          if not self.bu_mount_suffix:
+              bu_name_static = self.getBUNameStatic()
+              if bu_name_static == bu_mount_suffix:
+                  self.no_delete_list = self.files
+
+          #stop, clean up state and restart the monitor
           self.stop()
           self.resetRunningState()
           self.bu_mount_suffix = bu_mount_suffix
@@ -725,7 +738,7 @@ class system_monitor(threading.Thread):
                                 "mem_frac":self.mem_frac
 
                             }
-                            with open(mfile,'w+') as fp: #recalculate path according to new BU switched. Delete file from the old BU if moving BU
+                            with open(mfile,'w') as fp: #recalculate path according to new BU switched. Delete file from the old BU if moving BU
                                 json.dump(boxdoc,fp,indent=True)
                             boxinfo_update_attempts=0
 
@@ -774,6 +787,7 @@ class system_monitor(threading.Thread):
             self.logger.exception(ex)
 
         for mfile in self.files:
+            if mfile in self.no_delete_list:continue
             try:
                 os.remove(mfile)
             except OSError:
@@ -1026,23 +1040,28 @@ class system_monitor(threading.Thread):
             self.logger.exception(ex)
           return [0,0,0]
 
+
+    def getBUNameStatic(self):
+
+          #parse bus.config to find BU name 
+          bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
+          try:
+              if os.path.exists(bus_config):
+                  for line in open(bus_config,'r'):
+                      if len(line):
+                          return line.split('.')[0]
+          except:
+              pass
+          return "unknown"
+
     def runESBox(self):
 
         #find out BU name
         self.logger.info("started ES box thread")
-        bu_name="unknown"
         if self.bu_mount_suffix:
           bu_name = self.bu_mount_suffix
         else:
-          #parse bus.config to find BU name 
-          bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-          try:
-            if os.path.exists(bus_config):
-                for line in open(bus_config,'r'):
-                    if len(line):
-                      bu_name=line.split('.')[0]
-                      break
-          except:pass
+          bu_name = self.getBUNameStatic()
         cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
 
         def refreshCPURange():
