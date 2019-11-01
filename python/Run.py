@@ -309,8 +309,8 @@ class Run:
     def __del__(self):
         self.logger.info('Run '+ str(self.runnumber) +' object __del__ runs')
         self.stopThreads=True
-        self.stopAsyncContact()
         self.threadEvent.set()
+        self.stopAsyncContact()
         if self.completedChecker:
             try:
                 self.completedChecker.join()
@@ -820,13 +820,13 @@ class Run:
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' on BU completed')
 
     def StartAsyncContact(self):
-        self.logger.info("Starting periodic notify attempt thread for resources " + str(self.pending_contact))
+        self.logger.info("Starting periodic notify attempt thread for " + str(len(self.pending_contact)) + " resources")
         try:
             self.asyncContactThread = threading.Thread(target=self.AsyncContact)
-            self.waitForEndThread.start()
+            self.asyncContactThread.start()
         except Exception as ex:
             self.logger.info("exception encountered in starting async contact thread")
-            self.logger.info(ex)
+            self.logger.exception(ex)
 
     def AsyncContact(self):
         self.logger.info("Async contact thread")
@@ -842,7 +842,7 @@ class Run:
                     res.NotifyNewRun(self.runnumber,self.send_bu,warnonly=True)
                     if res.ok:
                       self.pending_contact.remove(res)
-                    self.logger.info("Remaining threads to contact: " + str(self.pending_contact))
+                    self.logger.info("Remaining resources to contact: " + str([x.cpu[0] for x in self.pending_contact]))
                 except Exception as ex:
                     self.logger.info('RUN:'+str(self.runnumber)+' - exception in acquiring whitelisted resource (periodic check) '+str(res.cpu)+':'+str(ex))
             #run check periodically
@@ -860,6 +860,8 @@ class Run:
                 self.asyncContactThread.join()
         except:
             pass
+
+        self.asyncContactThread = None
 
 
     def StartWaitForEnd(self):
@@ -1052,6 +1054,7 @@ class Run:
         while self.stopThreads == False:
             self.threadEvent.wait(5)
             if os.path.exists(eorCheckPath) or os.path.exists(rundirCheckPath)==False:
+                self.stopAsyncContact()
                 self.logger.info("Completed checker: detected end of run "+str(self.runnumber))
                 break
 
@@ -1064,6 +1067,7 @@ class Run:
                         self.runList.remove(self.runnumber)
                     except Exception as ex:
                         self.logger.exception(ex)
+                self.stopAsyncContact()
                 self.logger.info("Completed checker: end of processing of run "+str(self.runnumber))
                 break
 
