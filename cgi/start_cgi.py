@@ -13,6 +13,14 @@ if "run" not in form:
 else:
     #add BU suffix
     bu_suffix = "_"+form["buname"].value if "buname" in form else ""
-    os.mkdir('run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)+bu_suffix)
-    print("<H1>run "+str(form["run"].value)+" created</H1>")
-    print("in dir "+os.getcwd())
+    #check for duplicate:
+    run_short = 'run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)
+    if os.path.exists(run_short):
+        print("<H1>run "+str(form["run"].value)+" alreary exists</H1>")
+        print("in dir "+os.getcwd())
+        #trip exception 
+        os.mkdir(run_short)
+    else:
+        os.mkdir(run_short+bu_suffix)
+        print("<H1>run "+str(form["run"].value)+" created</H1>")
+        print("in dir "+os.getcwd())
