@@ -798,7 +798,7 @@ if __name__ == "__main__":
                 hltdcfg.reg('instance',instance,'[General]')
                 #parameter has no effect on BU, which reacts to whitelist file appearing in ramdisk/run*/hlt directory
                 #if num_cfgdb_fus==0 and dqmmachine=='False':
-                #  hltdcfg.reg('dynamic_mounts','True','[General]')
+                hltdcfg.reg('dynamic_mounts','True','[General]')
 
                 #port for multiple instances
                 hltdcfg.reg('cgi_port',str(cgibase+idx),'[Web]')

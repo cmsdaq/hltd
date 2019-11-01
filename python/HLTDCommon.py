@@ -88,7 +88,10 @@ def restoreFUListOnBU(conf,logger,listname):
         return []
     try:
         with open(dest,'r') as fi:
-            return json.load(fi)
+            ret = fi.read()
+            retj =  json.loads(ret)
+            logger.info('restoring '+listname+' from backup: '+ ret)
+            return retj
     except Exception as ex:
         logger.info(dest + ' could not be read: ' + str(ex))
         return []

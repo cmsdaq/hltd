@@ -37,7 +37,7 @@ class hltdConf:
         self.enabled = cfg.getboolean('General','enabled')
         self.mount_control_path = cfg.getboolean('General','mount_control_path')
         try:
-          self.dynamic_mounts = cfg.getboolean('Resources','dynamic_mounts')
+          self.dynamic_mounts = cfg.getboolean('General','dynamic_mounts')
         except:
           self.dynamic_mounts = False
         try:
