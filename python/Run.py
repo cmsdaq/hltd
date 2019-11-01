@@ -475,9 +475,6 @@ class Run:
                     self.CreateResource([cpu],None)
                 except Exception as ex:
                     self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in assigning whitelisted resource '+str(cpu)+':'+str(ex))
-            #        self.pending_contact.append(cpu)
-            #if len(self.pending_contact):
-            #    self.StartAsyncContact()
 
         return True
 
@@ -799,6 +796,7 @@ class Run:
     def ShutdownBU(self):
         self.is_ongoing_run = False
         self.stopAsyncContact()
+        #TODO: kill async checker thread too
         try:
             if self.elastic_monitor:
                 #first check if process is alive
@@ -1058,7 +1056,7 @@ class Run:
                 self.logger.info("Completed checker: detected end of run "+str(self.runnumber))
                 break
 
-        while self.stopThreads==False:
+        while self.stopThreads == False:
             self.threadEvent.wait(5)
             success, runFound = self.rr.checkNotifiedBoxes(self.runnumber)
             if success and runFound==False:
