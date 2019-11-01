@@ -374,7 +374,7 @@ class Run:
                     return res.cpu
         return None
 
-    def ContactResource(self,resourcenames,f_ip):
+    def CreateResource(self,resourcenames,f_ip):
         newres = Resource.OnlineResource(self,resourcenames,self.resource_lock,f_ip)
         self.online_resource_list.append(newres)
         self.online_resource_list_join.append(newres)
@@ -457,7 +457,7 @@ class Run:
                     self.logger.info("found resource "+cpu+" which is "+str(age)+" seconds old")
                     if age < 10:
                         cpus = [cpu]
-                        self.ContactResource(cpus,f_ip)
+                        self.CreateResource(cpus,f_ip)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring resource '+str(cpu)+':'+str(ex))
 
@@ -469,15 +469,15 @@ class Run:
                     self.logger.error("skipping blacklisted resource "+str(cpu)+" which is also in whitelist")
                     continue
                 count = count+1
-                self.logger.info("contacting resource "+cpu+" which is only in whitelist")
+                self.logger.info("creating resource "+cpu+" which is only in whitelist")
                 try:
                     self.skip_notification_list.append(cpu)
-                    self.ContactResource([cpu],None)
+                    self.CreateResource([cpu],None)
                 except Exception as ex:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring whitelisted resource '+str(cpu)+':'+str(ex))
-                    self.pending_contact.append(cpu)
-            if len(self.pending_contact):
-                self.StartAsyncContact()
+                    self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in assigning whitelisted resource '+str(cpu)+':'+str(ex))
+            #        self.pending_contact.append(cpu)
+            #if len(self.pending_contact):
+            #    self.StartAsyncContact()
 
         return True
 
@@ -540,6 +540,12 @@ class Run:
             self.beginTime = datetime.datetime.now()
             for resource in self.online_resource_list:
                 resource.NotifyNewRunJoin()
+                if not resource.ok:
+                  self.pending_contact.append(resource)
+
+            if len(self.pending_contact):
+                self.StartAsyncContact()
+
             self.logger.info('sent start run '+str(self.runnumber)+' notification to all resources')
 
             self.startElasticBUWatchdog()
@@ -580,7 +586,7 @@ class Run:
         age = current_time - resourceage
         self.logger.info("found resource "+resourcename+" which is "+str(age)+" seconds old")
         if age < 10:
-            self.ContactResource([resourcename],f_ip)
+            self.CreateResource([resourcename],f_ip)
             return self.online_resource_list[-1]
         else:
             return None
@@ -814,6 +820,7 @@ class Run:
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' on BU completed')
 
     def StartAsyncContact(self):
+        self.logger.info("Starting periodic notify attempt thread for resources " + str(self.pending_contact))
         try:
             self.asyncContactThread = threading.Thread(target=self.AsyncContact)
             self.waitForEndThread.start()
@@ -822,31 +829,28 @@ class Run:
             self.logger.info(ex)
 
     def AsyncContact(self):
-        self.logger.info("wait for end thread!")
-        def resInList(res):
-            for resource in self.online_resource_list[:]:
-                for cpu in resource.cpu:
-                    if res == cpu:
-                        return True
-            return False
+        self.logger.info("Async contact thread")
         try:
           self.threadEventContact.wait(60)
           while not self.stopThreads and len(self.pending_contact):
-            for resname in self.pending_contact[:]:
-                if resInList(resname):
-                    self.pending_contact.remove(resname)
-                else:
-                    if resname not in self.skip_notification_list[:]:
-                        self.skip_notification_list.append(resname)
-                    try:
-                        self.ContactResource([resname],None)
-                        self.pending_contact.remove(resname)
-                    except Exception as ex:
-                        self.logger.info('RUN:'+str(self.runnumber)+' - exception in acquiring whitelisted resource (periodic check) '+str(resname)+':'+str(ex))
+            for res in self.pending_contact[:]:
+                if res.ok:
+                    self.pending_contact.remove(res)
+                    continue
+                try:
+                    self.logger.info('start run '+str(self.runnumber)+' on resources '+str(res.cpu)+" (by check)")
+                    res.NotifyNewRun(self.runnumber,self.send_bu,warnonly=True)
+                    if res.ok:
+                      self.pending_contact.remove(res)
+                    self.logger.info("Remaining threads to contact: " + str(self.pending_contact))
+                except Exception as ex:
+                    self.logger.info('RUN:'+str(self.runnumber)+' - exception in acquiring whitelisted resource (periodic check) '+str(res.cpu)+':'+str(ex))
             #run check periodically
             self.threadEventContact.wait(300)
         except:
           self.logger.warning("Exception in AsyncContact " + str(ex))
+
+
     def stopAsyncContact(self):
         if conf.role != 'bu': return
         self.pending_contact = []

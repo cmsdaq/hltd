@@ -61,12 +61,14 @@ class OnlineResource:
         self.end_run_mask=False
         self.move_q=False
         self.loc_res_lk = threading.Lock()
+        self.ok = True
 
     def ping(self):
         if conf.role == 'bu':
             if not os.system("ping -c 1 "+self.cpu[0])==0: pass #self.hoststate = 0
 
     def NotifyNewRunStart(self,runnumber,send_bu):
+        self.ok = True
         self.runnumber = runnumber
         self.notifyNewRunThread = threading.Thread(target=self.NotifyNewRun,args=[runnumber,send_bu])
         self.notifyNewRunThread.start()
@@ -75,7 +77,8 @@ class OnlineResource:
         self.notifyNewRunThread.join()
         self.notifyNewRunThread=None
 
-    def NotifyNewRun(self,runnumber,send_bu):
+    def NotifyNewRun(self,runnumber,send_bu,warnonly=False):
+        self.ok = True
         self.runnumber = runnumber
         self.logger.info("calling start of run on "+self.cpu[0])
         attemptsLeft=3
@@ -97,11 +100,18 @@ class OnlineResource:
                 break
             except Exception as ex:
                 if attemptsLeft>0:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
+                    if warnonly:
+                        self.logger.warning('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
+                    else:
+                        self.logger.error('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
                     self.logger.info('retrying connection to '+str(self.cpu[0]))
                 else:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
-                    self.logger.exception(ex)
+                    if warnonly:
+                        self.logger.warning('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
+                    else:
+                        self.logger.error('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
+                        self.logger.exception(ex)
+                    self.ok = False
 
     def NotifyShutdown(self):
         try:
