@@ -144,6 +144,9 @@ class Run:
         self.n_used = 0
         self.n_quarantined = 0
         self.skip_notification_list = []
+        self.pending_contact = []
+        self.asyncContactThread = None
+        self.threadEventContact = threading.Event()
 
         self.inputdir_exists = False
 
@@ -306,6 +309,7 @@ class Run:
     def __del__(self):
         self.logger.info('Run '+ str(self.runnumber) +' object __del__ runs')
         self.stopThreads=True
+        self.stopAsyncContact()
         self.threadEvent.set()
         if self.completedChecker:
             try:
@@ -471,6 +475,9 @@ class Run:
                     self.ContactResource([cpu],None)
                 except Exception as ex:
                     self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring whitelisted resource '+str(cpu)+':'+str(ex))
+                    self.pending_contact.append(cpu)
+            if len(self.pending_contact):
+                self.StartAsyncContact()
 
         return True
 
@@ -785,6 +792,7 @@ class Run:
 
     def ShutdownBU(self):
         self.is_ongoing_run = False
+        self.stopAsyncContact()
         try:
             if self.elastic_monitor:
                 #first check if process is alive
@@ -805,6 +813,50 @@ class Run:
 
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' on BU completed')
 
+    def StartAsyncContact(self):
+        try:
+            self.asyncContactThread = threading.Thread(target=self.AsyncContact)
+            self.waitForEndThread.start()
+        except Exception as ex:
+            self.logger.info("exception encountered in starting async contact thread")
+            self.logger.info(ex)
+
+    def AsyncContact(self):
+        self.logger.info("wait for end thread!")
+        def resInList(res):
+            for resource in self.online_resource_list[:]:
+                for cpu in resource.cpu:
+                    if res == cpu:
+                        return True
+            return False
+        try:
+          self.threadEventContact.wait(60)
+          while not self.stopThreads and len(self.pending_contact):
+            for resname in self.pending_contact[:]:
+                if resInList(resname):
+                    self.pending_contact.remove(resname)
+                else:
+                    if resname not in self.skip_notification_list[:]:
+                        self.skip_notification_list.append(resname)
+                    try:
+                        self.ContactResource([resname],None)
+                        self.pending_contact.remove(resname)
+                    except Exception as ex:
+                        self.logger.info('RUN:'+str(self.runnumber)+' - exception in acquiring whitelisted resource (periodic check) '+str(resname)+':'+str(ex))
+            #run check periodically
+            self.threadEventContact.wait(300)
+        except:
+          self.logger.warning("Exception in AsyncContact " + str(ex))
+    def stopAsyncContact(self):
+        if conf.role != 'bu': return
+        self.pending_contact = []
+        self.threadEventContact.set()
+        try:
+            if self.asyncContactThread:
+                self.asyncContactThread.join()
+        except:
+            pass
+
 
     def StartWaitForEnd(self):
         self.is_ongoing_run = False
@@ -818,6 +870,7 @@ class Run:
 
     def WaitForEnd(self):
         self.logger.info("wait for end thread!")
+        self.stopAsyncContact()
         try:
             for resource in self.online_resource_list_join:
                 if resource.processstate is not None:
