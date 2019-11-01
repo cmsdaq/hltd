@@ -537,11 +537,9 @@ class hltd:
         #BU mode threads
         if conf.role == 'bu':
 
-            boxInfo.machine_blacklist=[]
             #restore blacklist and whitelist from cache if service restarted
-            if conf.dynamic_mounts:
-              update_success,machine_blacklist=restoreFUListOnBU(conf,logger,"blacklist")
-              update_success,machine_whitelist=restoreFUListOnBU(conf,logger,"whitelist")
+            boxInfo.machine_blacklist=restoreFUListOnBU(conf,logger,"blacklist")
+            boxInfo.machine_whitelist=restoreFUListOnBU(conf,logger,"whitelist")
 
             mm.ramdisk_submount_size=0
             if self.instance == 'main':

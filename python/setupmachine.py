@@ -242,55 +242,55 @@ def getBUAddr(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
     #print retval
     return retval
 
-def countBU_FUs(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
-
-    fu_count=0
-    if env_ == "vm":
-        for fu_hn in vm_override_buHNs:
-            if vm_override_buHNs[fu_hn][0].strip('.')==hostname.strip('.')[0]:
-                fu_count+=1
-        return fu_count
-    try:
-        session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
-        if parentTag == 'daq2':
-            con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
-                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-        elif parentTag == 'daq2_904':
-            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
-                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-        else: #daq2val,daq3val
-            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
-                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
-
-    except Exception as ex:
-        syslog.syslog('setupmachine.py: '+ str(ex))
-        return 0
-
-    cur = con.cursor()
-
-    qstring = "select d.dnsname from \
-               DAQ_EQCFG_HOST_ATTRIBUTE ha, \
-               DAQ_EQCFG_HOST_NIC hn, \
-               DAQ_EQCFG_DNSNAME d \
-               where \
-               ha.eqset_id=hn.eqset_id AND \
-               hn.eqset_id=d.eqset_id AND \
-               ha.host_id = hn.host_id AND \
-               ha.attr_name like 'myBU' AND \
-               ha.attr_value = '"+hostname+"' AND \
-               hn.nic_id = d.nic_id AND \
-               (d.dnsname like '%fu-%' OR d.dnsname like '%d?vfu-%') AND \
-               d.dnsname not like '%.%.cms' \
-               AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
-               where tag='"+parentTag.upper()+"' AND \
-               ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
-
-    cur.execute(qstring)
-    for result in cur:
-      fu_count+=1
-    cur.close()
-    con.close()
-    return fu_count
+#def countBU_FUs(parentTag,hostname,env_,eqset_,dblogin_,dbpwd_,dbsid_,retry=True):
+#
+#    fu_count=0
+#    if env_ == "vm":
+#        for fu_hn in vm_override_buHNs:
+#            if vm_override_buHNs[fu_hn][0].strip('.')==hostname.strip('.')[0]:
+#                fu_count+=1
+#        return fu_count
+#    try:
+#        session_suffix = hostname.split('-')[0]+hostname.split('-')[1]
+#        if parentTag == 'daq2':
+#            con = cx_Oracle.connect(dblogin_,dbpwd_,dbsid_,
+#                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+#        elif parentTag == 'daq2_904':
+#            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+#                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+#        else: #daq2val,daq3val
+#            con = cx_Oracle.connect('CMS_DAQ2_TEST_HW_CONF_R',dbpwd_,'int2r_lb',
+#                          cclass="FFFSETUP"+session_suffix,purity = cx_Oracle.ATTR_PURITY_SELF)
+#
+#    except Exception as ex:
+#        syslog.syslog('setupmachine.py: '+ str(ex))
+#        return 0
+#
+#    cur = con.cursor()
+#
+#    qstring = "select d.dnsname from \
+#               DAQ_EQCFG_HOST_ATTRIBUTE ha, \
+#               DAQ_EQCFG_HOST_NIC hn, \
+#               DAQ_EQCFG_DNSNAME d \
+#               where \
+#               ha.eqset_id=hn.eqset_id AND \
+#               hn.eqset_id=d.eqset_id AND \
+#               ha.host_id = hn.host_id AND \
+#               ha.attr_name like 'myBU' AND \
+#               ha.attr_value = '"+hostname+"' AND \
+#               hn.nic_id = d.nic_id AND \
+#               (d.dnsname like '%fu-%' OR d.dnsname like '%d?vfu-%') AND \
+#               d.dnsname not like '%.%.cms' \
+#               AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET \
+#               where tag='"+parentTag.upper()+"' AND \
+#               ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='"+parentTag.upper()+"'))"
+#
+#    cur.execute(qstring)
+#    for result in cur:
+#      fu_count+=1
+#    cur.close()
+#    con.close()
+#    return fu_count
 
 #was used only for tribe:
 #def getAllBU(requireFU=False):
@@ -691,7 +691,7 @@ if __name__ == "__main__":
 
     buName = None
     buDataAddr=[]
-    num_cfgdb_fus = 0
+    #num_cfgdb_fus = 0
     bu_check_err = False
 
     if mtype == 'fu':
@@ -723,8 +723,8 @@ if __name__ == "__main__":
     elif mtype == 'bu':
         buName = os.uname()[1].split(".")[0]
         #find out if any FUs are configured to this machine (statically)
-        if cluster in ['daq2val','daq3val','daq2','daq2_904']:
-            num_cfgdb_fus = countBU_FUs(cluster,cnhostname,env,equipmentSet,dblogin,dbpwd,dbsid)
+        #if cluster in ['daq2val','daq3val','daq2','daq2_904']:
+        #    num_cfgdb_fus = countBU_FUs(cluster,cnhostname,env,equipmentSet,dblogin,dbpwd,dbsid)
 
     print("running configuration for machine",cnhostname,"of type",mtype,"in cluster",cluster,"; appliance bu is:",buName)
 
@@ -796,8 +796,9 @@ if __name__ == "__main__":
 
                 hltdcfg.reg('user',username,'[General]')
                 hltdcfg.reg('instance',instance,'[General]')
-                if num_cfgdb_fus==0 and dqmmachine=='False':
-                  hltdcfg.reg('dynamic_mounts','True','[General]')
+                #parameter has no effect on BU, which reacts to whitelist file appearing in ramdisk/run*/hlt directory
+                #if num_cfgdb_fus==0 and dqmmachine=='False':
+                #  hltdcfg.reg('dynamic_mounts','True','[General]')
 
                 #port for multiple instances
                 hltdcfg.reg('cgi_port',str(cgibase+idx),'[Web]')

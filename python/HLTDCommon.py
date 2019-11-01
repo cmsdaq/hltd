@@ -90,8 +90,19 @@ def restoreFUListOnBU(conf,logger,listname):
         with open(dest,'r') as fi:
             return json.load(fi)
     except Exception as ex:
-        logger.info(dest + ' could not be read ' + str(ex))
+        logger.info(dest + ' could not be read: ' + str(ex))
         return []
+
+def deleteFUListOnBU(lfilein,listname):
+    #resets (deletes) active blacklist and backup
+    try:
+        os.remove(lfilein)
+    except:
+        pass
+    try:
+        os.remove(os.path.join('/var/cache/hltd',listname+".last"))
+    except:
+        pass
 
 def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
   if not doLock: return None

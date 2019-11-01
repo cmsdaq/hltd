@@ -287,13 +287,11 @@ class ResourceRanger:
             with open(os.path.join(conf.watch_directory,'appliance',basename),'r') as fi:
                 try:
                     setattr(self.boxInfo,'machine_'+basename,json.load(fi))
-                    #if basename == 'blacklist': self.boxInfo.machine_blacklist = json.load(fi)
-                    #elif basename == 'whitelist': self.boxInfo.machine_whitelist = json.load(fi)
                 except Exception as ex:
+                    #TODO:hadle consequences of not finding a blacklist/whitelist file with dynamic_mounts
                     #self.logger.error(basename + " parsing error")
                     self.logger.exception(ex)
-                    #TODO:hadle consequences of not finding a blacklist/whitelist file with dynamic_mounts
-                    pass
+
         if resourcepath.endswith('boxes'):
             if basename in self.boxInfo.machine_blacklist:
                 try:self.boxInfo.FUMap.pop(basename)
