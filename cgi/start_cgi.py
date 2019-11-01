@@ -15,11 +15,13 @@ else:
     bu_suffix = "_"+form["buname"].value if "buname" in form else ""
     #check for duplicate:
     run_short = 'run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)
-    if os.path.exists(run_short):
+    run_long = 'run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)+bu_suffix
+    #check for both variants (renaming race)
+    if os.path.exists(run_long) or os.path.exists(run_short):
         print("<H1>run "+str(form["run"].value)+" alreary exists</H1>")
         print("in dir "+os.getcwd())
         #trip exception 
-        os.mkdir(run_short)
+        raise FileExistsError("Directory for " + run_short + " exists")
     else:
         os.mkdir(run_short+bu_suffix)
         print("<H1>run "+str(form["run"].value)+" created</H1>")
