@@ -139,7 +139,7 @@ class system_monitor(threading.Thread):
             else:
                 self.logger.info('Updating box info via data interface')
                 if self.bu_mount_suffix:
-                    self.directory = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory_remote+'_'+self.bu_mount_suffix,'appliance','boxes')]
+                    self.directory = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory+'_'+self.bu_mount_suffix,'appliance','boxes')]
                 elif self.mm and len(self.mm.bu_disk_list_ramdisk_instance):
                     self.directory = [os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'appliance','boxes')]
 

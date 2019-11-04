@@ -688,7 +688,7 @@ class elasticCollectorBU():
 
             try:
                 self.logger.info("deleting ramdisk and output (drop at FU mode)")
-                shutil.rmtree(os.path.join('/fff',self.es.conf.output_subdirectory_remote,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
+                shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_remote,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
             except Exception as ex:
                 self.logger.exception(ex)
 
@@ -974,7 +974,7 @@ if __name__ == "__main__":
     runnumber = sys.argv[1]
     watchdir = conf.watch_directory
     mainDir = os.path.join(watchdir,'run'+ runnumber.zfill(conf.run_number_padding))
-    mainOutDir = os.path.join('/fff',conf.output_subdirectory_remote,'run'+ runnumber.zfill(conf.run_number_padding))
+    mainOutDir = os.path.join(conf.fff_base,conf.output_subdirectory_remote,'run'+ runnumber.zfill(conf.run_number_padding))
     dt=os.path.getctime(mainDir)
     startTime = datetime.datetime.utcfromtimestamp(dt).isoformat()
     #EoR file path to watch for

@@ -736,7 +736,6 @@ if __name__ == "__main__":
 
     if mtype=='bu':
             watch_dir_bu = '/fff/ramdisk'
-            #out_dir_bu = '/fff/output'
             log_dir_bu = '/var/log/hltd'
 
             #FU should have one instance assigned, BUs can have multiple
@@ -806,9 +805,11 @@ if __name__ == "__main__":
                 hltdcfg.reg('soap2file_port',soap2file_port,'[Web]')
 
                 hltdcfg.reg('watch_directory',watch_dir_bu_inst,'[General]')
-                if myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
-                  hltdcfg.reg('output_subdirectory_remote','output','[General]')
+                #default:
+                #if myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
+                #  hltdcfg.reg('output_subdirectory_remote','output','[General]')
                 if cluster=='daq3val': 
+                  hltdcfg.reg('output_subdirectory','ramdisk0','[General]')
                   hltdcfg.reg('output_subdirectory_remote','ramdisk0','[General]')
                   hltdcfg.reg('drop_at_fu','True','[General]')
                   hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
@@ -820,7 +821,6 @@ if __name__ == "__main__":
                     hltdcfg.reg('static_blacklist','False','[General]')
                     hltdcfg.reg('static_whitelist','False','[General]')
 
-                #hltdcfg.reg('micromerge_output',out_dir_bu,'[General]')
                 hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
                 hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
