@@ -251,8 +251,8 @@ class RunRanger:
                                 self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
                                 return
                               #set dynamic mountpoint to start the run in
-                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory + '_' + bu_mount_suffix)]
-                              bu_out_dir_base = os.path.join(conf.fff_base_autofs,conf.output_subdirectory + '_' + bu_mount_suffix)
+                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,bu_mount_suffix + '_' + conf.ramdisk_subdirectory)]
+                              bu_out_dir_base = os.path.join(conf.fff_base_autofs,bu_mount_suffix + '_' + conf.output_subdirectory)
 
                             bu_dir = os.path.join(bu_dir_base_vec[0],dirname)
                             try:
@@ -546,8 +546,8 @@ class RunRanger:
                 bu_name_short = suffix_arr[1] if len(suffix_arr)>1 else ""
                 #run this either for BU which asked for suspend, or for any local mountpoint if command is initiated locally
                 if len(suffix_arr)>1 or replyport==0:
-                  found_mps = find_nfs_mountpoints([os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory + '_' + bu_name_short),
-                                                    os.path.join(conf.fff_base_autofs,conf.output_subdirectory + '_' + bu_name_short)])
+                  found_mps = find_nfs_mountpoints([os.path.join(conf.fff_base_autofs,bu_name_short + '_' + conf.ramdisk_subdirectory),
+                                                    os.path.join(conf.fff_base_autofs,bu_name_short + '_' + conf.output_subdirectory)])
                   for found in found_mps:
                     #will force unmount in case of a process keeping mount busy
                     self.logger.warning("running umount for "+found)
