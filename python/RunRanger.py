@@ -251,8 +251,8 @@ class RunRanger:
                                 self.logger.error("error, no BU mount suffix present (dynamic mounting mode)")
                                 return
                               #set dynamic mountpoint to start the run in
-                              bu_dir_base_vec = [os.path.join(conf.fff_base_autofs,bu_mount_suffix + '_' + conf.ramdisk_subdirectory)]
-                              bu_out_dir_base = os.path.join(conf.fff_base_autofs,bu_mount_suffix + '_' + conf.output_subdirectory)
+                              bu_dir_base_vec = [os.path.join(conf.bu_base_dir_autofs,bu_mount_suffix + '_' + conf.ramdisk_subdirectory)]
+                              bu_out_dir_base = os.path.join(conf.bu_base_dir_autofs,bu_mount_suffix + '_' + conf.output_subdirectory)
 
                             bu_dir = os.path.join(bu_dir_base_vec[0],dirname)
                             try:
@@ -371,12 +371,12 @@ class RunRanger:
                   try:
                       bu_files = [] #no files in case of failure
                       if suffix:
-                          bu_dir_autofs = os.path.join(conf.fff_base_autofs,conf.ramdisk_subdirectory+'_'+suffix)
+                          bu_dir_autofs = os.path.join(conf.bu_base_dir_autofs,conf.ramdisk_subdirectory+'_'+suffix)
                           try:
                               os.stat(bu_dir_autofs)
                               bu_files = os.listdir(bu_dir_autofs)
                           except OSError:
-                              bu_dir_static = os.path.join('/',conf.bu_base_dir+'0',conf.ramdisk_subdirectory)
+                              bu_dir_static = os.path.join(conf.bu_base_dir+'0',conf.ramdisk_subdirectory)
                               static_addr = find_nfs_mount_addr(bu_dir_static)
                               if static_addr and static_addr.split('.')[0]==suffix:
                                   bu_files = os.listdir(bu_dir_static)
@@ -546,8 +546,8 @@ class RunRanger:
                 bu_name_short = suffix_arr[1] if len(suffix_arr)>1 else ""
                 #run this either for BU which asked for suspend, or for any local mountpoint if command is initiated locally
                 if len(suffix_arr)>1 or replyport==0:
-                  found_mps = find_nfs_mountpoints([os.path.join(conf.fff_base_autofs,bu_name_short + '_' + conf.ramdisk_subdirectory),
-                                                    os.path.join(conf.fff_base_autofs,bu_name_short + '_' + conf.output_subdirectory)])
+                  found_mps = find_nfs_mountpoints([os.path.join(conf.bu_base_dir_autofs,bu_name_short + '_' + conf.ramdisk_subdirectory),
+                                                    os.path.join(conf.bu_base_dir_autofs,bu_name_short + '_' + conf.output_subdirectory)])
                   for found in found_mps:
                     #will force unmount in case of a process keeping mount busy
                     self.logger.warning("running umount for "+found)

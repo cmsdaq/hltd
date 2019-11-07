@@ -13,20 +13,22 @@ class hltdConf:
         cfg.read(conffile)
 
         self.role = None
-        self.elastic_bu_test = None
-        self.elastic_runindex_url = None
-        self.elastic_runindex_name = 'cdaq'
         self.fff_base = '/fff'
-        self.fff_base_autofs = '/fff/BUs'
+        self.bu_base_dir = '/fff/BU'
+        self.bu_base_dir_autofs = '/fff/BUs'
         self.watch_directory = None
         self.ramdisk_subdirectory = 'ramdisk' #local mountpoint
         self.output_subdirectory = 'output' #local mountpoint
         self.ramdisk_subdirectory_remote = 'ramdisk' #remote or on BU
         self.output_subdirectory_remote = 'output' #remore or on BU
-        self.fastmon_insert_modulo = 1
-        self.elastic_cluster = None
+        self.data_subdirectory = 'data'
         self.log_dir = "/var/log/hltd"
+
+        self.mount_command = "/usr/bin/mount"
+        self.es_cdaq = ""
         self.es_local = ""
+        self.elastic_index_suffix = 'cdaq'
+
         self.cloud_igniter_path = None
 
         for sec in cfg.sections():
@@ -35,29 +37,48 @@ class hltdConf:
 
         #override default values into imposed types
         self.enabled = cfg.getboolean('General','enabled')
-        self.mount_control_path = cfg.getboolean('General','mount_control_path')
+        try:
+            self.local_mode = cfg.getboolean('General','local_mode')
+        except:
+            self.local_mode = False
         try:
           self.dynamic_mounts = cfg.getboolean('General','dynamic_mounts')
         except:
           self.dynamic_mounts = False
         try:
-          self.static_blacklist = cfg.getboolean('General','static_blacklist')
+            self.run_number_padding = cfg.getint('General','run_number_padding')
         except:
-          self.static_blacklist = False
+            self.run_number_padding = 6
+        try:
+            self.output_adler32 = cfg.getboolean('General','output_adler32')
+        except:
+            self.output_adler32 = True
+
+        #TESTING
+        try:
+            self.mount_control_path = cfg.getboolean('Test','mount_control_path')
+        except:
+            self.mount_control_path = False
         try:
           self.static_whitelist = cfg.getboolean('General','static_whitelist')
         except:
           self.static_whitelist = False
-
-        #default
         try:
-            self.run_number_padding = cfg.getint('General','run_number_padding')
+          self.static_blacklist = cfg.getboolean('Test','static_blacklist')
         except:
-            self.run_number_padding = 6
-
-        self.delete_run_dir = cfg.getboolean('General','delete_run_dir')
-        self.output_adler32 = cfg.getboolean('General','output_adler32')
-        self.drop_at_fu = cfg.getboolean('General','drop_at_fu')
+          self.static_blacklist = False
+        try:
+            self.delete_run_dir = cfg.getboolean('Test','delete_run_dir')
+        except:
+            self.delete_run_dir = False
+        try:
+            self.drop_at_fu = cfg.getboolean('Test','drop_at_fu')
+        except:
+            self.drop_at_fu = False
+        try:
+            self.fastmon_insert_modulo = cfg.getint('Test','fastmon_insert_modulo')
+        except:
+            self.fastmon_insert_modulo = 1
 
         self.use_elasticsearch = cfg.getboolean('Monitoring','use_elasticsearch')
         self.force_replicas = cfg.getint('Monitoring','force_replicas')
@@ -94,8 +115,6 @@ class hltdConf:
         self.service_log_level = getattr(logging,self.service_log_level)
         self.autodetect_parameters()
 
-        self.elastic_cluster=self.elastic_runindex_name
-
     def dump(self):
         logging.info( '<hltd STATUS time="' + str(datetime.datetime.now()).split('.')[0] + '" user:' + self.user + ' role:' + self.role + '>')
 
@@ -106,8 +125,8 @@ class hltdConf:
         elif not self.role:
             self.role = 'fu'
         if not self.watch_directory:
-            if self.role == 'bu': self.watch_directory='/fff/ramdisk'
-            if self.role == 'fu': self.watch_directory='/fff/data'
+            if self.role == 'bu': self.watch_directory=os.path.join(self.fff_base,self.ramdisk_subdirectory)
+            if self.role == 'fu': self.watch_directory=os.path.join(self.fff_base,self.data_subdirectory)
 
 def initConf(instance='main'):
     conf=None

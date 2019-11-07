@@ -197,7 +197,7 @@ if __name__ == "__main__":
     inmondir = sys.argv[3]
     bu_name = sys.argv[4]
     expected_processes = int(float(sys.argv[5]))
-    indexSuffix = conf.elastic_cluster
+    indexSuffix = conf.elastic_index_suffix
     update_modulo=conf.fastmon_insert_modulo
     rundirname = os.path.basename(os.path.normpath(dirname))
     monDir = os.path.join(dirname,"mon")
@@ -238,7 +238,7 @@ if __name__ == "__main__":
         mr.start_inotify()
 
         es = elasticBand.elasticBand('http://'+conf.es_local+':9200',rundirname,indexSuffix,expected_processes,update_modulo,conf.force_replicas,conf.force_shards,nprocid,bu_name)
-        es.setCentral(conf.elastic_runindex_url)
+        es.setCentral('http://'+conf.es_cdaq+':9200')
 
         #starting elasticCollector thread
         ec = elasticCollector(ES_DIR_NAME,inmondir)

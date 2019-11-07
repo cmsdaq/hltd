@@ -58,7 +58,9 @@ def emergencyUmount(conffile):
         cfg = SafeConfigParser()
         cfg.read(conffile)
 
-        bu_base_dir=None#/fff/BU0?
+        local_mode=False
+        bu_base_dir=None
+        bu_base_dir_autofs=None
         ramdisk_subdirectory = 'ramdisk'
         output_subdirectory = 'output'
         role = None
@@ -66,16 +68,19 @@ def emergencyUmount(conffile):
 
         for sec in cfg.sections():
             for item,value in cfg.items(sec):
+                if item=='local_mode':local_mode=(value=='True')
                 if item=='ramdisk_subdirectory':ramdisk_subdirectory=value
                 if item=='output_subdirectory' :output_subdirectory=value
                 if item=='bu_base_dir':bu_base_dir=value
+                if item=='bu_base_dir_autofs':bu_base_dir_autofs=value
                 if item=='role':role=value
 
         if not role or role=='bu':return
+        if local_mode: return
         process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
         out=process.communicate()[0]
         if not isinstance(out,str): out = out.decode("utf-8")
-        mounts = re.findall('/'+bu_base_dir+'[0-9]+',out) + re.findall('/'+bu_base_dir+'-CI/',out)
+        mounts = re.findall(bu_base_dir+'[0-9]+',out) + re.findall(bu_base_dir+'-CI/',out) + re.findall(bu_base_dir_autofs+'/',out)
         mounts = sorted(list(set(mounts)))
         for mpoint in mounts:
             point = mpoint.rstrip('/')

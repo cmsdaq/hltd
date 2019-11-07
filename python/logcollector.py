@@ -536,11 +536,11 @@ class CMSSWLogESWriter(threading.Thread):
         self.initialized = False
 
         #try to create elasticsearch index for run logging
-        #if not conf.elastic_cluster:
+        #if not conf.elastic_index_suffix:
         #    self.index_name = 'log_run'+str(self.rn).zfill(conf.run_number_padding)
         #else:
         self.index_runstring = 'run'+str(self.rn).zfill(conf.run_number_padding)
-        self.index_suffix = conf.elastic_cluster
+        self.index_suffix = conf.elastic_index_suffix
         self.eb = elasticBand('http://'+conf.es_local+':9200',self.index_runstring,self.index_suffix,0,0,conf.force_replicas,conf.force_shards)
         self.contextualCounter = ContextualCounter()
         self.initialized=True
@@ -1033,7 +1033,7 @@ class HLTDLogCollector():
         self.loglevel=loglevel
         self.activeFiles=[]
         self.handlers = []
-        self.esurl = conf.elastic_runindex_url
+        self.esurl = 'http://'+conf.es_cdaq+':9200'
         self.esHandler = HLTDLogIndex(self.esurl)
         self.firstScan=True
 

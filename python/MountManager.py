@@ -100,7 +100,7 @@ class MountManager:
 
       #reset vars
       self.reset()
-      if self.conf.bu_base_dir[0] == '/': #FU special case with no BU mountpoint
+      if self.conf.local_mode: #FU special case with no BU mountpoint
         self.bu_disk_list_ramdisk = [os.path.join(self.conf.bu_base_dir,self.conf.ramdisk_subdirectory)]
         self.bu_disk_list_output = [os.path.join(self.conf.bu_base_dir,self.conf.output_subdirectory)]
         if self.conf.instance=="main":
@@ -126,7 +126,7 @@ class MountManager:
         mounts = []
         with open('/proc/mounts','r') as fpm:
           out = fpm.read()
-          mounts = re.findall('/'+self.conf.bu_base_dir+'[0-9]+',out) + re.findall('/'+self.conf.bu_base_dir+'-CI/',out)
+          mounts = re.findall(self.conf.bu_base_dir+'[0-9]+',out) + re.findall(self.conf.bu_base_dir+'-CI/',out)
 
         mounts = sorted(list(set(mounts)))
         self.logger.info("cleanup_mountpoints: found following mount points: ")
@@ -176,7 +176,7 @@ class MountManager:
             if self.conf.mount_control_path and len(lines):
 
                 try:
-                    os.makedirs(os.path.join('/'+self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory))
+                    os.makedirs(os.path.join(self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory))
                 except OSError:
                     pass
                 try:
@@ -209,18 +209,18 @@ class MountManager:
                         attemptsLeft=8
                         #sys.exit(1)
                 if True:
-                    self.logger.info("trying to mount (CI) "+mountaddr+':/fff/'+self.conf.ramdisk_subdirectory+' '+os.path.join('/'+self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory))
+                    self.logger.info("trying to mount (CI) "+mountaddr+':'+conf.fff_base+'/'+self.conf.ramdisk_subdirectory+' '+os.path.join(self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory))
                     try:
                         subprocess.check_call(
                             [self.conf.mount_command,
                              '-t',
-                             self.conf.mount_type,
+                             'nfs4',
                              '-o',
                              self.conf.mount_options_ramdisk,
                              mountaddr+':/fff/'+self.conf.ramdisk_subdirectory,
-                             os.path.join('/'+self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory)]
+                             os.path.join(self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory)]
                             )
-                        toappend = os.path.join('/'+self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory)
+                        toappend = os.path.join(self.conf.bu_base_dir+'-CI',self.conf.ramdisk_subdirectory)
                         self.bu_disk_ramdisk_CI=toappend
                         if self.conf.instance=="main":
                             self.bu_disk_ramdisk_CI_instance = toappend
@@ -238,11 +238,11 @@ class MountManager:
             for line in lines:
                 self.logger.info("found BU to mount at "+line.strip())
                 try:
-                    os.makedirs(os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
+                    os.makedirs(os.path.join(self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
                 except OSError:
                     pass
                 try:
-                    os.makedirs(os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory))
+                    os.makedirs(os.path.join(self.conf.bu_base_dir+str(i),self.conf.output_subdirectory))
                 except OSError:
                     pass
 
@@ -267,18 +267,18 @@ class MountManager:
                         attemptsLeft=8
                         #sys.exit(1)
                 if True:
-                    self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.ramdisk_subdirectory_remote+' '+os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
+                    self.logger.info("trying to mount "+line.strip()+':'+conf.fff_base+'/'+self.conf.ramdisk_subdirectory_remote+' '+os.path.join(self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory))
                     try:
                         subprocess.check_call(
                             [self.conf.mount_command,
                              '-t',
-                             self.conf.mount_type,
+                             'nfs4',
                              '-o',
                              self.conf.mount_options_ramdisk,
                              line.strip()+':/fff/'+self.conf.ramdisk_subdirectory_remote,
-                             os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)]
+                             os.path.join(self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)]
                             )
-                        toappend = os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)
+                        toappend = os.path.join(self.conf.bu_base_dir+str(i),self.conf.ramdisk_subdirectory)
                         self.bu_disk_list_ramdisk.append(toappend)
                         if self.conf.instance=="main":
                             self.bu_disk_list_ramdisk_instance.append(toappend)
@@ -290,12 +290,12 @@ class MountManager:
                         sys.exit(1)
 
                     try:
-                        if self.conf.output_subdirectory_remote.startswith('ramdisk'):
-                          os.mkdir(os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory_remote))
+                        if self.conf.output_subdirectory_remote.startswith(self.conf.ramdisk_subdirectory_remote):
+                          os.mkdir(os.path.join(self.conf.bu_base_dir+str(i),self.conf.output_subdirectory_remote))
                     except Exception as ex:
                       self.logger.info(str(ex))
 
-                    self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.output_subdirectory_remote+' '+os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory))
+                    self.logger.info("trying to mount "+line.strip()+':/fff/'+self.conf.output_subdirectory_remote+' '+os.path.join(self.conf.bu_base_dir+str(i),self.conf.output_subdirectory))
                     try:
                         subprocess.check_call(
                             [self.conf.mount_command,
@@ -303,10 +303,10 @@ class MountManager:
                              self.conf.mount_type,
                              '-o',
                              self.conf.mount_options_output,
-                             line.strip()+':/fff/'+self.conf.output_subdirectory_remote,
-                             os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory)]
+                             line.strip()+':'+conf.fff_base+'/'+self.conf.output_subdirectory_remote,
+                             os.path.join(self.conf.bu_base_dir+str(i),self.conf.output_subdirectory)]
                             )
-                        toappend = os.path.join('/'+self.conf.bu_base_dir+str(i),self.conf.output_subdirectory)
+                        toappend = os.path.join(self.conf.bu_base_dir+str(i),self.conf.output_subdirectory)
                         self.bu_disk_list_output.append(toappend)
                         #if self.conf.instance=="main" or self.conf.instance_same_destination:
                         #    self.bu_disk_list_output_instance.append(toappend)
@@ -358,7 +358,7 @@ class MountManager:
 
     def cleanup_bu_disks(self,run=None,cleanRamdisk=True,cleanOutput=True):
       if cleanRamdisk:
-        if self.conf.watch_directory.startswith('/fff') and self.conf.ramdisk_subdirectory in self.conf.watch_directory:
+        if self.conf.watch_directory.startswith(conf.fff_base) and self.conf.ramdisk_subdirectory in self.conf.watch_directory:
             self.logger.info('cleanup BU disks: deleting runs in ramdisk ...')
             tries = 10
             while tries > 0:
@@ -378,7 +378,7 @@ class MountManager:
         outdirPath = self.conf.watch_directory[:self.conf.watch_directory.find(self.conf.ramdisk_subdirectory)]+self.conf.output_subdirectory_remote
         self.logger.info('outdirPath:'+ outdirPath + ' '+self.conf.output_subdirectory_remote)
 
-        if outdirPath.startswith('/fff') and self.conf.output_subdirectory_remote in outdirPath:
+        if outdirPath.startswith(conf.fff_base) and self.conf.output_subdirectory_remote in outdirPath:
             self.logger.info('cleanup BU disks: deleting runs in output disk ...')
             tries = 10
             while tries > 0:

@@ -558,8 +558,8 @@ if __name__ == "__main__":
     if 'centrales' not in cred:
         print("elasticsearch central host/alias missing")
         sys.exit(1)
-    elastic_host = cred['centrales']
-    elastic_host_url = 'http://'+elastic_host+':9200'
+    elastic_host_central = cred['centrales']
+    #elastic_host_central_url = 'http://'+elastic_host_central+':9200'
 
     if 'locales' not in cred:
         print("elasticsearch local host/alias missing")
@@ -683,11 +683,13 @@ if __name__ == "__main__":
     elif cluster == 'daq2_904':
         runindex_name = 'b904'
         use_elasticsearch = 'False'
-        elastic_host_url = 'http://localhost:9200' #will be changed in future
+        elastic_host_central = 'localhost' #will be changed in future
+        #elastic_host_central_url = 'http://localhost:9200'
     elif isHilton:
         runindex_name = 'dv'
         use_elasticsearch = 'False'
-        elastic_host_url = 'http://localhost:9200'
+        elastic_host_central = 'localhost'
+        #elastic_host_central_url = 'http://localhost:9200'
 
     buName = None
     buDataAddr=[]
@@ -798,31 +800,28 @@ if __name__ == "__main__":
                 #parameter has no effect on BU, which reacts to whitelist file appearing in ramdisk/run*/hlt directory
                 #if num_cfgdb_fus==0 and dqmmachine=='False':
                 hltdcfg.reg('dynamic_mounts','True','[General]')
+                hltdcfg.reg('watch_directory',watch_dir_bu_inst,'[General]')
 
                 #port for multiple instances
                 hltdcfg.reg('cgi_port',str(cgibase+idx),'[Web]')
                 hltdcfg.reg('cgi_instance_port_offset',str(idx),'[Web]')
                 hltdcfg.reg('soap2file_port',soap2file_port,'[Web]')
 
-                hltdcfg.reg('watch_directory',watch_dir_bu_inst,'[General]')
                 #default:
                 #if myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
                 #  hltdcfg.reg('output_subdirectory_remote','output','[General]')
                 if cluster=='daq3val': 
                   hltdcfg.reg('output_subdirectory','ramdisk0','[General]')
                   hltdcfg.reg('output_subdirectory_remote','ramdisk0','[General]')
-                  hltdcfg.reg('drop_at_fu','True','[General]')
+                  hltdcfg.reg('drop_at_fu','True','[Test]') #on BU only affects monitoring
                   hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
 
                 if cluster=='daq2val' or cluster=='daq3val':
-                    hltdcfg.reg('static_blacklist','True','[General]')
-                    hltdcfg.reg('static_whitelist','False','[General]') #!
-                else:
-                    hltdcfg.reg('static_blacklist','False','[General]')
-                    hltdcfg.reg('static_whitelist','False','[General]')
+                    hltdcfg.reg('static_blacklist','True','[Test]')
 
-                hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
+                #hltdcfg.reg('elastic_runindex_url',elastic_host_central_url,'[Monitoring]')
                 hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
+                hltdcfg.reg('es_cdaq',elastic_host_central,'[Monitoring]')
                 hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
                 if env=='vm':
                     hltdcfg.reg('force_shards','2','[Monitoring]')
@@ -896,6 +895,7 @@ if __name__ == "__main__":
 
             if isHilton:
                 hltdcfg.reg('bu_base_dir','/fff/BU0','[General]')
+                hltdcfg.reg('local_mode','True','[General]')
 
             #not set for Hilton, DQM and any setup not using NFS
             if  not busconfig_used and dqmmachine=='False':
@@ -909,35 +909,37 @@ if __name__ == "__main__":
               hltdcfg.reg('output_subdirectory_remote','ramdisk0','[General]')
               #hltdcfg.reg('drop_at_fu','True','[General]')
 
-            hltdcfg.reg('static_blacklist','False','[General]')
-            hltdcfg.reg('static_whitelist','False','[General]')
             hltdcfg.reg('cgi_port','9000','[Web]')
             hltdcfg.reg('cgi_instance_port_offset',"0",'[Web]')
             hltdcfg.reg('soap2file_port','0','[Web]')
+
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
             hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
-            hltdcfg.reg('elastic_runindex_url',elastic_host_url,'[Monitoring]')
             hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
+            hltdcfg.reg('es_cdaq',elastic_host_central,'[Monitoring]')
             hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
             if env=='vm':
                 hltdcfg.reg('force_shards','2','[Monitoring]')
                 hltdcfg.reg('force_replicas','0','[Monitoring]')
-                hltdcfg.reg('dynamic_resources','False','[Resources]')
             else:
                 hltdcfg.reg('force_shards','4','[Monitoring]')
                 hltdcfg.reg('force_replicas','1','[Monitoring]')
             hltdcfg.reg('use_elasticsearch',use_elasticsearch,'[Monitoring]')
+
             hltdcfg.reg('dqm_machine',dqmmachine,'[DQM]')
+
             hltdcfg.reg('auto_clear_quarantined',auto_clear_quarantined,'[Recovery]')
             hltdcfg.reg('process_restart_limit',str(process_restart_limit),'[Recovery]')
+
             hltdcfg.reg('cmssw_base',cmssw_base,'[CMSSW]')
             hltdcfg.reg('cmssw_default_version',cmssw_version,'[CMSSW]')
             hltdcfg.reg('cmssw_threads',str(resource_cmsswthreads),'[CMSSW]')
             hltdcfg.reg('cmssw_streams',str(resource_cmsswstreams),'[CMSSW]')
-            #if myhost.startswith('fu-c2d'):
+
+            if env=='vm':
+                hltdcfg.reg('dynamic_resources','False','[Resources]')
             hltdcfg.reg('resource_use_fraction',str(resourcefractd),'[Resources]')
-            #else:
-            #    hltdcfg.reg('resource_use_fraction',str(resourcefract),'[Resources]')
+
             hltdcfg.commit()
             setupDirsFU('/fff/data')
 
