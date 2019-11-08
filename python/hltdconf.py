@@ -57,6 +57,7 @@ class hltdConf:
         self.getbool('Test','delete_run_dir',True)
         self.getbool('Test','drop_at_fu',False)
         self.getint('Test','fastmon_insert_modulo',1)
+        self.getint('Test','dynamic_resources_multiplier',1)
 
         self.getbool('Monitoring','use_elasticsearch',False)
         self.getstr('Monitoring','es_cmssw_log_level',"DISABLED")

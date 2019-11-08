@@ -937,7 +937,7 @@ if __name__ == "__main__":
             hltdcfg.reg('cmssw_streams',str(resource_cmsswstreams),'[CMSSW]')
 
             if env=='vm':
-                hltdcfg.reg('dynamic_resources','False','[Resources]')
+                hltdcfg.reg('dynamic_resources_multiplier',str(4),'[Test]')
             hltdcfg.reg('resource_use_fraction',str(resourcefractd),'[Resources]')
 
             hltdcfg.commit()

@@ -56,11 +56,6 @@ def runFillResources(force):
                             resource_count+=1
 
             fillCores()
-            #fill with more cores for VM environment
-            if os.uname()[1].startswith('fu-vm-'):
-                fillCores()
-                fillCores()
-                fillCores()
 
 if __name__ == "__main__":
 

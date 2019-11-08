@@ -34,6 +34,7 @@ class system_monitor(threading.Thread):
         self.mm = mountMgr
         self.boxInfo = boxInfo
         self.num_cpus = num_cpus_initial 
+        self.num_cpus_real = num_cpus_initial 
  
         try:
           self.hostip = socket.gethostbyname_ex(os.uname()[1])[2][0]
@@ -886,7 +887,7 @@ class system_monitor(threading.Thread):
       aperf=0
       mperf=0
       cnt=0
-      while cnt<self.num_cpus:
+      while cnt<self.num_cpus_real:
         try:
           fd = None
           fd = os.open("/dev/cpu/"+str(cnt)+"/msr",os.O_RDONLY)
@@ -1065,18 +1066,20 @@ class system_monitor(threading.Thread):
         cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
 
         def refreshCPURange():
-           num_cpus_new = self.testCPURange() 
+           num_cpus_new_real = self.testCPURange() 
+           num_cpus_new = num_cpus_new_real * conf.dynamic_resources_multiplier 
            if num_cpus_new!=self.num_cpus:
              if conf.dynamic_resources and not conf.dqm_machine:
                self.state.lock.acquire()
                #notify run ranger thread
-               self.state.os_cpuconfig_change += num_cpus_new-self.num_cpus
+               self.state.os_cpuconfig_change += (num_cpus_new-self.num_cpus)
                if self.allow_resource_notifications:
                  with open(os.path.join(conf.watch_directory,'resourceupdate'),'w') as fp:
                    pass
                else:
                  self.buffered_resource_notification = os.path.join(conf.watch_directory,'resourceupdate')
                self.num_cpus=num_cpus_new
+               self.num_cpus_real = num_cpus_new_real
                self.state.lock.release()
 
 
@@ -1136,8 +1139,8 @@ class system_monitor(threading.Thread):
                 if has_turbo:
                   tsc_new,mperf_new,aperf_new=self.getIntelCPUPerfAvgs()
 
-                if self.num_cpus>0 and mperf_new-mperf_old>0 and ts_new-ts_old>0:
-                  self.cpu_freq_avg_real = int((1.* (tsc_new-tsc_old))/self.num_cpus / 1000000 * (aperf_new-aperf_old) / (mperf_new-mperf_old) /(ts_new-ts_old))
+                if self.num_cpus_real>0 and mperf_new-mperf_old>0 and ts_new-ts_old>0:
+                  self.cpu_freq_avg_real = int((1.* (tsc_new-tsc_old))/self.num_cpus_real / 1000000 * (aperf_new-aperf_old) / (mperf_new-mperf_old) /(ts_new-ts_old))
                 else:
                   self.cpu_freq_avg_real = 0
                 #detect counter wrap
