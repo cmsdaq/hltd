@@ -397,7 +397,7 @@ class RunRanger:
         sh_kill_scripts=False if prefix=='brutus' else True
 
         for run in self.runList.getActiveRuns():
-                  if run.runnumber<0 or run.runnumber==rn or run.checkQuarantinedLimit():
+                  if kill_all_runs or run.runnumber==rn or run.checkQuarantinedLimit():
                     run.Shutdown(True,sh_kill_scripts)
 
         time.sleep(.2)
@@ -412,7 +412,7 @@ class RunRanger:
         self.logger.info("cleanup done")
 
     def cleanupBUCmd(self,dirname,rn):
-        kill_all_runs = True if rn<0 else False
+        kill_all_runs = True if rn<=0 else False
 
         #contact any FU that appears alive
         boxdir = conf.resource_base +'/boxes/'

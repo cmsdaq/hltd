@@ -93,7 +93,7 @@ class hltdConf:
         self.getint('CMSSW','cmssw_threads',1)
         self.getint('CMSSW','cmssw_streams',1)
         self.getstr('CMSSW','cmssw_script_location',"/opt/hltd/scripts")
-        self.getstr('CMSSW','cmssw_hlt_config1',"python/HiltonMenu.py")
+        self.getstr('CMSSW','test_hlt_config1',"python/HiltonMenu.py")
 
         self.getstr('HLT','menu_directory',"hlt")
         self.getstr('HLT','menu_name',"HltConfig.py")
