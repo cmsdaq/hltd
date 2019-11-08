@@ -641,15 +641,15 @@ if __name__ == "__main__":
         resourcefractd = 1
 
     if cluster == 'daq2val':
-        runindex_name = 'dv'
+        es_index_name = 'dv'
         auto_clear_quarantined = 'True'
     elif cluster == 'daq3val':
-        runindex_name = 'd3v'
+        es_index_name = 'd3v'
         auto_clear_quarantined = 'True'
     elif cluster == 'daq2':
-        runindex_name = 'cdaq'
+        es_index_name = 'cdaq'
         if myhost in minidaq_list:
-            runindex_name = 'minidaq'
+            es_index_name = 'minidaq'
             resourcefract = 1
             resourcefractd = 1
             resource_cmsswthreads = 1
@@ -658,7 +658,7 @@ if __name__ == "__main__":
         if myhost in dqm_list or myhost in dqmtest_list or myhost in detdqm_list:
             process_restart_limit = 5
             use_elasticsearch = 'False'
-            runindex_name = 'dqm'
+            es_ndex_name = 'dqm'
             cmsswloglevel = 'DISABLED'
             dqmmachine = 'True'
             username = 'dqmpro'
@@ -674,19 +674,19 @@ if __name__ == "__main__":
                 execdir = '/home/dqmprolocal/output' ##not yet
         if myhost in dqmtest_list:
             auto_clear_quarantined = 'False'
-            runindex_name = 'dqmtest'
+            es_index_name = 'dqmtest'
             username = 'dqmdev'
             if mtype == 'fu':
                 cmsswloglevel = 'ERROR'
                 cmssw_base = '/home/dqmdevlocal'
                 execdir = '/home/dqmdevlocal/output' ##not yet
     elif cluster == 'daq2_904':
-        runindex_name = 'b904'
+        es_index_name = 'b904'
         use_elasticsearch = 'False'
         elastic_host_central = 'localhost' #will be changed in future
         #elastic_host_central_url = 'http://localhost:9200'
     elif isHilton:
-        runindex_name = 'dv'
+        es_index_name = 'dv'
         use_elasticsearch = 'False'
         elastic_host_central = 'localhost'
         #elastic_host_central_url = 'http://localhost:9200'
@@ -820,7 +820,7 @@ if __name__ == "__main__":
                     hltdcfg.reg('static_blacklist','True','[Test]')
 
                 #hltdcfg.reg('elastic_runindex_url',elastic_host_central_url,'[Monitoring]')
-                hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
+                hltdcfg.reg('elastic_index_suffix',es_index_name,'[Monitoring]')
                 hltdcfg.reg('es_cdaq',elastic_host_central,'[Monitoring]')
                 hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
                 if env=='vm':
@@ -915,7 +915,7 @@ if __name__ == "__main__":
 
             hltdcfg.reg('es_cmssw_log_level',cmsswloglevel,'[Monitoring]')
             hltdcfg.reg('es_hltd_log_level',hltdloglevel,'[Monitoring]')
-            hltdcfg.reg('elastic_runindex_name',runindex_name,'[Monitoring]')
+            hltdcfg.reg('elastic_index_suffix',es_index_name,'[Monitoring]')
             hltdcfg.reg('es_cdaq',elastic_host_central,'[Monitoring]')
             hltdcfg.reg('es_local',elastic_host_local,'[Monitoring]')
             if env=='vm':

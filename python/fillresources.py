@@ -24,8 +24,10 @@ def runFillResources(force):
 
     conf=hltdconf.hltdConf('/etc/hltd.conf')
 
-    if conf.role==None and (os.uname()[1].startswith('fu-') or os.uname()[1].startswith('dvrubu-') or os.uname()[1].startswith("d3vfu-")): role='fu'
-    else: role = conf.role
+    if conf.role in [None,"None"] and (os.uname()[1].startswith('fu-') or os.uname()[1].startswith('dvrubu-') or os.uname()[1].startswith("d3vfu-")):
+        role='fu'
+    else:
+        role = conf.role
 
     if role=='fu' and not conf.dqm_machine:
 

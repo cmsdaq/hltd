@@ -75,8 +75,7 @@ def emergencyUmount(conffile):
                 if item=='bu_base_dir_autofs':bu_base_dir_autofs=value
                 if item=='role':role=value
 
-        if not role or role=='bu':return
-        if local_mode: return
+        if role!='fu' or local_mode: return
         process = subprocess.Popen(['mount'],stdout=subprocess.PIPE)
         out=process.communicate()[0]
         if not isinstance(out,str): out = out.decode("utf-8")

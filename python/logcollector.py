@@ -795,7 +795,7 @@ class HLTDLogIndex():
         self.threadEvent = threading.Event()
         self.es_type_name_param = True
 
-        self.index_name = 'hltdlogs_'+conf.elastic_runindex_name+"_write" #using write alias
+        self.index_name = 'hltdlogs_'+conf.elastic_index_suffix+"_write" #using write alias
 
         attempts=10
         s = requests.Session()

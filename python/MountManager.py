@@ -8,6 +8,8 @@ import prctl
 from signal import SIGKILL
 import datetime
 
+mtype = 'nfs4'
+
 def preexec_function():
     dem = demote.demote(conf.user)
     dem()
@@ -214,7 +216,7 @@ class MountManager:
                         subprocess.check_call(
                             [self.conf.mount_command,
                              '-t',
-                             'nfs4',
+                             mtype,
                              '-o',
                              self.conf.mount_options_ramdisk,
                              mountaddr+':/fff/'+self.conf.ramdisk_subdirectory,
@@ -272,7 +274,7 @@ class MountManager:
                         subprocess.check_call(
                             [self.conf.mount_command,
                              '-t',
-                             'nfs4',
+                             mtype,
                              '-o',
                              self.conf.mount_options_ramdisk,
                              line.strip()+':/fff/'+self.conf.ramdisk_subdirectory_remote,
@@ -300,7 +302,7 @@ class MountManager:
                         subprocess.check_call(
                             [self.conf.mount_command,
                              '-t',
-                             self.conf.mount_type,
+                             mtype,
                              '-o',
                              self.conf.mount_options_output,
                              line.strip()+':'+conf.fff_base+'/'+self.conf.output_subdirectory_remote,

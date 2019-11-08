@@ -84,16 +84,16 @@ class elasticBandBU:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.conf=conf
         self.es_server_url='http://'+conf.es_cdaq+':9200'
-        self.runindex_write="runindex_"+conf.elastic_runindex_name+"_write"
-        self.runindex_read="runindex_"+conf.elastic_runindex_name+"_read"
-        self.runindex_name="runindex_"+conf.elastic_runindex_name
-        self.boxinfo_write="boxinfo_"+conf.elastic_runindex_name+"_write"
-        self.boxinfo_read="boxinfo_"+conf.elastic_runindex_name+"_read"
-        self.boxinfo_name="boxinfo_"+conf.elastic_runindex_name
+        self.runindex_write="runindex_"+conf.elastic_index_suffix+"_write"
+        self.runindex_read="runindex_"+conf.elastic_index_suffix+"_read"
+        self.runindex_name="runindex_"+conf.elastic_index_suffix
+        self.boxinfo_write="boxinfo_"+conf.elastic_index_suffix+"_write"
+        self.boxinfo_read="boxinfo_"+conf.elastic_index_suffix+"_read"
+        self.boxinfo_name="boxinfo_"+conf.elastic_index_suffix
 
-        self.reshistory_write="reshistory_"+conf.elastic_runindex_name+"_write"
-        self.reshistory_read="reshistory_"+conf.elastic_runindex_name+"_read"
-        self.reshistory_name="reshistory_"+conf.elastic_runindex_name
+        self.reshistory_write="reshistory_"+conf.elastic_index_suffix+"_write"
+        self.reshistory_read="reshistory_"+conf.elastic_index_suffix+"_read"
+        self.reshistory_name="reshistory_"+conf.elastic_index_suffix
  
         self.boxdoc_version=box_version
         self.runnumber = str(runnumber)
@@ -916,7 +916,7 @@ class RunCompletedChecker(threading.Thread):
                             fm_time = str(dataq['hits']['hits'][0]['_source']['fm_date'])
                             #fill in central index completition time
                             postq = "{runNumber\":\"" + str(self.runObj.runnumber) + "\",\"completedTime\" : \"" + fm_time + "\"}"
-                            s.post('http://'+self.conf.es_cdaq+':9200'+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/_doc',postq,timeout=5)
+                            s.post('http://'+self.conf.es_cdaq+':9200'+'/'+"runindex_"+self.conf.elastic_index_suffix+'_write/_doc',postq,timeout=5)
                             self.logger.info("filled in completition time for run "+str(self.runObj.runnumber))
                         except IndexError:
                             # 0 FU resources present in this run, skip writing completition time

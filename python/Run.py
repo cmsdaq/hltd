@@ -506,7 +506,7 @@ class Run:
             try:
                 #new: try to create index with template mapping after template check
                 new_index_name = 'run'+str(self.runnumber)+'_'+conf.elastic_index_suffix
-                setupES(es_server_url='http://'+conf.es_local+':9200',forceReplicas=conf.force_replicas,forceShards=conf.force_shards,create_index_name=new_index_name,subsystem=conf.elastic_runindex_name)
+                setupES(es_server_url='http://'+conf.es_local+':9200',forceReplicas=conf.force_replicas,forceShards=conf.force_shards,create_index_name=new_index_name,subsystem=conf.elastic_index_suffix)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - unable to check run appliance template:"+str(ex))
 
