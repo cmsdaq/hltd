@@ -649,7 +649,6 @@ class hltd:
 
     def webHandler(self,option):
         logger.info('TEST:received option ' + option)
-        pass
 
 if __name__ == "__main__":
     import setproctitle

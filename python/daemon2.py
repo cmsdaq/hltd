@@ -3,14 +3,7 @@ import subprocess
 import re
 import logging
 #from aUtils import * #for stdout and stderr redirection
-try:
-  #hltd service dependency
-  from ConfigParser import SafeConfigParser
-except:
-  try:
-    from configparser import SafeConfigParser
-  except:
-    print("No ConfigParser")
+from configparser import SafeConfigParser
 
 
 #Output redirection class (used to set up redirections)
@@ -30,7 +23,7 @@ class stdErrorLog:
         return
 
 
-def do_umount(self,mpoint):
+def do_umount(mpoint):
         try:
             subprocess.check_call(['umount',mpoint])
         except subprocess.CalledProcessError as err1:

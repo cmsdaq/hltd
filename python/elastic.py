@@ -90,7 +90,6 @@ class elasticCollector():
                             self.infile.moveFile(self.inputMonDir+'/microstatelegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype in [PATHLEGEND]:# and self.movedPathLegend == False:
                 try:
                     if not self.infile.basename.endswith(".jsn"):
@@ -101,14 +100,12 @@ class elasticCollector():
                             self.infile.moveFile(self.inputMonDir+'/pathlegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype in [INPUTLEGEND]:
                 try:
                     if not os.path.exists(self.inputMonDir+'/inputlegend.jsn') and os.path.exists(self.inputMonDir):
                         self.infile.moveFile(self.inputMonDir+'/inputlegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype == INI:
                 destname = os.path.join(self.inputMonDir,infile.run+'_'+infile.ls+'_'+infile.stream+'_mon.ini')
                 try:
@@ -116,7 +113,6 @@ class elasticCollector():
                         infile.moveFile(destname,silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
 
 
 

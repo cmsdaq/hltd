@@ -395,7 +395,7 @@ class system_monitor(threading.Thread):
                         try:
                             edata,etime,lastStatus = self.boxInfo.FUMap[key]
                         except:continue #deleted?
-                        if current_time - etime > 10 or edata == None: continue
+                        if current_time - etime > 10 or edata is None: continue
                         try:
                             try:
                                 if edata['version']!=self.boxInfo.boxdoc_version:
@@ -410,7 +410,7 @@ class system_monitor(threading.Thread):
                               if fu_cpu_name=="N/A":
                                 fu_cpu_name = edata['cpuName']
                               elif fu_cpu_name != edata['cpuName']:
-                                fu_cpu_name == "Unknown"
+                                fu_cpu_name = "Unknown"
                             except:
                               #ignore if not found in fu box document
                               pass
@@ -509,7 +509,7 @@ class system_monitor(threading.Thread):
                             try:
                                 edata,etime,lastStatus = self.boxInfo.FUMap[key]
                             except:continue #deleted?
-                            if current_time - etime > 10 or edata == None: continue
+                            if current_time - etime > 10 or edata is None: continue
                             try:
                                 try:
                                     if edata['version']!=self.boxInfo.boxdoc_version: continue

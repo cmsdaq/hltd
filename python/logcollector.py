@@ -120,7 +120,7 @@ class ContextualCounter(object):
         else:
             #suppressing maximum of 'suppressMax' different messages at the time
             for e in self.suppressList:
-                if (e.msgId==msgId):return False
+                if e.msgId==msgId:return False
 
             #message id not found in suppressed list..
             self.logger.info("Start suppressing message of lexical id "+str(msgId))
@@ -981,7 +981,6 @@ class HLTDLogParser(threading.Thread):
                         except Exception as ex:
                             self.logger.info('problem reopening file')
                             self.logger.exception(ex)
-                            pass
                     continue
                 else:break
 
@@ -1165,7 +1164,6 @@ if __name__ == "__main__":
                         logger.error('exception starting hltd log monitor')
                         logger.exception(ex)
                         hlc=None
-                        pass
             counter+=1
 
             threadEvent.wait(5)

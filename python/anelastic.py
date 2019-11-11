@@ -298,7 +298,6 @@ class LumiSectionRanger:
         except OSError as ex:
             if ex.errno==17:
               return True
-              pass
             elif ex.errno==2:
               self.logger.warning('Caught OSError '+str(ex.errno)+' creating directory: ' + str(ex))
               return True
@@ -1045,7 +1044,6 @@ class LumiSectionHandler():
                                     checksum_cmssw = int(fi.read())
                             except:
                                 doChecksum=False
-                                pass
                             #test
                             if processed==errEntry:
                                 self.logger.info("all events are error events for stream "+stream+":"+str(errEntry))

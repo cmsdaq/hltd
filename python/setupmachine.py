@@ -485,7 +485,6 @@ def restoreFileMaybe(file):
                 shutil.move(backuppath,file)
     except Exception as ex:
         print("restoring problem: " , ex)
-        pass
 
 #main function
 if __name__ == "__main__":

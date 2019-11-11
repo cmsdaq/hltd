@@ -105,9 +105,6 @@ class hltdConf:
         self.getstr('Logs','service_log_level',"INFO")
         self.getstr('Logs','log_dir', "/var/log/hltd")
 
-    def dump(self):
-        logging.info( '<hltd STATUS time="' + str(datetime.datetime.now()).split('.')[0] + '" user:' + self.user + ' role:' + self.role + '>')
-
     def finish_init_parameters(self):
 
         self.service_log_level = getattr(logging,self.service_log_level)
@@ -165,7 +162,7 @@ class hltdConf:
                 tmpcfg.add_section(p[3])
             tmpcfg.set(p[3],p[0],str(p[2]))
         with open(path,'w') as outfile:
-            config.write(outfile)
+            tmpcfg.write(outfile)
 
     def dump(self):
         logging.info( '<hltd STATUS time="' + str(datetime.datetime.now()).split('.')[0] + '" user:' + self.user + ' role:' + self.role + '>')

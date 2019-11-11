@@ -452,7 +452,7 @@ class elasticBandBU:
             try:
                 if self.boxdoc_version!=infile.data['version']:
                     self.logger.info('skipping '+basename+' box file version '+str(infile.data['version'])+' which is different from '+str(self.boxdoc_version))
-                    return;
+                    return
             except:
                 self.logger.warning("didn't find version field in box file "+basename)
                 return
@@ -568,7 +568,7 @@ class elasticBandBU:
             except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:
                 self.logger.warning("detected connection problem: "+str(ex))
                 if attempts>100 and self.runMode:
-                    raise(ex)
+                    raise ex
                 if is_box or attempts<=1:
                     self.logger.warning('elasticsearch connection error: ' + str(ex)+'. retry.')
                 elif (attempts-2)%10==0:
@@ -990,7 +990,6 @@ if __name__ == "__main__":
         os.mkdir(monDir)
     except OSError as ex:
         logger.info(ex)
-        pass
 
     mr = None
     try:
@@ -1015,7 +1014,6 @@ if __name__ == "__main__":
                 pass
             except Exception as ex:
                 logger.warning(str(ex))
-                pass
         checkThread = threading.Thread(target=checkEoR)
         #checkThread.daemon=True
         checkThread.start()

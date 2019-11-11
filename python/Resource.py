@@ -409,7 +409,6 @@ class ProcessWatchdog(threading.Thread):
                   self.resource.parent.num_errors_res+=len(self.resource.cpu)
                 except Exception as ex:
                   self.logger.warning('unable to update counter:'+str(ex))
-                  pass
 
                 if returncode < 0:
                     self.logger.error('RUN:' + str(self.resource.runnumber)+" - process "+str(pid)

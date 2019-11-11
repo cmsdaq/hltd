@@ -19,7 +19,6 @@ import Run
 from HLTDCommon import restartLogCollector,dqm_globalrun_filepattern
 from MountManager import find_nfs_mountpoints,find_nfs_mount_addr
 from inotifywrapper import InotifyWrapper
-from buemu import BUEmu
 
 this_machine=os.uname()[1]
 this_machine_short=this_machine.split('.')[0]
@@ -260,7 +259,6 @@ class RunRanger:
                             except:
                                 if not conf.dqm_machine:
                                     self.logger.warning('jsd directory symlink error, continuing without creating link')
-                                pass
 
                         #check if this run is a duplicate
                         if self.runList.getRun(rn)!=None:
@@ -338,7 +336,7 @@ class RunRanger:
                             self.logger.info('end run '+str(rn))
                             #remove from runList to prevent intermittent restarts
                             #lock used to fix a race condition when core files are being moved around
-                            endingRun.is_ongoing_run==False
+                            endingRun.is_ongoing_run=False
                             time.sleep(.1)
                             if conf.role == 'fu':
                                 endingRun.StartWaitForEnd()
@@ -640,7 +638,7 @@ class RunRanger:
               try:
                   if stop_suffix.isdigit():
                     rn = int(stop_suffix)
-                    found=False;
+                    found=False
                     for run in q_list:
                       if run.runnumber==rn:
                         found=True
@@ -809,11 +807,11 @@ class RunRanger:
                         time.sleep(1)
                         self.logger.critical('failed to switch off cloud. last status reported: '+str(last_status))
                         return
-                    if (attempts%60==0 and not retried):
+                    if attempts%60==0 and not retried:
                         self.logger.info('retrying cloud kill after 1 minute')
                         returnstatus = self.state.extinguish_cloud(True)
                         retried=True
-                    elif (err_attempts and err_attempts%10==0):
+                    elif err_attempts and err_attempts%10==0:
                         self.logger.info('retrying cloud kill after 10 status checks returning error')
                         returnstatus = self.state.extinguish_cloud(True)
                         retried=True

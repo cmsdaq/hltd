@@ -414,11 +414,11 @@ class ResourceRanger:
             except Exception as ex:
                 self.logger.exception(ex)
                 checkSuccessful=False
-                break;
+                break
             try:
                 if runNumber in doc['activeRuns']:
                     runFound=True
-                    break;
+                    break
             except Exception as ex:
                 self.logger.exception(ex)
                 checkSuccessful=False
