@@ -12,4 +12,20 @@
 </calib-data>
 </site>
 </site-local-config>
-
+<!--
+<site-local-config>
+<site name="local">
+<calib-data>
+<frontier-connect>
+<proxy url="http://localhost:3128"/>
+<proxy url="http://localhost:3128"/>
+<server url="http://localhost:8000/FrontierProd"/>
+<server url="http://localhost:8000/FrontierProd"/>
+<failover toserver="no"/>
+<retrieve-zip level="0"/>
+</frontier-connect>
+<catalog url=""/>
+</calib-data>
+</site>
+</site-local-config>
+-->
