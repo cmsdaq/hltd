@@ -129,7 +129,7 @@ class Run:
         self.version = None
         self.menu_path = None
 
-        self.buDataAddr = None
+        self.buDataAddr = 'None'
         self.transferMode = None
         self.waitForEndThread = None
         self.beginTime = datetime.datetime.now()
@@ -168,7 +168,7 @@ class Run:
                 return os.path.exists(hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(paramfile_path)
 
             paramsDetected = False
-            while conf.dqm_machine==False:
+            while not conf.dqm_machine:
               if paramsPresent():
                 try:
                     with open(paramfile_path,'r') as fp:
@@ -201,12 +201,16 @@ class Run:
               time.sleep(.1)
               #continue
 
-        try:
-          self.buDataAddr = find_nfs_mount_addr(bu_base_ram_dirs[0]) # todo: make function of mount manager?
-        except Exception as ex:
-          #if this fails, give up right away to avoid starting processes without proper BU data address
-          self.logger.exception(ex)
-          return
+        if not conf.dqm_machine and not conf.local_mode:
+            try:
+                buDataAddrTmp = find_nfs_mount_addr(bu_base_ram_dirs[0])
+                if self.buDataAddr is None:
+                    raise Exception("BU data network mount point not found")
+                self.buDataAddr = buDataAddrTmp
+            except Exception as ex:
+                #if this fails, give up right away to avoid starting processes without proper BU data address
+                self.logger.exception(ex)
+                return
 
         if conf.role=='fu':
             if not paramsDetected:
@@ -244,7 +248,7 @@ class Run:
 
         #verify existence of the input directory
         if conf.role=='fu':
-            if not paramsDetected and conf.dqm_machine==False:
+            if not paramsDetected and not conf.dqm_machine:
                 try:
                     os.stat(self.rawinputdir)
                     self.inputdir_exists = True
@@ -263,10 +267,11 @@ class Run:
                     self.logger.info("starting elasticbu.py with arguments:"+self.dirname)
                     elastic_args = ['/opt/hltd/scratch/python/elasticbu.py',str(self.runnumber),self.instance]
                 else:
-                    if self.buDataAddr is None: self.buDataAddr="unknown"
-                    else:
+                    if self.buDataAddr != 'None':
                       appliance_name = self.buDataAddr.split('.')[0]
                       if self.buDataAddr.endswith('.cern.ch'): appliance_name =  self.buDataAddr #VM test setup
+                    else:
+                      appliance_name="unknown"
 
                     self.logger.info("starting elastic.py with arguments:"+self.dirname)
                     elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',appliance_name,str(self.resInfo.expected_processes)]
@@ -285,7 +290,7 @@ class Run:
                 if nsslock_acquired:
                     self.nsslock.release()
 
-        if conf.role == "fu" and conf.dqm_machine==False:
+        if conf.role == "fu" and not conf.dqm_machine:
             try:
                 self.logger.info("starting anelastic.py with arguments:"+self.dirname)
                 elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,bu_output_base_dir]
@@ -524,7 +529,7 @@ class Run:
                 #this is taken only with acquired resource_lock. It will be released temporarily within this function:
                 self.StartOnResource(resource,is_locked=True)
 
-            if conf.dqm_machine==False:
+            if not conf.dqm_machine:
                 self.changeMarkerMaybe(Resource.RunCommon.ACTIVE)
                 #start safeguard monitoring of anelastic.py
                 self.startAnelasticWatchdog()
@@ -916,7 +921,7 @@ class Run:
                     os.remove(conf.watch_directory+'/end'+str(self.runnumber).zfill(conf.run_number_padding))
                 except:pass
                 try:
-                    if conf.dqm_machine==False:
+                    if not conf.dqm_machine:
                         self.anelastic_monitor.wait()
                 except OSError as ex:
                     if "No child processes" not in str(ex):

@@ -23,7 +23,12 @@ cd ${HOME};
 export FRONTIER_LOG_LEVEL="warning"
 export FFF_EMPTYLSMODE="true"
 export FFF_MICROMERGEDISABLED="true"
+if [ ${11} == "None" ]; then
+  fileBrokerHost=""
+else
+  fileBrokerHost=${11}
+fi
 #exit if executable not found
 type -P cmsRun &>/dev/null || (sleep 2;exit 127)
 #start CMSSW
-exec cmsRun ${hltMenu} "runNumber="${runNumber} "dataDir="${7} "buBaseDir="${8} "numThreads="${9} "numFwkStreams="${10} "fileBrokerHost="${11} "transferMode="${12}  >> $logname 2>&1
+exec cmsRun ${hltMenu} "runNumber="${runNumber} "dataDir="${7} "buBaseDir="${8} "numThreads="${9} "numFwkStreams="${10} "fileBrokerHost="${fileBrokerHost} "transferMode="${12}  >> $logname 2>&1
