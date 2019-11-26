@@ -903,8 +903,10 @@ if __name__ == "__main__":
             hltdcfg.reg('exec_directory',execdir,'[General]')
             hltdcfg.reg('watch_directory','/fff/data','[General]')
             if myhost in minidaq_list or cluster=='daq2_904' or dqmmachine=='True':
+              hltdcfg.reg('output_subdirectorye','output','[General]')
               hltdcfg.reg('output_subdirectory_remote','output','[General]')
             if cluster=='daq3val':
+              hltdcfg.reg('output_subdirectory','ramdisk0','[General]')
               hltdcfg.reg('output_subdirectory_remote','ramdisk0','[General]')
               #hltdcfg.reg('drop_at_fu','True','[General]')
 
