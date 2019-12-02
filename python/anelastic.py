@@ -26,7 +26,7 @@ host = os.uname()[1]
 host_true = host
 
 class LumiSectionRanger:
-    def __init__(self,mr,tempdir,outdir,run_number,drop_at_fu):
+    def __init__(self,mr,tempdir,outdir,run_number,drop_at_fu,fasthadd_pkg_path):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.dqmHandler = None
         self.dqmQueue = queue.Queue()
@@ -59,6 +59,7 @@ class LumiSectionRanger:
         self.flush = None
         self.allowEmptyLs=False
         self.logged_early_crash_warning=False
+        self.fasthadd_pkg_path = fasthadd_pkg_path 
         self.EOLS_list = []
 
     #def join(self, stop=False, timeout=None):
@@ -247,7 +248,7 @@ class LumiSectionRanger:
                 if isEmptyLS and not self.allowEmptyLs:
                     #detected CMSSW version which writes out empty lumisections
                     return
-                self.LSHandlerList[key] = LumiSectionHandler(self,run,ls,self.activeStreams,self.streamCounters,self.tempdir,self.outdir,self.jsdfile,isEmptyLS)
+                self.LSHandlerList[key] = LumiSectionHandler(self,run,ls,self.activeStreams,self.streamCounters,self.tempdir,self.outdir,self.jsdfile,self.fasthadd_pkg_path,isEmptyLS)
                 if filetype not in [INDEX]:
                     self.LSHandlerList[key].emptyLS=True
                 else:
@@ -591,7 +592,7 @@ class LumiSectionRanger:
     def startDQMHandlerMaybe(self):
         if self.dqmHandler is None:
             self.logger.info('DQM histogram ini file: starting DQM merger...')
-            self.dqmHandler = DQMMerger(self.dqmQueue,self.tempdir,self.source)
+            self.dqmHandler = DQMMerger(self.dqmQueue,self.tempdir,self.source,self.fasthadd_pkg_path)
             if not self.dqmHandler.active:
                 self.dqmHandler = None
                 self.logger.error('Failed to start DQM merging thread. Histogram stream will be ignored in this run.')
@@ -626,7 +627,7 @@ class LumiSectionRanger:
 
 
 class LumiSectionHandler():
-    def __init__(self,parent,run,ls,activeStreams,streamCounters,tempdir,outdir,jsdfile,isEmptyLS):
+    def __init__(self,parent,run,ls,activeStreams,streamCounters,tempdir,outdir,jsdfile,fasthadd_pkg_path,isEmptyLS):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(ls)
         self.parent=parent
@@ -650,6 +651,7 @@ class LumiSectionHandler():
         self.totalFiles = 0
         self.emptyLumiStreams = None
         self.emptyLS = isEmptyLS
+        self.fasthadd_pkg_path = fasthadd_pkg_path
         self.data_size = 0
 
         if not self.emptyLS:
@@ -1004,6 +1006,9 @@ class LumiSectionHandler():
                     elif outfile.mergeStage==1:
                         #still merging
                         continue
+                    else:
+                        #propagate fastHadd location to the mergers
+                        outfile.setBaseFieldByName('fastHaddInstPath',self.fasthadd_pkg_path)
 
                 self.streamCounters[stream]+=processed
                 self.logger.info("%r,%r complete" %(self.ls,outfile.stream))
@@ -1214,7 +1219,7 @@ class FileEvent:
 
 class DQMMerger(threading.Thread):
 
-    def __init__(self,queue,outDir,source):
+    def __init__(self,queue,outDir,source,fasthadd_pkg_path):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.dqmQueue = queue
@@ -1224,9 +1229,11 @@ class DQMMerger(threading.Thread):
         self.finish=False
         self.skipAll=False
         self.source=source
+        self.fasthadd_wrapper=conf.cmssw_script_location+'/fastHaddWrapper.sh'
+        self.fasthadd_pkg_path=fasthadd_pkg_path
         try:
             mergeEnabled = True
-            p = subprocess.Popen('/usr/bin/fastHadd',shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            p = subprocess.Popen([self.fasthadd_wrapper,self.fasthadd_pkg_path],shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
             p.communicate()
             if p.returncode!=1 and p.returncode!=0:
                 self.logger.error('fastHadd exit code:'+str(p.returncode))
@@ -1238,7 +1245,7 @@ class DQMMerger(threading.Thread):
         if not mergeEnabled:
             return
         else:
-            self.logger.info('fastHadd binary tested successfully')
+            self.logger.info('fastHadd binary from ' + self.fasthadd_pkg_path + ' tested successfully')
         self.start()
         self.active=True
  
@@ -1246,7 +1253,7 @@ class DQMMerger(threading.Thread):
         while self.abort == False:
             try:
                 dqmJson = self.dqmQueue.get(True,0.5)
-                outpbname = dqmJson.mergeDQM(self.outDir,setAsError=self.skipAll)
+                outpbname = dqmJson.mergeDQM(self.fasthadd_wrapper,self.fasthadd_pkg_path,self.outDir,setAsError=self.skipAll)
                 try:
                   if len(outpbname):
                     outpbpath = os.path.join(self.outDir,outpbname)
@@ -1312,6 +1319,7 @@ if __name__ == "__main__":
     watchDir = os.path.join(conf.watch_directory,dirname)
     outputDir = sys.argv[4]
     outputRunDir = os.path.join(outputDir,'run'+run_number.zfill(conf.run_number_padding))
+    fasthadd_pkg_path = sys.argv[5]
 
     mask = inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO  # watched events
     logger.info("starting anelastic for "+dirname)
@@ -1351,8 +1359,9 @@ if __name__ == "__main__":
                 time.sleep(.5)
                 continue
 
+
         #starting lsRanger thread
-        ls = LumiSectionRanger(mr,watchDir,outputDir,run_number,conf.drop_at_fu)
+        ls = LumiSectionRanger(mr,watchDir,outputDir,run_number,conf.drop_at_fu,fasthadd_pkg_path)
         ls.setSource(eventQueue)
         ls.start()
 

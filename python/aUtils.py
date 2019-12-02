@@ -454,6 +454,9 @@ class fileHandler(object):
                 self.logger.warning("bad field request %r in %r" %(field,self.definitions))
             return False
 
+    def setBaseFieldByName(self,field,value):
+        self.data[field]=value
+
         #get definitions from jsd file
     def getDefinitions(self):
         if self.filetype in [STREAM]:
@@ -873,11 +876,12 @@ class fileHandler(object):
         return True
 
 
-    def mergeDQM(self,outDir,setAsError=False):
+    def mergeDQM(self,executable,install_dir,outDir,setAsError=False):
         outputName,outputExt = os.path.splitext(self.basename)
         outputName+='.pb'
         fullOutputPath = os.path.join(outDir,outputName)
-        command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
+        command_args = [executable,install_dir,"add","-o",fullOutputPath]
+        #command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
 
         totalEvents = self.getFieldByName("Processed")+self.getFieldByName("ErrorEvents")
 
@@ -923,7 +927,7 @@ class fileHandler(object):
           if setAsError:
               hasError=True
           else:
-            p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            p = subprocess.Popen(command_args,shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
             p_out,p_err = map(decodecstr,p.communicate())
             time_delta = time.time()-time_start
             if p.returncode!=0:
@@ -950,7 +954,7 @@ class fileHandler(object):
                     else:
                         self.logger.info('fastHadd output (truncated):'+ p_out[:100])
 
-          for f in command_args[4:]:
+          for f in command_args[5:]:
               try:
                   if hasError==False or setAsError==True: os.remove(f)
               except OSError as ex:
@@ -978,6 +982,9 @@ class fileHandler(object):
         except:pass
         try:self.data['MergingTimePerFile']=time_delta/numFiles
         except:self.data['MergingTimePerFile']=0
+        #fastHadd installation directory
+        self.data['fastHaddInstPath']=install_dir
+
         self.writeout()
         return outputName
 

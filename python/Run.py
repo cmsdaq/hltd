@@ -128,6 +128,7 @@ class Run:
         self.arch = None
         self.version = None
         self.menu_path = None
+        self.fasthadd_installation_path = 'None'
 
         self.buDataAddr = 'None'
         self.transferMode = None
@@ -230,6 +231,17 @@ class Run:
             except:
                 self.logger.warning('Unable to backup HLT menu')
 
+            if not conf.dqm_machine:
+                #run cmspkg to detect which fasthadd package version is used with this CMSSW
+                conf.cmssw_script_location+'/fastHaddVersion.sh'
+                p = subprocess.Popen([conf.cmssw_script_location+'/fastHaddVersion.sh',conf.cmssw_base,self.arch,self.version], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                ret = p.communicate()
+                if p.returncode==0:
+                    self.fasthadd_installation_path = ret[0].decode()
+                    self.logger.info('RUN:'+str(self.runnumber)+" fasthHaddVersion returned: "+ self.fasthadd_installation_path)
+                else:
+                    self.logger.error('RUN:'+str(self.runnumber)+" fastHadd not found. stdout=" + ret[0].decode() + " stderr=" + ret[1].decode())
+
         self.rawinputdir = None
         #
         if conf.role == "bu":
@@ -293,7 +305,7 @@ class Run:
         if conf.role == "fu" and not conf.dqm_machine:
             try:
                 self.logger.info("starting anelastic.py with arguments:"+self.dirname)
-                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,bu_output_base_dir]
+                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,bu_output_base_dir,self.fasthadd_installation_path]
                 self.anelastic_monitor = subprocess.Popen(elastic_args,
                                                     preexec_fn=preexec_function,
                                                     close_fds=True
