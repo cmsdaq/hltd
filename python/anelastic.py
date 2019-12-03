@@ -592,7 +592,7 @@ class LumiSectionRanger:
     def startDQMHandlerMaybe(self):
         if self.dqmHandler is None:
             self.logger.info('DQM histogram ini file: starting DQM merger...')
-            self.dqmHandler = DQMMerger(self.dqmQueue,self.tempdir,self.source,self.fasthadd_pkg_path)
+            self.dqmHandler = DQMMerger(self.dqmQueue,self.tempdir,self.source,conf.detect_fasthadd_version,self.fasthadd_pkg_path)
             if not self.dqmHandler.active:
                 self.dqmHandler = None
                 self.logger.error('Failed to start DQM merging thread. Histogram stream will be ignored in this run.')
@@ -1219,7 +1219,7 @@ class FileEvent:
 
 class DQMMerger(threading.Thread):
 
-    def __init__(self,queue,outDir,source,fasthadd_pkg_path):
+    def __init__(self,queue,outDir,source,detFastHadd,fasthadd_pkg_path):
         threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.dqmQueue = queue
@@ -1229,11 +1229,15 @@ class DQMMerger(threading.Thread):
         self.finish=False
         self.skipAll=False
         self.source=source
+        self.detFastHadd=detFastHadd
         self.fasthadd_wrapper=conf.cmssw_script_location+'/fastHaddWrapper.sh'
         self.fasthadd_pkg_path=fasthadd_pkg_path
         try:
             mergeEnabled = True
-            p = subprocess.Popen([self.fasthadd_wrapper,self.fasthadd_pkg_path],shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            if self.detFastHadd:
+                p = subprocess.Popen([self.fasthadd_wrapper,self.fasthadd_pkg_path],shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            else:
+                p = subprocess.Popen('/usr/bin/fastHadd',shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
             p.communicate()
             if p.returncode!=1 and p.returncode!=0:
                 self.logger.error('fastHadd exit code:'+str(p.returncode))
@@ -1245,7 +1249,10 @@ class DQMMerger(threading.Thread):
         if not mergeEnabled:
             return
         else:
-            self.logger.info('fastHadd binary from ' + self.fasthadd_pkg_path + ' tested successfully')
+            if self.detFastHadd:
+                self.logger.info('fastHadd binary from ' + self.fasthadd_pkg_path + ' tested successfully')
+            else:
+                self.logger.info('/usr/bin/fastHadd tested successfully')
         self.start()
         self.active=True
  
@@ -1253,7 +1260,7 @@ class DQMMerger(threading.Thread):
         while self.abort == False:
             try:
                 dqmJson = self.dqmQueue.get(True,0.5)
-                outpbname = dqmJson.mergeDQM(self.fasthadd_wrapper,self.fasthadd_pkg_path,self.outDir,setAsError=self.skipAll)
+                outpbname = dqmJson.mergeDQM(self.fasthadd_wrapper,self.fasthadd_pkg_path,self.outDir,detFastHadd=self.detFastHadd,setAsError=self.skipAll)
                 try:
                   if len(outpbname):
                     outpbpath = os.path.join(self.outDir,outpbname)

@@ -876,12 +876,14 @@ class fileHandler(object):
         return True
 
 
-    def mergeDQM(self,executable,install_dir,outDir,setAsError=False):
+    def mergeDQM(self,executable,install_dir,outDir,detFastHadd=True,setAsError=False):
         outputName,outputExt = os.path.splitext(self.basename)
         outputName+='.pb'
         fullOutputPath = os.path.join(outDir,outputName)
-        command_args = [executable,install_dir,"add","-o",fullOutputPath]
-        #command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
+        if detFastHadd:
+            command_args = [executable,install_dir,"add","-o",fullOutputPath]
+        else:
+            command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
 
         totalEvents = self.getFieldByName("Processed")+self.getFieldByName("ErrorEvents")
 
@@ -983,7 +985,8 @@ class fileHandler(object):
         try:self.data['MergingTimePerFile']=time_delta/numFiles
         except:self.data['MergingTimePerFile']=0
         #fastHadd installation directory
-        self.data['fastHaddInstPath']=install_dir
+        if detFastHadd:
+            self.data['fastHaddInstPath']=install_dir
 
         self.writeout()
         return outputName

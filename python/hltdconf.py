@@ -41,7 +41,8 @@ class hltdConf:
         self.getstr('General','ramdisk_subdirectory', "ramdisk") #local mountpoint
         self.getstr('General','ramdisk_subdirectory_remote', "ramdisk") #remote or on BU
         self.getstr('General','output_subdirectory', "output") #local mountpoint
-        self.getstr('General','output_subdirectory_remote', "output") #remore or on BU
+        self.getstr('General','output_subdirectory_remote', "output") #remote or on BU
+        self.getstr('General','output_subdirectory_aux', "None") #final output directory (merger), if different
         self.getstr('General','data_subdirectory', "data")
         self.getint('General','run_number_padding',6)
 
@@ -95,6 +96,7 @@ class hltdConf:
         self.getint('CMSSW','cmssw_streams',1)
         self.getstr('CMSSW','cmssw_script_location',"/opt/hltd/scripts")
         self.getstr('CMSSW','test_hlt_config1',"python/HiltonMenu.py")
+        self.getbool('CMSSW','detect_fasthadd_version',False)
 
         self.getstr('HLT','menu_directory',"hlt")
         self.getstr('HLT','menu_name',"HltConfig.py")
