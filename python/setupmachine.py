@@ -812,6 +812,7 @@ if __name__ == "__main__":
                 if cluster=='daq3val': 
                   hltdcfg.reg('output_subdirectory','ramdisk0','[General]')
                   hltdcfg.reg('output_subdirectory_remote','ramdisk0','[General]')
+                  hltdcfg.reg('output_subdirectory_aux','output','[General]')
                   hltdcfg.reg('drop_at_fu','True','[Test]') #on BU only affects monitoring
                   hltdcfg.reg('mon_bu_cpus','True','[Monitoring]')
 

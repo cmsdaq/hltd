@@ -685,16 +685,27 @@ class elasticCollectorBU():
             time.sleep(60)
             #delete directory because merger is not active
 
+            rundirname = 'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)
             try:
-                self.logger.info("deleting ramdisk and output (drop at FU mode)")
-                shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_remote,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
+                self.logger.info("deleting "+self.es.conf.watch_directory+" (drop at FU mode)")
+                shutil.rmtree(os.path.join(self.es.conf.watch_directory,rundirname))
+            except Exception as ex:
+                self.logger.exception(ex)
+            try:
+                time.sleep(1)
+                self.logger.info("deleting "+self.es.conf.output_subdirectory_remote+" (drop at FU mode)")
+                shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_remote,rundirname))
+            except Exception as ex:
+                self.logger.exception(ex)
+            try:
+                if conf.output_subdirectory_aux not in [None,"",None]:
+                    time.sleep(1)
+                    self.logger.info("deleting "+self.es.conf.output_subdirectory_aux+" (drop at FU mode)")
+                    shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_aux,rundirname))
             except Exception as ex:
                 self.logger.exception(ex)
 
-            try:
-                shutil.rmtree(os.path.join(self.es.conf.watch_directory,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
-            except Exception as ex:
-                self.logger.exception(ex)
+
 
         self.logger.info("Stop main loop (watching directory " + str(self.inRunDir) + ")")
 

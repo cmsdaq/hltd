@@ -361,7 +361,7 @@ class MountManager:
     def cleanup_bu_disks(self,run=None,cleanRamdisk=True,cleanOutput=True):
       if cleanRamdisk:
         if self.conf.watch_directory.startswith(conf.fff_base) and self.conf.ramdisk_subdirectory in self.conf.watch_directory:
-            self.logger.info('cleanup BU disks: deleting runs in ramdisk ...')
+            self.logger.info('cleanup BU disks: deleting runs in ramdisk ' + self.conf.watch_directory)
             tries = 10
             while tries > 0:
                 tries-=1
@@ -377,11 +377,12 @@ class MountManager:
                     self.logger.info('Failed ramdisk cleanup (return code:'+str(p.returncode)+') in attempt'+str(10-tries))
 
       if cleanOutput:
+        #TODO:use fff_base
         outdirPath = self.conf.watch_directory[:self.conf.watch_directory.find(self.conf.ramdisk_subdirectory)]+self.conf.output_subdirectory_remote
-        self.logger.info('outdirPath:'+ outdirPath + ' '+self.conf.output_subdirectory_remote)
+        self.logger.info('outdirPath:'+ outdirPath)
 
         if outdirPath.startswith(conf.fff_base) and self.conf.output_subdirectory_remote in outdirPath:
-            self.logger.info('cleanup BU disks: deleting runs in output disk ...')
+            self.logger.info('cleanup BU disks: deleting runs in output disk ' + outdirPath)
             tries = 10
             while tries > 0:
                 tries-=1
@@ -395,6 +396,23 @@ class MountManager:
                     break
                 else:
                     self.logger.info('Failed output disk cleanup (return code:'+str(p.returncode)+') in attempt '+str(10-tries))
+
+        if self.conf.output_subdirectory_aux not in [None,"","None"]:
+            outdirPathAux = os.path.join(self.conf.fff_base,self.conf.output_subdirectory_aux)
+            self.logger.info('cleanup BU disks: deleting runs in output (aux) disk '+outdirPathAux)
+            tries = 10
+            while tries > 0:
+                tries-=1
+                if run==None:
+                    p = subprocess.Popen("rm -rf " + outdirPathAux+'/run*',shell=True)
+                else:
+                    p = subprocess.Popen("rm -rf " + outdirPathAux+'/run'+str(run),shell=True)
+                p.wait()
+                if p.returncode==0:
+                    self.logger.info('Output cleanup performed (aux)')
+                    break
+                else:
+                    self.logger.info('Failed output disk cleanup (aux) (return code:'+str(p.returncode)+') in attempt '+str(10-tries))
 
 
 #helper
