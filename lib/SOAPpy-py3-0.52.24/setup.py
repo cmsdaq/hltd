@@ -19,8 +19,8 @@ def read(*rnames):
 
 url = "https://github.com/Synerty/SOAPpy-py3"
 long_description = "SOAPpy-py3 provides tools for building SOAP clients and servers.  For more information see " + url \
-                   + '\n' + read('README.txt') \
-                   + '\n' + read('CHANGES.txt')
+                   + '\n' + read('README.txt') #\
+                   #+ '\n' + read('CHANGES.txt')
 setup(
     name="SOAPpy-py3",
     provides=['SOAPpy'],
