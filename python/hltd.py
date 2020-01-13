@@ -420,8 +420,10 @@ class hltd:
             cleanup resources
             """
             res_in_cloud = len(os.listdir(resInfo.cloud))>0
-            while True:
+            def cloud_check1_maybe():
+              while True:
                 #switch to cloud mode if cloud files are found (e.g. machine rebooted while in cloud)
+                #NOTE: this runs early to activate cloud even if mountpoints are not ready
                 if res_in_cloud:
                     logger.warning('found cores in cloud. this session will start in the cloud mode')
                     try:
@@ -461,25 +463,28 @@ class hltd:
                 time.sleep(0.1)
                 logger.warning("retrying cleanup_resources")
 
+            cloud_check1_maybe()
+
+            #init (shoudl not change later)
             resInfo.calculate_threadnumber()
 
             #ensure that working directory is ready
             try:os.makedirs(conf.watch_directory)
             except:pass
 
-        #run class init
-        runList = RunList()
+            #run class init
+            runList = RunList()
 
-        #start monitor thread to get fu-box-status docs inserted early in case of mount problems
-        boxInfo = BoxInfo()
-        num_cpus_initial=-1
+            #start monitor thread to get fu-box-status docs inserted early in case of mount problems
+            boxInfo = BoxInfo()
+            num_cpus_initial=-1
 
-        if conf.role == 'fu':
-            """
-            recheck mount points
-            """
-            #switch to cloud mode if active, but hltd did not have cores in cloud directory in the last session
-            if not res_in_cloud and state.cloud_script_available():
+            def cloud_check2_maybe():
+                """
+                recheck mount points
+                """
+                #switch to cloud mode if active, but hltd did not have cores in cloud directory in the last session
+                if not res_in_cloud and state.cloud_script_available():
                     cl_status = state.cloud_status()
                     cnt = 5
                     while not (cl_status == 1 or cl_status == 0 or cl_status==66) and cnt>0:
@@ -505,21 +510,43 @@ class hltd:
                             resInfo.move_resources_to_cloud()
                             state.cloud_mode=True
 
+            #first check before mounting, to set resources to cloud (if cloud mode) eatly on for monitoring even if mountpoints are not ready
+            cloud_check2_maybe()
+
+            #cleanup old directory
             if conf.watch_directory.startswith('/fff/'):
                 p = subprocess.Popen("rm -rf " + conf.watch_directory+'/*',shell=True)
                 p.wait()
 
+
             if mm and not mm.cleanup_mountpoints(nsslock):
                 logger.fatal("error mounting - terminating service")
                 os._exit(10)
+
+            #check after mountpoint (which depends on BU availability and does not have bound duration
+            res_in_cloud = len(os.listdir(resInfo.cloud))>0
+            if not state.cloud_mode:
+                #cloud was OFF. Check if anything changed (resources moved by hand, or scripts started by hand)
+                cloud_check1_maybe()
+                cloud_check2_maybe()
+            #TODO:check if cloud was turned OFF during mountpoint check
+
 
             #recursively remove any stale run data and other commands in the FU watch directory
             #if conf.watch_directory.strip()!='/':
             #    p = subprocess.Popen("rm -rf " + conf.watch_directory.strip()+'/{run*,end*,quarantined*,exclude,include,suspend*,populationcontrol,herod,logrestart,emu*}',shell=True)
             #    p.wait()
 
+
             #count core files
             if conf.dynamic_resources: num_cpus_initial = resInfo.count_resources()
+
+        else: #BU mode
+            #run class init
+            runList = RunList()
+            #start monitor thread
+            boxInfo = BoxInfo()
+            num_cpus_initial=-1
 
         #start monitor after all state checks/migration have finished
         sm = SystemMonitor.system_monitor(conf,state,resInfo,runList,mm,boxInfo,num_cpus_initial)
