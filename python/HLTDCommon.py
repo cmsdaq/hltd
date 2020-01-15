@@ -1,9 +1,8 @@
-#import subprocess
-#import logging
 import os
 import sys
 import json
 import subprocess
+import logging
 import shutil
 
 import demote
@@ -123,4 +122,25 @@ def releaseLock(parent,lock,doLock=True,maybe=False,acqStatus=-1):
     parent.logger.warning("Failed unlocking lock in " + funcname + "/" + parent.__class__.__name__+". Acquire status was  "+acq+". Exception:"+str(ex))
     return None
 
+
+def get_gdb_pids(in_pid):
+    if not str(in_pid).isdigit(): return []
+    p = subprocess.Popen("ps aux | grep 'gdb -quiet -p "+str(in_pid)+"' | grep -v grep | tr ' ' ' ' | cut -d' ' -f2",shell=True,stdout=subprocess.PIPE)
+    x = [ int(y) for y in p.communicate()[0].decode('utf-8').strip('\n').split('\n') if y.isdigit()]
+    return x
+
+def kill_pids(in_pids):
+    if not len(in_pids):return
+    in_pids_filtered = []
+    for pid in in_pids:
+      s_pid = str(pid)
+      if s_pid.isdigit():in_pids_filtered.append(s_pid)
+    p = subprocess.Popen("/usr/bin/killall -9 "+" ".join(in_pids_filtered),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+    ret = p.communicate()
+    if p.returncode:
+        logging.info(ret[1].decode('utf-8').replace('\n','   '))
+
+#find and kill
+def clear_gdb_for_pid(in_pid):
+  kill_pids(get_gdb_pids(in_pid))
 

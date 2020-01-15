@@ -529,6 +529,10 @@ class hltd:
                 #cloud was OFF. Check if anything changed (resources moved by hand, or scripts started by hand)
                 cloud_check1_maybe()
                 cloud_check2_maybe()
+            if state.cloud_mode:
+                logger.info("init finished - cloud mode active")
+            else:
+                logger.info("init finished - HLT mode set")
             #TODO:check if cloud was turned OFF during mountpoint check
 
 
