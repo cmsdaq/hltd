@@ -187,10 +187,7 @@ class ResInfo:
                 if int(x[4:])<int(y[4:]): return 1
                 elif int(x[4:])>int(y[4:]): return -1
                 else:return 0
-            try:
-                invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),cmp_to_key=cmpfinv)
-            except NameError: #py2:
-                invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),cmp=cmpfinv)
+            invslist = sorted(os.listdir(idledir)+os.listdir(self.quarantined),key=cmp_to_key(cmpfinv))
             toDelete = current-newcount
             totDel=toDelete
             for i in invslist:

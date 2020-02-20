@@ -38,10 +38,7 @@ def updateIdles(idledir,newcount):
         if int(x[4:])<int(y[4:]): return 1
         elif int(x[4:])>int(y[4:]): return -1
         else:return 0
-      try:
-        invslist = sorted(os.listdir(idledir),cmp_to_key=cmpf)
-      except NameError: #py2:
-        invslist = sorted(os.listdir(idledir),cmp=cmpf)
+      invslist = sorted(os.listdir(idledir),key=cmp_to_key(cmpf))
       toDelete = newcount-current
       totDel=toDelete
       for i in invslist:
