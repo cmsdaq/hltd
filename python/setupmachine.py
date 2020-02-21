@@ -53,14 +53,10 @@ except:myhost_domain=''
 
 #testing dual mount point
 vm_override_buHNs = {
-                     "fu-vm-01-01.cern.ch":["bu-vm-01-01","bu-vm-01-01"],
-                     "fu-vm-01-02.cern.ch":["bu-vm-01-01"],
-                     "fu-vm-02-01.cern.ch":["bu-vm-01-01","bu-vm-01-01"],
-                     "fu-vm-02-02.cern.ch":["bu-vm-01-01"],
                      "fu-vm-03-01.cern.ch":["bu-vm-03-01"],
-                     "fu-vm-03-02.cern.ch":["bu-vm-03-01"],
+                     "fu-vm-03-02.cern.ch":["bu-vm-04-01"],
                      "fu-vm-03-03.cern.ch":["bu-vm-03-01"],
-                     "fu-vm-03-04.cern.ch":["bu-vm-03-01"]
+                     "fu-vm-03-04.cern.ch":["bu-vm-04-01"]
                      }
 #vm_bu_override = ['bu-vm-01-01.cern.ch']
 
