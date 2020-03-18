@@ -457,6 +457,12 @@ class ProcessWatchdog(threading.Thread):
                 except: self.logger.exception("unable to create %r" %filename)
                 self.logger.info("pid crash file: %r" %filename)
 
+                #check list of exit codes which whould unqarantine automatically (only if all non-zero exit codes are eligible)
+                if returncode != 0:
+                    if returncode in conf.auto_clear_exitcodes:
+                        self.resource.parent.clear_quarantined_count += 1
+                    else:
+                        self.resource.parent.not_clear_quarantined_count +=1
 
                 if self.resource.retry_attempts < self.retry_limit:
                     """

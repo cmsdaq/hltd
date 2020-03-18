@@ -149,6 +149,8 @@ class Run:
         self.asyncContactThread = None
         self.threadEventContact = threading.Event()
 
+        self.clear_quarantined_count = 0
+        self.not_clear_quarantined_count = 0
         self.inputdir_exists = False
 
         if conf.role == 'fu':
@@ -703,7 +705,7 @@ class Run:
             res_copy_term = []
 
             with self.resource_lock:
-                q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
+                q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined or self.shouldClearQuarantined()
                 for resource in self.online_resource_list:
                     cleared_q = resource.clearQuarantined(False,restore=q_clear_condition)
                     for cpu in resource.cpu:
@@ -1102,4 +1104,9 @@ class Run:
                 time.sleep(.5)
             except Exception as ex:
                 self.logger.exception(ex)
+
+    def shouldClearQuarantined(self):
+
+        return self.clear_quarantined_count != 0 and self.not_clear_quarantined_count == 0
+
 

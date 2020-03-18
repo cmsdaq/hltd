@@ -87,6 +87,7 @@ class hltdConf:
         self.getfloat('Recovery','process_restart_delay_sec',5.)
         self.getint('Recovery','process_restart_limit',5)
         self.getbool('Recovery','auto_clear_quarantined',False)
+        self.getIntVector('Recovery','auto_clear_exitcodes','0,127')
 
         self.getstr('CMSSW','cmssw_base',"/opt/offline")
         self.getstr('CMSSW','cmssw_arch',"notset")
@@ -162,10 +163,27 @@ class hltdConf:
         for p in self.paramlist:
             if not tmpcfg.has_section(p[3]):
                 tmpcfg.add_section(p[3])
-            tmpcfg.set(p[3],p[0],str(p[2]))
+            if p[1]=='intvec' or p[1]=='strvec':
+              tmpcfg.set(p[3],p[0],','.join(map(str,p[2])))
+            else:
+              tmpcfg.set(p[3],p[0],str(p[2]))
         with open(path,'w') as outfile:
             tmpcfg.write(outfile)
 
+    def getStrVector(self,section,name,default):
+        try:
+            setattr(self,name,self.cfg.getstring(section,name).split(','))
+        except:
+            setattr(self,name,default.split(','))
+        self.paramlist.append([name,'intvec',default,section])
+ 
+    def getIntVector(self,section,name,default):
+        try:
+            setattr(self,name,[int(x) for x in self.cfg.getstring(section,name).split(',')])
+        except:
+            setattr(self,name,[int(x) for x in default.split(',')])
+        self.paramlist.append([name,'intvec',default,section])
+ 
     def dump(self):
         logging.info( '<hltd STATUS time="' + str(datetime.datetime.now()).split('.')[0] + '" user:' + self.user + ' role:' + self.role + '>')
 
