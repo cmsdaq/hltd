@@ -172,14 +172,14 @@ class hltdConf:
 
     def getStrVector(self,section,name,default):
         try:
-            setattr(self,name,self.cfg.getstring(section,name).split(','))
+            setattr(self,name,self.cfg.get(section,name).split(','))
         except:
             setattr(self,name,default.split(','))
         self.paramlist.append([name,'intvec',default,section])
  
     def getIntVector(self,section,name,default):
         try:
-            setattr(self,name,[int(x) for x in self.cfg.getstring(section,name).split(',')])
+            setattr(self,name,[int(x) for x in self.cfg.get(section,name).split(',')])
         except:
             setattr(self,name,[int(x) for x in default.split(',')])
         self.paramlist.append([name,'intvec',default,section])
