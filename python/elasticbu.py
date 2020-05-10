@@ -135,16 +135,30 @@ class elasticBandBU:
               version = None
               arch = None
               hltmenuname = None
+              daqSystem = None
+              daqInstance = None
+
               with open(os.path.join(mainDir,'hlt',conf.paramfile_name),'r') as fp:
                 fffparams = json.load(fp)
                 version = fffparams['CMSSW_VERSION']
                 arch = fffparams['SCRAM_ARCH']
                 self.logger.info("OK")
-              with open(os.path.join(mainDir,'hlt','HltConfig.py'),'r') as fp:
+
+              with open(os.path.join(mainDir,'hlt',conf.menu_name),'r') as fp:
                 firstline = fp.readline().strip().strip("\n") #first line
                 if firstline.startswith("#"):
                   hltmenuname = firstline.strip("#").strip()
+
+              try:
+                with open(os.path.join(mainDir,'hlt',conf.hltinfofile_name),'r') as fp:
+                  hltInfo = json.load(fp)
+                  daqSystem = hltInfo['daqSystem']
+                  daqInstance = hltInfo['daqInstance']
+              except Exception as ex:
+                  self.logger.warning(str(ex))
+
               break
+
             except Exception as ex:
               self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
               time.sleep(0.2)
@@ -163,6 +177,8 @@ class elasticBandBU:
             if version: document['CMSSW_version']=version
             if arch: document['CMSSW_arch']=arch
             if hltmenuname and len(hltmenuname): document['HLT_menu']=hltmenuname
+            if daqSystem and len(daqSystem): document['daqSystem']=daqSystem
+            if daqInstance and len(daqInstance): document['daqInstance']=daqInstance
             documents = [document]
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False,routing=str(self.runnumber))
             if isinstance(ret,tuple) and ret[1]==409:

@@ -557,7 +557,11 @@ class system_monitor(threading.Thread):
                                 "buCPUName":self.cpu_name,
                                 "activePhysCores":fu_phys_cores,
                                 "activeHTCores":fu_ht_cores,
-                                "fuMemFrac":mem_frac_avg
+                                "fuMemFrac":mem_frac_avg,
+                                "daqSystem":self.state.daqSystem,
+                                "daqInstance":self.state.daqInstance,
+                                "fuGroup":self.state.fuGroup
+ 
                               }
                     #BU CPU montoring of C-states and frequency
                     if conf.mon_bu_cpus:
@@ -768,7 +772,10 @@ class system_monitor(threading.Thread):
                             'activeRuns':self.runList.getActiveRunNumbers(),
                             "version":self.boxInfo.boxdoc_version,
                             "boot_id":self.boot_id,
-                            "cpuName":self.cpu_name
+                            "cpuName":self.cpu_name,
+                            "daqSystem":self.state.daqSystem,
+                            "daqInstance":self.state.daqInstance,
+                            "fuGroup":self.state.fuGroup
                         }
                         try:
                             with open(mfile,'w') as fp: #TODO:

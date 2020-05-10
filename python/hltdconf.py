@@ -102,6 +102,7 @@ class hltdConf:
         self.getstr('HLT','menu_directory',"hlt")
         self.getstr('HLT','menu_name',"HltConfig.py")
         self.getstr('HLT','paramfile_name',"fffParameters.jsn")
+        self.getstr('HLT','hltinfofile_name',"hltinfo")
 
         self.getstr('Cloud','cloud_igniter_path',"/usr/local/sbin/cloud-igniter.py")
 
