@@ -244,6 +244,9 @@ class StateInfo:
         self.masked_resources = False
         self.os_cpuconfig_change = 0
         self.lock = threading.Lock()
+        self.daqSystem = "N/A"
+        self.daqInstance = "N/A"
+        self.fuGroup = "N/A"
 
     #interfaces to the cloud igniter script
     def ignite_cloud(self):

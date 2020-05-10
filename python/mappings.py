@@ -76,6 +76,8 @@ central_runindex_mapping = {
         'CMSSW_version':   {'type':'keyword'},
         'CMSSW_arch':      {'type':'keyword'},
         'HLT_menu':        {'type':'keyword'},
+        'daqSystem':       {'type':'keyword'},
+        'daqInstance':     {'type':'keyword'},
 
         'id':         {'type':'keyword'},
         'names':      {'type':'keyword'},
@@ -255,6 +257,9 @@ central_boxinfo_mapping = {
       'active_resources' :           { 'type' : 'short' },
       'active_resources_activeRun' : { 'type' : 'short' },
       'active_resources_oldRuns' :   { 'type' : 'short' },
+      'daqSystem' :                  { 'type' : 'keyword'},
+      'daqInstance' :                { 'type' : 'keyword'},
+      'fuGroup' :                    { 'type' : 'keyword'},
       'idle' :                       { 'type' : 'short' },
       'pending_resources' :          { 'type' : 'short' },
       'stale_resources' :            { 'type' : 'short' },

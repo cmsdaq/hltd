@@ -153,25 +153,29 @@ class Run:
         self.not_clear_quarantined_count = 0
         self.inputdir_exists = False
 
-        if conf.role == 'fu':
-            self.changeMarkerMaybe(Resource.RunCommon.STARTING)
+
+        hltInfoDetected = False
+
         #TODO:raise from runList
         #            if int(self.runnumber) in active_runs:
         #                raise Exception("Run "+str(self.runnumber)+ "already active")
 
-        if conf.role=='fu':
+
+        if conf.role == 'fu':
+            self.changeMarkerMaybe(Resource.RunCommon.STARTING)
+        
             hlt_directory = os.path.join(bu_dir,conf.menu_directory)
             paramfile_path = os.path.join(hlt_directory,conf.paramfile_name)
-
             self.menu_path = os.path.join(hlt_directory,conf.menu_name)
+            self.hltinfofile_path = os.path.join(hlt_directory,conf.hltinfofile_name) 
 
             readMenuAttempts=0
-            #polling for HLT menu directory
             def paramsPresent():
                 return os.path.exists(hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(paramfile_path)
 
             paramsDetected = False
             while not conf.dqm_machine:
+              #polling for HLT menu directory
               if paramsPresent():
                 try:
                     with open(paramfile_path,'r') as fp:
@@ -182,6 +186,10 @@ class Run:
                         self.transferMode = fffparams['TRANSFER_MODE']
                         paramsDetected = True
                         self.logger.info("Run " + str(self.runnumber) + " uses " + self.version + " ("+self.arch + ") with " + str(conf.menu_name) + ' transferDest:'+self.transferMode)
+
+                    hltInfoDetected = self.getHltInfoParameters()
+
+                    #finish if fffParams found. hltinfo is still optionall
                     break
 
                 except ValueError as ex:
@@ -202,20 +210,8 @@ class Run:
                     break
               readMenuAttempts+=1
               time.sleep(.1)
-              #continue
+            #end loop
 
-        if not conf.dqm_machine and not conf.local_mode:
-            try:
-                buDataAddrTmp = find_nfs_mount_addr(bu_base_ram_dirs[0])
-                if self.buDataAddr is None:
-                    raise Exception("BU data network mount point not found")
-                self.buDataAddr = buDataAddrTmp
-            except Exception as ex:
-                #if this fails, give up right away to avoid starting processes without proper BU data address
-                self.logger.exception(ex)
-                return
-
-        if conf.role=='fu':
             if not paramsDetected:
                 self.arch = conf.cmssw_arch
                 self.version = conf.cmssw_default_version
@@ -244,9 +240,44 @@ class Run:
                 else:
                     self.logger.error('RUN:'+str(self.runnumber)+" fastHadd not found. stdout=" + ret[0].decode() + " stderr=" + ret[1].decode())
 
+        if not conf.dqm_machine and not conf.local_mode:
+            try:
+                buDataAddrTmp = find_nfs_mount_addr(bu_base_ram_dirs[0])
+                if self.buDataAddr is None:
+                    raise Exception("BU data network mount point not found")
+                self.buDataAddr = buDataAddrTmp
+            except Exception as ex:
+                #if this fails, give up right away to avoid starting processes without proper BU data address
+                self.logger.exception(ex)
+                return
+
+
         self.rawinputdir = None
-        #
+
         if conf.role == "bu":
+            mainDir = os.path.join(conf.watch_directory,'run'+ conf.runnumber.zfill(conf.run_number_padding))
+            hlt_directory = os.path.join(mainDir,'hlt')
+            self.hltinfofile_path = os.path.join(hlt_directory,conf.hltinfofile_name) 
+
+            readParamsAttempts=0
+            def infoParamsPresent():
+                return os.path.exists(hlt_directory) and os.path.exists(self.hltinfofile_path)
+
+            while not conf.dqm_machine:
+                #polling for HLT info file
+                if infoParamsPresent():
+                      hltInfoDetected = self.getHltInfoParameters()
+                      break
+                else:
+                    if readParamsAttempts>10:
+                        if not os.path.exists(mainDir):
+                            self.logger.info("hltinfo file not found in ramdisk - BU run directory is gone")
+                        else:
+                            self.logger.warning('RUN:'+str(self.runnumber) + " - hltinfo files not found in ramdisk")
+                        break
+                readParamsAttempts+=1
+                time.sleep(.1)
+
             try:
                 self.rawinputdir = conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
                 os.stat(self.rawinputdir)
@@ -1108,5 +1139,26 @@ class Run:
     def shouldClearQuarantined(self):
 
         return self.clear_quarantined_count != 0 and self.not_clear_quarantined_count == 0
+
+
+    def getHltInfoParameters(self):
+        try:
+            with open(self.hltinfofile_path,'r') as fp:
+                hltInfo = json.load(fp)
+
+                self.state.daqSystem = hltInfo['daqSystem']
+                self.state.daqInstance = hltInfo['daqInstance']
+                self.state.fuGroup = hltInfo['fuGroup']
+                self.logger.info("Run " + str(self.runnumber) + " DAQ system " + 
+                                 self.state.daqSystem + " instance " +
+                                 self.state.daqInstance + " " + self.state.fuGroup)
+                return True
+        except ValueError as ex:
+            self.logger.exception(ex)
+        except Exception as ex:
+        # FileNotFoundError as ex:
+            self.logger.warning(str(ex))
+        return False
+
 
 
