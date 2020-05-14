@@ -369,7 +369,7 @@ class RunRanger:
                   try:
                       bu_files = [] #no files in case of failure
                       if suffix:
-                          bu_dir_autofs = os.path.join(conf.bu_base_dir_autofs,conf.ramdisk_subdirectory+'_'+suffix)
+                          bu_dir_autofs = os.path.join(conf.bu_base_dir_autofs,suffix+'_'+conf.ramdisk_subdirectory)
                           try:
                               os.stat(bu_dir_autofs)
                               bu_files = os.listdir(bu_dir_autofs)
