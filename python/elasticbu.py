@@ -151,7 +151,10 @@ class elasticBandBU:
               try:
                 with open(os.path.join(mainDir,'hlt',conf.hltinfofile_name),'r') as fp:
                   hltInfo = json.load(fp)
-                  daqSystem = hltInfo['daqSystem']
+                  try:
+                      daqSystem = hltInfo['daqSystem']
+                  except:
+                      pass
                   daqInstance = hltInfo['daqInstance']
               except Exception as ex:
                   self.logger.warning(str(ex))

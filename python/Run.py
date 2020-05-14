@@ -1145,8 +1145,10 @@ class Run:
         try:
             with open(self.hltinfofile_path,'r') as fp:
                 hltInfo = json.load(fp)
-
-                self.state.daqSystem = hltInfo['daqSystem']
+                try:
+                    self.state.daqSystem = hltInfo['daqSystem']
+                except:
+                    pass
                 self.state.daqInstance = hltInfo['daqInstance']
                 self.state.fuGroup = hltInfo['fuGroup']
                 self.logger.info("Run " + str(self.runnumber) + " DAQ system " + 
