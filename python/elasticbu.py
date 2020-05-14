@@ -443,12 +443,12 @@ class elasticBandBU:
                 #blacklist file is not present, do not filter
                 pass
 
-
         if basename in self.black_list:return
-        if self.has_whitelist and basename not in self.white_list:return
-
 
         if bu_doc==False:
+
+            if self.has_whitelist and basename not in self.white_list:return
+
             try:
                 if self.boxdoc_version!=infile.data['version']:
                     self.logger.info('skipping '+basename+' box file version '+str(infile.data['version'])+' which is different from '+str(self.boxdoc_version))
