@@ -142,7 +142,6 @@ class elasticBandBU:
                 fffparams = json.load(fp)
                 version = fffparams['CMSSW_VERSION']
                 arch = fffparams['SCRAM_ARCH']
-                self.logger.info("OK")
 
               with open(os.path.join(mainDir,'hlt',conf.menu_name),'r') as fp:
                 firstline = fp.readline().strip().strip("\n") #first line

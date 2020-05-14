@@ -255,7 +255,7 @@ class Run:
         self.rawinputdir = None
 
         if conf.role == "bu":
-            mainDir = os.path.join(conf.watch_directory,'run'+ conf.runnumber.zfill(conf.run_number_padding))
+            mainDir = os.path.join(conf.watch_directory,'run'+ str(self.runnumber).zfill(conf.run_number_padding))
             hlt_directory = os.path.join(mainDir,'hlt')
             self.hltinfofile_path = os.path.join(hlt_directory,conf.hltinfofile_name) 
 
