@@ -135,6 +135,7 @@ class elasticBandBU:
               version = None
               arch = None
               hltmenuname = None
+              isGlobalRun = None
               daqSystem = None
               daqInstance = None
 
@@ -151,11 +152,17 @@ class elasticBandBU:
               try:
                 with open(os.path.join(mainDir,'hlt',conf.hltinfofile_name),'r') as fp:
                   hltInfo = json.load(fp)
+
+                  if isinstance(hltInfo['isGlobalRun'],str):
+                      isGlobalRun = True if hltInfo['isGlobalRun']=="1" else False
+                  else:
+                      isGlobalRun = hltInfo['isGlobalRun']
                   try:
                       daqSystem = hltInfo['daqSystem']
                   except:
                       pass
                   daqInstance = hltInfo['daqInstance']
+
               except Exception as ex:
                   self.logger.warning(str(ex))
 
@@ -179,6 +186,7 @@ class elasticBandBU:
             if version: document['CMSSW_version']=version
             if arch: document['CMSSW_arch']=arch
             if hltmenuname and len(hltmenuname): document['HLT_menu']=hltmenuname
+            if isGlobalRun!=None: document['isGlobalRun']=isGlobalRun
             if daqSystem and len(daqSystem): document['daqSystem']=daqSystem
             if daqInstance and len(daqInstance): document['daqInstance']=daqInstance
             documents = [document]

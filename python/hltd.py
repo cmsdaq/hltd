@@ -244,6 +244,7 @@ class StateInfo:
         self.masked_resources = False
         self.os_cpuconfig_change = 0
         self.lock = threading.Lock()
+        self.isGlobalRun = False
         self.daqSystem = "N/A"
         self.daqInstance = "N/A"
         self.fuGroup = "N/A"

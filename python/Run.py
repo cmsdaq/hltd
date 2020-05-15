@@ -1145,10 +1145,17 @@ class Run:
         try:
             with open(self.hltinfofile_path,'r') as fp:
                 hltInfo = json.load(fp)
+
+                if isinstance(hltInfo['isGlobalRun'],str):
+                    self.state.isGlobalRun = True if hltInfo['isGlobalRun']=="1" else False
+                else:
+                    self.state.isGlobalRun = hltInfo['isGlobalRun']
+
                 try:
                     self.state.daqSystem = hltInfo['daqSystem']
                 except:
                     pass
+
                 self.state.daqInstance = hltInfo['daqInstance']
                 self.state.fuGroup = hltInfo['fuGroup']
                 self.logger.info("Run " + str(self.runnumber) + " DAQ system " + 
