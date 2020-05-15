@@ -121,6 +121,7 @@ class Run:
 
         self.online_resource_list = []
         self.online_resource_list_join = []
+        self.removed_resource_list = []
         self.anelastic_monitor = None
         self.elastic_monitor = None
         self.elastic_test = None
@@ -430,6 +431,10 @@ class Run:
         self.online_resource_list_join.append(newres)
         #self.online_resource_list[-1].ping() #@@MO this is not doing anything useful, afaikt
 
+    def CreateRemovedResource(self,resourcenames,f_ip,checkPath):
+        newres = Resource.OnlineResource(self,resourcenames,self.resource_lock,f_ip)
+        self.removed_resource_list.append([newres,checkPath])
+
     def ReleaseResource(self,res):
         self.online_resource_list.remove(res)
 
@@ -476,6 +481,7 @@ class Run:
                 self.rr.boxInfo.machine_whitelist = []
                 deleteFUListOnBU(wlpath,'whitelist')
 
+        notify_remove_res = []
         for cpu in dirlist:
             #skip self
             f_ip = None
@@ -483,10 +489,13 @@ class Run:
                 if cpu == this_machine:continue
                 if cpu in self.rr.boxInfo.machine_blacklist:
                     self.logger.info("skipping blacklisted resource "+str(cpu))
+                    if self.rr.boxInfo.has_whitelist:
+                        notify_remove_res.append(cpu)
                     continue
 
                 if self.rr.boxInfo.has_whitelist and cpu not in self.rr.boxInfo.machine_whitelist:
                     self.logger.info("skipping non-whitelisted resource "+str(cpu))
+                    notify_remove_res.append(cpu)
                     continue
 
                 is_stale,f_ip = self.checkStaleResourceFileAndIP(os.path.join(res_dir,cpu)) 
@@ -510,6 +519,17 @@ class Run:
                         self.CreateResource(cpus,f_ip)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring resource '+str(cpu)+':'+str(ex))
+
+        #notify resources to remove box files if they are not whitelisted (ignored by received if already moved)
+        if conf.role=='bu':
+            for cpu in notify_remove_res:
+                try:
+                    age = current_time - os.path.getmtime(os.path.join(res_dir,cpu))
+                    self.logger.info("contacting to remove resource "+cpu+" which is "+str(age)+" seconds old")
+                    self.CreateRemovedResource(cpu,f_ip,os.path.join(res_dir,cpu))
+                except Exception as ex:
+                    self.logger.warning('RUN:'+str(self.runnumber)+' - encountered exception in preparing to remove resource '+str(cpu)+':'+str(ex))
+
 
         #look also at whitelist entries which are not currently found in box directory
         if conf.role == 'bu' and self.rr.boxInfo.has_whitelist:
@@ -598,6 +618,17 @@ class Run:
             self.startElasticBUWatchdog()
             self.startCompletedChecker()
 
+            #contact resources that need to remove their box file
+            removed_join_list=[]
+            for respair in self.removed_resource_list:
+                if os.path.exists(respair[1]):
+                    respair[0].NotifyRemoveBox()
+                    removed_join_list.append(respair[0])
+
+            for resource in removed_join_list:
+                resource.NotifyRemoveBoxJoin()
+            self.removed_resource_list = []
+ 
     def maybeNotifyNewRun(self,resourcename,resourceage,f_ip,override_mask=False):
         if conf.role=='fu':
             self.logger.fatal('RUN:'+str(self.runnumber)+' - this function should *never* have been called when role == fu')

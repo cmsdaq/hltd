@@ -120,8 +120,11 @@ class RunRanger:
  
           elif prefix in ['resourceupdate']: #FU
             self.resourceUpdateCmd()
-            tryremove(fullpath)
- 
+            tryremove(dirname)
+
+          elif prefix in ['removebox']: #FU
+            self.removeBoxCmd(suffix)
+
           elif prefix in ['restart']:        #BU,FU
             self.logger.info('restart event')
             if conf.role=='bu':
@@ -353,6 +356,11 @@ class RunRanger:
                                   +' which is an invalid run number - this should '
                                   +'*never* happen')
 
+
+    def removeBoxCmd(self,suffix):
+        self.logger.info("removing box file from "+bu_mount_suffix)
+        self.sm.notifyMaybeRemoveBUMaybe(bu_mount_suffix)
+        self.logger.info("remove box file done")
 
     def cleanupFUCmd(self,prefix,rn,suffix):
 

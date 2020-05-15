@@ -114,6 +114,17 @@ class system_monitor(threading.Thread):
           self.start()
           self.logger.info("Change BU mountpoint: all handlers restarted")
           #started in new mount point if everything went well
+    
+    def notifyMaybeRemoveBUMaybe(self,bu_mount_suffix_old):
+        if not bu_mount_suffix_old:
+          return
+        if self.bu_mount_suffix and self.bu_mount_suffix==bu_mount_suffix_old:
+              #stop, clean up state and restart the monitor
+              self.logger.info("Remove BU mountpoint: " + self.bu_mount_suffix)
+              self.stop()
+              self.resetRunningState()
+              self.bu_mount_suffix = None
+ 
           
     #called after resource inotify is set up
     def allowResourceNotification(self):

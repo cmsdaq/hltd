@@ -116,7 +116,7 @@ class OnlineResource:
     def NotifyShutdown(self):
         try:
             if self.hostip: resaddr = self.hostip
-            else: resaaddr = self.cpu[0]
+            else: resaddr = self.cpu[0]
             connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
             connection.request("GET",'cgi-bin/stop_cgi.py?run='+str(self.runnumber))
             time.sleep(0.05)
@@ -127,6 +127,27 @@ class OnlineResource:
         except Exception as ex:
             self.logger.exception(ex)
 
+    def NotifyRemovBoxeStart(self):
+        self.ok = True
+        self.notifyRemoveThread = threading.Thread(target=self.NotifyRemoveBox)
+        self.notifyRemoveThread.start()
+
+    def NotifyRemoveBoxJoin(self):
+        self.notifyRemoveThread.join()
+        self.notifyRemoveThread=None
+
+    def NotifyRemoveBox(self):
+        try:
+            if self.hostip: resaddr = self.hostip
+            else: resaddr = self.cpu[0]
+            connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
+            connection.request("GET",'cgi-bin/removebox_cgi.py?buname='+str(gl_host_short))
+            time.sleep(0.05)
+            response = connection.getresponse()
+            time.sleep(0.05)
+        except Exception as ex:
+            self.logger.warning("unable to contact resource " + str(resaddr) + " to self remove from BU")
+ 
     def StartNewProcess(self, runnumber, input_disk, arch, version, menu, num_threads, num_streams, buDataAddr, transferMode, is_locked):
         self.logger.debug("OnlineResource: StartNewProcess called")
         self.runnumber = runnumber
