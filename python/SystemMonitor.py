@@ -569,10 +569,10 @@ class system_monitor(threading.Thread):
                                 "activePhysCores":fu_phys_cores,
                                 "activeHTCores":fu_ht_cores,
                                 "fuMemFrac":mem_frac_avg,
+                                "isGlobalRun":self.state.isGlobalRun,
                                 "daqSystem":self.state.daqSystem,
                                 "daqInstance":self.state.daqInstance,
                                 "fuGroup":self.state.fuGroup
- 
                               }
                     #BU CPU montoring of C-states and frequency
                     if conf.mon_bu_cpus:
@@ -751,8 +751,11 @@ class system_monitor(threading.Thread):
                                 "cpuName":self.cpu_name,
                                 "cpu_phys_cores":self.cpu_cores,
                                 "cpu_hyperthreads":self.cpu_siblings,
-                                "mem_frac":self.mem_frac
-
+                                "mem_frac":self.mem_frac,
+                                "isGlobalRun":self.state.isGlobalRun,
+                                "daqSystem":self.state.daqSystem,
+                                "daqInstance":self.state.daqInstance,
+                                "fuGroup":self.state.fuGroup
                             }
                             with open(mfile,'w') as fp: #recalculate path according to new BU switched. Delete file from the old BU if moving BU
                                 json.dump(boxdoc,fp,indent=True)
@@ -784,6 +787,7 @@ class system_monitor(threading.Thread):
                             "version":self.boxInfo.boxdoc_version,
                             "boot_id":self.boot_id,
                             "cpuName":self.cpu_name,
+                            "isGlobalRun":self.state.isGlobalRun,
                             "daqSystem":self.state.daqSystem,
                             "daqInstance":self.state.daqInstance,
                             "fuGroup":self.state.fuGroup

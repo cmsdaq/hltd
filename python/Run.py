@@ -190,7 +190,7 @@ class Run:
 
                     hltInfoDetected = self.getHltInfoParameters()
 
-                    #finish if fffParams found. hltinfo is still optionall
+                    #finish if fffParams found. hltinfo is still optional
                     break
 
                 except ValueError as ex:
