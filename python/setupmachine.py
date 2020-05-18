@@ -692,7 +692,7 @@ if __name__ == "__main__":
     bu_check_err = False
 
     if mtype == 'fu':
-        if cluster in ['daq2val','daq3val','daq2','daq2_904']:
+        if cluster in ['daq2val','daq2','daq2_904']:
             for addr in getBUAddr(cluster,cnhostname,env,equipmentSet,dblogin,dbpwd,dbsid):
                 if buName == None:
                     if isinstance(addr[1],str):
@@ -713,7 +713,7 @@ if __name__ == "__main__":
                 #add to list
                 buDataAddr.append(addr[1])
 
-        elif not isHilton:
+        elif not isHilton and cluster not in ["daq3val"]:
             print("FU configuration in cluster",cluster,"not supported yet !")
             sys.exit(-2)
 
