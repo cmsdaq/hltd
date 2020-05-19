@@ -127,7 +127,7 @@ class OnlineResource:
         except Exception as ex:
             self.logger.exception(ex)
 
-    def NotifyRemovBoxeStart(self):
+    def NotifyRemoveBoxStart(self):
         self.ok = True
         self.notifyRemoveThread = threading.Thread(target=self.NotifyRemoveBox)
         self.notifyRemoveThread.start()

@@ -526,7 +526,7 @@ class Run:
                 try:
                     age = current_time - os.path.getmtime(os.path.join(res_dir,cpu))
                     self.logger.info("contacting to remove resource "+cpu+" which is "+str(age)+" seconds old")
-                    self.CreateRemovedResource(cpu,f_ip,os.path.join(res_dir,cpu))
+                    self.CreateRemovedResource(cpu,cpu,os.path.join(res_dir,cpu))
                 except Exception as ex:
                     self.logger.warning('RUN:'+str(self.runnumber)+' - encountered exception in preparing to remove resource '+str(cpu)+':'+str(ex))
 
@@ -622,7 +622,7 @@ class Run:
             removed_join_list=[]
             for respair in self.removed_resource_list:
                 if os.path.exists(respair[1]):
-                    respair[0].NotifyRemoveBox()
+                    respair[0].NotifyRemoveBoxStart()
                     removed_join_list.append(respair[0])
 
             for resource in removed_join_list:

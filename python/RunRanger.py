@@ -358,8 +358,8 @@ class RunRanger:
 
 
     def removeBoxCmd(self,suffix):
-        self.logger.info("removing box file from "+bu_mount_suffix)
-        self.sm.notifyMaybeRemoveBUMaybe(bu_mount_suffix)
+        self.logger.info("removing box file from "+suffix)
+        self.sm.notifyMaybeRemoveBUMaybe(suffix)
         self.logger.info("remove box file done")
 
     def cleanupFUCmd(self,prefix,rn,suffix):
