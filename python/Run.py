@@ -12,8 +12,12 @@ from signal import SIGKILL
 import logging
 
 import Resource
-from HLTDCommon import updateBlacklist,dqm_globalrun_filepattern
+from HLTDCommon import updateFUListOnBU,deleteFUListOnBU,dqm_globalrun_filepattern
+from MountManager import  find_nfs_mount_addr
 from setupES import setupES
+
+this_machine = os.uname()[1]
+this_machine_short = os.uname()[1].split('.')[0]
 
 def preexec_function():
     dem = demote.demote(conf.user)
@@ -91,7 +95,7 @@ class RunList:
 
 class Run:
 
-    def __init__(self,nr,dirname,bu_dir,instance,confClass,stateInfo,resInfo,runList,rr,mountMgr,nsslock,resource_lock):
+    def __init__(self,nr,dirname,bu_base_ram_dirs,bu_dir,bu_output_base_dir,instance,confClass,stateInfo,resInfo,runList,rr,nsslock,resource_lock):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.pending_shutdown=False
@@ -100,15 +104,16 @@ class Run:
         self.num_errors_res = 0
 
         self.runnumber = nr
+        self.bu_base_ram_dirs = bu_base_ram_dirs
         self.dirname = dirname
         self.instance = instance
         self.state = stateInfo
         self.resInfo = resInfo
         self.runList = runList
         self.rr = rr
-        self.mm = mountMgr
         self.nsslock = nsslock
         self.resource_lock = resource_lock
+        self.send_bu = False
 
         global conf
         conf = confClass
@@ -116,13 +121,18 @@ class Run:
 
         self.online_resource_list = []
         self.online_resource_list_join = []
+        self.removed_resource_list = []
         self.anelastic_monitor = None
         self.elastic_monitor = None
         self.elastic_test = None
 
         self.arch = None
         self.version = None
-        self.transfermode = None
+        self.menu_path = None
+        self.fasthadd_installation_path = 'None'
+
+        self.buDataAddr = 'None'
+        self.transferMode = None
         self.waitForEndThread = None
         self.beginTime = datetime.datetime.now()
         self.anelasticWatchdog = None
@@ -135,36 +145,52 @@ class Run:
         #stats on usage of resources
         self.n_used = 0
         self.n_quarantined = 0
+        self.skip_notification_list = []
+        self.pending_contact = []
+        self.asyncContactThread = None
+        self.threadEventContact = threading.Event()
 
+        self.clear_quarantined_count = 0
+        self.not_clear_quarantined_count = 0
         self.inputdir_exists = False
 
-        if conf.role == 'fu':
-            self.changeMarkerMaybe(Resource.RunCommon.STARTING)
+
+        hltInfoDetected = False
+
         #TODO:raise from runList
         #            if int(self.runnumber) in active_runs:
         #                raise Exception("Run "+str(self.runnumber)+ "already active")
 
-        self.hlt_directory = os.path.join(bu_dir,conf.menu_directory)
-        self.menu_path = os.path.join(self.hlt_directory,conf.menu_name)
-        self.paramfile_path = os.path.join(self.hlt_directory,conf.paramfile_name)
 
-        readMenuAttempts=0
-        #polling for HLT menu directory
-        def paramsPresent():
-            return os.path.exists(self.hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(self.paramfile_path)
+        if conf.role == 'fu':
+            self.changeMarkerMaybe(Resource.RunCommon.STARTING)
+        
+            hlt_directory = os.path.join(bu_dir,conf.menu_directory)
+            paramfile_path = os.path.join(hlt_directory,conf.paramfile_name)
+            self.menu_path = os.path.join(hlt_directory,conf.menu_name)
+            self.hltinfofile_path = os.path.join(hlt_directory,conf.hltinfofile_name) 
 
-        paramsDetected = False
-        while conf.dqm_machine==False and conf.role=='fu':
-            if paramsPresent():
+            readMenuAttempts=0
+            def paramsPresent():
+                return os.path.exists(hlt_directory) and os.path.exists(self.menu_path) and os.path.exists(paramfile_path)
+
+            paramsDetected = False
+            while not conf.dqm_machine:
+              #polling for HLT menu directory
+              if paramsPresent():
                 try:
-                    with open(self.paramfile_path,'r') as fp:
+                    with open(paramfile_path,'r') as fp:
                         fffparams = json.load(fp)
 
                         self.arch = fffparams['SCRAM_ARCH']
                         self.version = fffparams['CMSSW_VERSION']
-                        self.transfermode = fffparams['TRANSFER_MODE']
+                        self.transferMode = fffparams['TRANSFER_MODE']
                         paramsDetected = True
-                        self.logger.info("Run " + str(self.runnumber) + " uses " + self.version + " ("+self.arch + ") with " + str(conf.menu_name) + ' transferDest:'+self.transfermode)
+                        self.logger.info("Run " + str(self.runnumber) + " uses " + self.version + " ("+self.arch + ") with " + str(conf.menu_name) + ' transferDest:'+self.transferMode)
+
+                    hltInfoDetected = self.getHltInfoParameters()
+
+                    #finish if fffParams found. hltinfo is still optional
                     break
 
                 except ValueError as ex:
@@ -176,40 +202,83 @@ class Run:
                         self.logger.exception(ex)
                         break
 
-            else:
+              else:
                 if readMenuAttempts>50:
                     if not os.path.exists(bu_dir):
                         self.logger.info("FFF parameter or HLT menu files not found in ramdisk - BU run directory is gone")
                     else:
                         self.logger.error('RUN:'+str(self.runnumber) + " - FFF parameter or HLT menu files not found in ramdisk")
                     break
-            readMenuAttempts+=1
-            time.sleep(.1)
-            continue
+              readMenuAttempts+=1
+              time.sleep(.1)
+            #end loop
 
-        if not paramsDetected:
-            self.arch = conf.cmssw_arch
-            self.version = conf.cmssw_default_version
-            self.menu_path = conf.test_hlt_config1
-            self.transfermode = 'null'
-            if conf.role=='fu':
+            if not paramsDetected:
+                self.arch = conf.cmssw_arch
+                self.version = conf.cmssw_default_version
+                self.menu_path = conf.test_hlt_config1
+                self.transferMode = 'null'
                 self.logger.warning("Using default values for run " + str(self.runnumber) + ": " + self.version + " (" + self.arch + ") with " + self.menu_path)
 
-        #give this command line parameter quoted in case it is empty
-        if len(self.transfermode)==0:
-            self.transfermode='null'
+            #give this command line parameter quoted in case it is empty
+            if not len(self.transferMode):self.transferMode='null'
 
-        #backup HLT menu and parameters
-        if conf.role=='fu':
+            #backup HLT menu and parameters
             try:
-                hltTargetName = 'HltConfig.py_run'+str(self.runnumber)+'_'+self.arch+'_'+self.version+'_'+self.transfermode
+                hltTargetName = 'HltConfig.py_run'+str(self.runnumber)+'_'+self.arch+'_'+self.version+'_'+self.transferMode
                 shutil.copy(self.menu_path,os.path.join(conf.log_dir,'pid',hltTargetName))
             except:
                 self.logger.warning('Unable to backup HLT menu')
 
+            if not conf.dqm_machine:
+                #run cmspkg to detect which fasthadd package version is used with this CMSSW
+                conf.cmssw_script_location+'/fastHaddVersion.sh'
+                p = subprocess.Popen([conf.cmssw_script_location+'/fastHaddVersion.sh',conf.cmssw_base,self.arch,self.version], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                ret = p.communicate()
+                if p.returncode==0:
+                    self.fasthadd_installation_path = ret[0].decode()
+                    self.logger.info('RUN:'+str(self.runnumber)+" fasthHaddVersion returned: "+ self.fasthadd_installation_path)
+                else:
+                    self.logger.error('RUN:'+str(self.runnumber)+" fastHadd not found. stdout=" + ret[0].decode() + " stderr=" + ret[1].decode())
+
+        if not conf.dqm_machine and not conf.local_mode:
+            try:
+                buDataAddrTmp = find_nfs_mount_addr(bu_base_ram_dirs[0])
+                if self.buDataAddr is None:
+                    raise Exception("BU data network mount point not found")
+                self.buDataAddr = buDataAddrTmp
+            except Exception as ex:
+                #if this fails, give up right away to avoid starting processes without proper BU data address
+                self.logger.exception(ex)
+                return
+
+
         self.rawinputdir = None
-        #
+
         if conf.role == "bu":
+            mainDir = os.path.join(conf.watch_directory,'run'+ str(self.runnumber).zfill(conf.run_number_padding))
+            hlt_directory = os.path.join(mainDir,'hlt')
+            self.hltinfofile_path = os.path.join(hlt_directory,conf.hltinfofile_name) 
+
+            readParamsAttempts=0
+            def infoParamsPresent():
+                return os.path.exists(hlt_directory) and os.path.exists(self.hltinfofile_path)
+
+            while not conf.dqm_machine:
+                #polling for HLT info file
+                if infoParamsPresent():
+                      hltInfoDetected = self.getHltInfoParameters()
+                      break
+                else:
+                    if readParamsAttempts>10:
+                        if not os.path.exists(mainDir):
+                            self.logger.info("hltinfo file not found in ramdisk - BU run directory is gone")
+                        else:
+                            self.logger.warning('RUN:'+str(self.runnumber) + " - hltinfo files not found in ramdisk")
+                        break
+                readParamsAttempts+=1
+                time.sleep(.1)
+
             try:
                 self.rawinputdir = conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
                 os.stat(self.rawinputdir)
@@ -221,11 +290,11 @@ class Run:
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - could not create mon dir inside the run input directory")
         else:
-            self.rawinputdir= os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'run' + str(self.runnumber).zfill(conf.run_number_padding))
+            self.rawinputdir= os.path.join(bu_base_ram_dirs[0],'run' + str(self.runnumber).zfill(conf.run_number_padding))
 
         #verify existence of the input directory
         if conf.role=='fu':
-            if not paramsDetected and conf.dqm_machine==False:
+            if not paramsDetected and not conf.dqm_machine:
                 try:
                     os.stat(self.rawinputdir)
                     self.inputdir_exists = True
@@ -244,8 +313,14 @@ class Run:
                     self.logger.info("starting elasticbu.py with arguments:"+self.dirname)
                     elastic_args = ['/opt/hltd/scratch/python/elasticbu.py',str(self.runnumber),self.instance]
                 else:
+                    if self.buDataAddr != 'None':
+                      appliance_name = self.buDataAddr.split('.')[0]
+                      if self.buDataAddr.endswith('.cern.ch'): appliance_name =  self.buDataAddr #VM test setup
+                    else:
+                      appliance_name="unknown"
+
                     self.logger.info("starting elastic.py with arguments:"+self.dirname)
-                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',str(self.resInfo.expected_processes)]
+                    elastic_args = ['/opt/hltd/scratch/python/elastic.py',str(self.runnumber),self.dirname,self.rawinputdir+'/mon',appliance_name,str(self.resInfo.expected_processes)]
 
                 self.elastic_monitor = subprocess.Popen(elastic_args,
                                                         preexec_fn=preexec_function,
@@ -261,10 +336,10 @@ class Run:
                 if nsslock_acquired:
                     self.nsslock.release()
 
-        if conf.role == "fu" and conf.dqm_machine==False:
+        if conf.role == "fu" and not conf.dqm_machine:
             try:
                 self.logger.info("starting anelastic.py with arguments:"+self.dirname)
-                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,self.mm.bu_disk_list_output_instance[0]]
+                elastic_args = ['/opt/hltd/scratch/python/anelastic.py',str(self.runnumber),self.dirname,self.rawinputdir,bu_output_base_dir,self.fasthadd_installation_path]
                 self.anelastic_monitor = subprocess.Popen(elastic_args,
                                                     preexec_fn=preexec_function,
                                                     close_fds=True
@@ -286,6 +361,7 @@ class Run:
         self.logger.info('Run '+ str(self.runnumber) +' object __del__ runs')
         self.stopThreads=True
         self.threadEvent.set()
+        self.stopAsyncContact()
         if self.completedChecker:
             try:
                 self.completedChecker.join()
@@ -349,11 +425,15 @@ class Run:
                     return res.cpu
         return None
 
-    def ContactResource(self,resourcename,f_ip):
-        newres = Resource.OnlineResource(self,resourcename,self.resource_lock,f_ip)
+    def CreateResource(self,resourcenames,f_ip):
+        newres = Resource.OnlineResource(self,resourcenames,self.resource_lock,f_ip)
         self.online_resource_list.append(newres)
         self.online_resource_list_join.append(newres)
         #self.online_resource_list[-1].ping() #@@MO this is not doing anything useful, afaikt
+
+    def CreateRemovedResource(self,resourcenames,f_ip,checkPath):
+        newres = Resource.OnlineResource(self,resourcenames,self.resource_lock,f_ip)
+        self.removed_resource_list.append([newres,checkPath])
 
     def ReleaseResource(self,res):
         self.online_resource_list.remove(res)
@@ -371,29 +451,53 @@ class Run:
         count = 0
         cpu_group=[]
 
-        bldir = os.path.join(self.dirname,'hlt')
+        hltdir = os.path.join(self.dirname,'hlt')
         blpath = os.path.join(self.dirname,'hlt','blacklist')
+        wlpath = os.path.join(self.dirname,'hlt','whitelist')
         if conf.role=='bu':
             attempts=100
-            while not os.path.exists(bldir) and attempts>0:
+            while not os.path.exists(hltdir) and attempts>0:
                 time.sleep(0.05)
                 attempts-=1
                 if attempts<=0:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - timeout waiting for directory '+ bldir)
+                    self.logger.error('RUN:'+str(self.runnumber)+' - timeout waiting for directory '+ hltdir)
                     break
             if os.path.exists(blpath):
-                update_success,self.rr.boxInfo.machine_blacklist=updateBlacklist(conf,self.logger,blpath)
+                update_success,self.rr.boxInfo.machine_blacklist = updateFUListOnBU(conf,self.logger,blpath,'blacklist')
             else:
-                self.logger.error('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+bldir)
+                self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find blacklist file in "+hltdir + ". Starting without blacklist")
+                update_success = True
+                self.rr.boxInfo.machine_blacklist = []
+                #delete blacklist file from ramdisk and backup, disable blacklist
+                deleteFUListOnBU(blpath,'blacklist')
 
+            if os.path.exists(wlpath):
+                self.send_bu = True
+                self.rr.boxInfo.has_whitelist,self.rr.boxInfo.machine_whitelist = updateFUListOnBU(conf,self.logger,wlpath,'whitelist')
+            else:
+                self.logger.warning('RUN:'+str(self.runnumber)+" - unable to find whitelist file in "+hltdir+ ". Starting without whitelist")
+                #delete blacklist file from ramdisk and backup, disable whitelist
+                self.rr.boxInfo.has_whitelist = False
+                self.rr.boxInfo.machine_whitelist = []
+                deleteFUListOnBU(wlpath,'whitelist')
+
+        notify_remove_res = []
         for cpu in dirlist:
             #skip self
             f_ip = None
             if conf.role=='bu':
-                if cpu == os.uname()[1]:continue
+                if cpu == this_machine:continue
                 if cpu in self.rr.boxInfo.machine_blacklist:
                     self.logger.info("skipping blacklisted resource "+str(cpu))
+                    if self.rr.boxInfo.has_whitelist:
+                        notify_remove_res.append(cpu)
                     continue
+
+                if self.rr.boxInfo.has_whitelist and cpu not in self.rr.boxInfo.machine_whitelist:
+                    self.logger.info("skipping non-whitelisted resource "+str(cpu))
+                    notify_remove_res.append(cpu)
+                    continue
+
                 is_stale,f_ip = self.checkStaleResourceFileAndIP(os.path.join(res_dir,cpu)) 
                 if is_stale:
                     self.logger.error('RUN:'+str(self.runnumber)+" - skipping stale resource "+str(cpu))
@@ -412,9 +516,36 @@ class Run:
                     self.logger.info("found resource "+cpu+" which is "+str(age)+" seconds old")
                     if age < 10:
                         cpus = [cpu]
-                        self.ContactResource(cpus,f_ip)
+                        self.CreateResource(cpus,f_ip)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in acquiring resource '+str(cpu)+':'+str(ex))
+
+        #notify resources to remove box files if they are not whitelisted (ignored by received if already moved)
+        if conf.role=='bu':
+            for cpu in notify_remove_res:
+                try:
+                    age = current_time - os.path.getmtime(os.path.join(res_dir,cpu))
+                    self.logger.info("contacting to remove resource "+cpu+" which is "+str(age)+" seconds old")
+                    self.CreateRemovedResource(cpu,cpu,os.path.join(res_dir,cpu))
+                except Exception as ex:
+                    self.logger.warning('RUN:'+str(self.runnumber)+' - encountered exception in preparing to remove resource '+str(cpu)+':'+str(ex))
+
+
+        #look also at whitelist entries which are not currently found in box directory
+        if conf.role == 'bu' and self.rr.boxInfo.has_whitelist:
+            for cpu in [x for x in self.rr.boxInfo.machine_whitelist if x not in dirlist]: 
+                if cpu == this_machine:continue
+                if cpu in self.rr.boxInfo.machine_blacklist:
+                    self.logger.error("skipping blacklisted resource "+str(cpu)+" which is also in whitelist")
+                    continue
+                count = count+1
+                self.logger.info("creating resource "+cpu+" which is only in whitelist")
+                try:
+                    self.skip_notification_list.append(cpu)
+                    self.CreateResource([cpu],None)
+                except Exception as ex:
+                    self.logger.error('RUN:'+str(self.runnumber)+' - encountered exception in assigning whitelisted resource '+str(cpu)+':'+str(ex))
+
         return True
 
     def checkStaleResourceFileAndIP(self,resourcepath):
@@ -444,8 +575,8 @@ class Run:
             self.logger.info("checking ES template")
             try:
                 #new: try to create index with template mapping after template check
-                new_index_name = 'run'+str(self.runnumber)+'_'+conf.elastic_cluster
-                setupES(es_server_url='http://'+conf.es_local+':9200',forceReplicas=conf.force_replicas,forceShards=conf.force_shards,create_index_name=new_index_name,subsystem=conf.elastic_runindex_name)
+                new_index_name = 'run'+str(self.runnumber)+'_'+conf.elastic_index_suffix
+                setupES(es_server_url='http://'+conf.es_local+':9200',forceReplicas=conf.force_replicas,forceShards=conf.force_shards,create_index_name=new_index_name,subsystem=conf.elastic_index_suffix)
             except Exception as ex:
                 self.logger.error('RUN:'+str(self.runnumber)+" - unable to check run appliance template:"+str(ex))
 
@@ -463,7 +594,7 @@ class Run:
                 #this is taken only with acquired resource_lock. It will be released temporarily within this function:
                 self.StartOnResource(resource,is_locked=True)
 
-            if conf.dqm_machine==False:
+            if not conf.dqm_machine:
                 self.changeMarkerMaybe(Resource.RunCommon.ACTIVE)
                 #start safeguard monitoring of anelastic.py
                 self.startAnelasticWatchdog()
@@ -471,16 +602,33 @@ class Run:
         elif conf.role == 'bu':
             for resource in self.online_resource_list:
                 self.logger.info('start run '+str(self.runnumber)+' on resources '+str(resource.cpu))
-                resource.NotifyNewRunStart(self.runnumber)
+                resource.NotifyNewRunStart(self.runnumber,self.send_bu)
             #update begin time at this point
             self.beginTime = datetime.datetime.now()
             for resource in self.online_resource_list:
                 resource.NotifyNewRunJoin()
+                if not resource.ok:
+                  self.pending_contact.append(resource)
+
+            if len(self.pending_contact):
+                self.StartAsyncContact()
+
             self.logger.info('sent start run '+str(self.runnumber)+' notification to all resources')
 
             self.startElasticBUWatchdog()
             self.startCompletedChecker()
 
+            #contact resources that need to remove their box file
+            removed_join_list=[]
+            for respair in self.removed_resource_list:
+                if os.path.exists(respair[1]):
+                    respair[0].NotifyRemoveBoxStart()
+                    removed_join_list.append(respair[0])
+
+            for resource in removed_join_list:
+                resource.NotifyRemoveBoxJoin()
+            self.removed_resource_list = []
+ 
     def maybeNotifyNewRun(self,resourcename,resourceage,f_ip,override_mask=False):
         if conf.role=='fu':
             self.logger.fatal('RUN:'+str(self.runnumber)+' - this function should *never* have been called when role == fu')
@@ -496,16 +644,27 @@ class Run:
 
         for resource in self.online_resource_list:
             if resourcename in resource.cpu and not override_mask:
-                self.logger.error('RUN:'+str(self.runnumber)+' - resource '+str(resource.cpu)+' was already processing run. Will not participate in this run.')
-                return None
+                if resourcename in self.skip_notification_list:
+                    #BU only: update box file IP (data) address and drop from this list in case if disappears later
+                    self.logger.info("resource file " + resourcename + " of whitelisted resource has appeared")
+                    resource.hostip = f_ip
+                    self.skip_notification_list.remove(resourcename)
+                    return None
+                else:
+                    self.logger.error('RUN:'+str(self.runnumber)+' - resource '+str(resource.cpu)+' was already participating in the run. Ignoring until the next run.')
+                    return None
             if resourcename in self.rr.boxInfo.machine_blacklist:
                 self.logger.info("skipping blacklisted resource "+str(resource.cpu))
                 return None
+            if self.rr.boxInfo.has_whitelist and resourcename not in self.rr.boxInfo.machine_whitelist:
+                self.logger.info("skipping non-whitelisted resource "+str(resource.cpu))
+                return None
+
         current_time = time.time()
         age = current_time - resourceage
         self.logger.info("found resource "+resourcename+" which is "+str(age)+" seconds old")
         if age < 10:
-            self.ContactResource([resourcename],f_ip)
+            self.CreateResource([resourcename],f_ip)
             return self.online_resource_list[-1]
         else:
             return None
@@ -513,15 +672,18 @@ class Run:
     def StartOnResource(self, resource,is_locked):
         self.logger.debug("StartOnResource called")
         resource.assigned_run_dir=conf.watch_directory+'/run'+str(self.runnumber).zfill(conf.run_number_padding)
-        new_index = self.online_resource_list.index(resource)%len(self.mm.bu_disk_list_ramdisk_instance)
+        #support dir rotation in case of static mountpoints
+        in_dir = self.bu_base_ram_dirs[self.online_resource_list.index(resource)%len(self.bu_base_ram_dirs)]
+
         resource.StartNewProcess(self.runnumber,
-                                 self.mm.bu_disk_list_ramdisk_instance[new_index],
+                                 in_dir,
                                  self.arch,
                                  self.version,
                                  self.menu_path,
-                                 self.transfermode,
                                  int(round((len(resource.cpu)*float(self.resInfo.nthreads)/self.resInfo.nstreams))),
                                  len(resource.cpu),
+                                 self.buDataAddr,
+                                 self.transferMode,
                                  is_locked)
         self.logger.debug("StartOnResource process started")
 
@@ -605,7 +767,7 @@ class Run:
             res_copy_term = []
 
             with self.resource_lock:
-                q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined
+                q_clear_condition = (not self.checkQuarantinedLimit()) or conf.auto_clear_quarantined or self.shouldClearQuarantined()
                 for resource in self.online_resource_list:
                     cleared_q = resource.clearQuarantined(False,restore=q_clear_condition)
                     for cpu in resource.cpu:
@@ -638,25 +800,25 @@ class Run:
                 self.logger.exception(ex)
             self.logger.info("anelastic script has been terminated/finished")
             if conf.use_elasticsearch == True:
-                try:
-                    if self.elastic_monitor:
+                if self.elastic_monitor:
+                    try:
                         if killScripts:
                             self.elastic_monitor.terminate()
                         #allow monitoring thread to finish, but no more than 30 seconds after others
                         killtimer = threading.Timer(30., self.elastic_monitor.kill)
-                        try:
-                            killtimer.start()
-                            self.elastic_monitor.wait()
-                        finally:
-                            killtimer.cancel()
-                        try:self.elastic_monitor=None
+                        killtimer.start()
+                        self.elastic_monitor.wait()
+                    except OSError as ex:
+                        if ex.errno==3:
+                            self.logger.info("elastic.py for run " + str(self.runnumber) + " is not running")
+                        else:self.logger.exception(ex)
+                    except Exception as ex:
+                        self.logger.exception(ex)
+                    finally:
+                        try:killtimer.cancel()
                         except:pass
-                except OSError as ex:
-                    if ex.errno==3:
-                        self.logger.info("elastic.py for run " + str(self.runnumber) + " is not running")
-                    else:self.logger.exception(ex)
-                except Exception as ex:
-                    self.logger.exception(ex)
+                        self.elastic_monitor=None
+
             if self.waitForEndThread is not None:
                 self.waitForEndThread.join()
             self.logger.info("elastic script has been terminated/finished")
@@ -714,6 +876,8 @@ class Run:
 
     def ShutdownBU(self):
         self.is_ongoing_run = False
+        self.stopAsyncContact()
+        #TODO: kill async checker thread too
         try:
             if self.elastic_monitor:
                 #first check if process is alive
@@ -734,6 +898,50 @@ class Run:
 
         self.logger.info('Shutdown of run '+str(self.runnumber).zfill(conf.run_number_padding)+' on BU completed')
 
+    def StartAsyncContact(self):
+        self.logger.info("Starting periodic notify attempt thread for " + str(len(self.pending_contact)) + " resources")
+        try:
+            self.asyncContactThread = threading.Thread(target=self.AsyncContact)
+            self.asyncContactThread.start()
+        except Exception as ex:
+            self.logger.info("exception encountered in starting async contact thread")
+            self.logger.exception(ex)
+
+    def AsyncContact(self):
+        self.logger.info("Async contact thread")
+        try:
+          self.threadEventContact.wait(60)
+          while not self.stopThreads and len(self.pending_contact):
+            for res in self.pending_contact[:]:
+                if res.ok:
+                    self.pending_contact.remove(res)
+                    continue
+                try:
+                    self.logger.info('start run '+str(self.runnumber)+' on resources '+str(res.cpu)+" (by check)")
+                    res.NotifyNewRun(self.runnumber,self.send_bu,warnonly=True)
+                    if res.ok:
+                      self.pending_contact.remove(res)
+                    self.logger.info("Remaining resources to contact: " + str([x.cpu[0] for x in self.pending_contact]))
+                except Exception as ex:
+                    self.logger.info('RUN:'+str(self.runnumber)+' - exception in acquiring whitelisted resource (periodic check) '+str(res.cpu)+':'+str(ex))
+            #run check periodically
+            self.threadEventContact.wait(300)
+        except:
+          self.logger.warning("Exception in AsyncContact " + str(ex))
+
+
+    def stopAsyncContact(self):
+        if conf.role != 'bu': return
+        self.pending_contact = []
+        self.threadEventContact.set()
+        try:
+            if self.asyncContactThread:
+                self.asyncContactThread.join()
+        except:
+            pass
+
+        self.asyncContactThread = None
+
 
     def StartWaitForEnd(self):
         self.is_ongoing_run = False
@@ -747,6 +955,7 @@ class Run:
 
     def WaitForEnd(self):
         self.logger.info("wait for end thread!")
+        self.stopAsyncContact()
         try:
             for resource in self.online_resource_list_join:
                 if resource.processstate is not None:
@@ -788,7 +997,7 @@ class Run:
                     os.remove(conf.watch_directory+'/end'+str(self.runnumber).zfill(conf.run_number_padding))
                 except:pass
                 try:
-                    if conf.dqm_machine==False:
+                    if not conf.dqm_machine:
                         self.anelastic_monitor.wait()
                 except OSError as ex:
                     if "No child processes" not in str(ex):
@@ -924,10 +1133,11 @@ class Run:
         while self.stopThreads == False:
             self.threadEvent.wait(5)
             if os.path.exists(eorCheckPath) or os.path.exists(rundirCheckPath)==False:
+                self.stopAsyncContact()
                 self.logger.info("Completed checker: detected end of run "+str(self.runnumber))
                 break
 
-        while self.stopThreads==False:
+        while self.stopThreads == False:
             self.threadEvent.wait(5)
             success, runFound = self.rr.checkNotifiedBoxes(self.runnumber)
             if success and runFound==False:
@@ -936,6 +1146,7 @@ class Run:
                         self.runList.remove(self.runnumber)
                     except Exception as ex:
                         self.logger.exception(ex)
+                self.stopAsyncContact()
                 self.logger.info("Completed checker: end of processing of run "+str(self.runnumber))
                 break
 
@@ -955,4 +1166,39 @@ class Run:
                 time.sleep(.5)
             except Exception as ex:
                 self.logger.exception(ex)
+
+    def shouldClearQuarantined(self):
+
+        return self.clear_quarantined_count != 0 and self.not_clear_quarantined_count == 0
+
+
+    def getHltInfoParameters(self):
+        try:
+            with open(self.hltinfofile_path,'r') as fp:
+                hltInfo = json.load(fp)
+
+                if isinstance(hltInfo['isGlobalRun'],str):
+                    self.state.isGlobalRun = True if hltInfo['isGlobalRun']=="1" else False
+                else:
+                    self.state.isGlobalRun = hltInfo['isGlobalRun']
+
+                try:
+                    self.state.daqSystem = hltInfo['daqSystem']
+                except:
+                    pass
+
+                self.state.daqInstance = hltInfo['daqInstance']
+                self.state.fuGroup = hltInfo['fuGroup']
+                self.logger.info("Run " + str(self.runnumber) + " DAQ system " + 
+                                 self.state.daqSystem + " instance " +
+                                 self.state.daqInstance + " " + self.state.fuGroup)
+                return True
+        except ValueError as ex:
+            self.logger.exception(ex)
+        except Exception as ex:
+        # FileNotFoundError as ex:
+            self.logger.warning(str(ex))
+        return False
+
+
 

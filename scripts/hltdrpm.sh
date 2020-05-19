@@ -286,7 +286,7 @@ fi
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd.spec <<EOF
 Name: $PACKAGENAME$pkgsuffix
-Version: 2.6.4
+Version: 2.7.7
 Release: 0
 Summary: hlt daemon
 License: gpl
@@ -310,6 +310,7 @@ Provides:/opt/fff/dbcheck.py
 Provides:/opt/fff/db.jsn
 Provides:/opt/fff/instances.input
 Provides:/opt/fff/init.d/fff
+Provides:/opt/fff/init.d/hltd
 Provides:/opt/fff/postinstall.sh
 Provides:/usr/lib/systemd/system/fff.service
 
@@ -361,15 +362,17 @@ mkdir -p etc/appliance/dqm_resources/quarantined
 mkdir -p etc/appliance/dqm_resources/cloud
 
 echo "Copying files to their destination"
+cp $BASEDIR/init.d/fff.service      usr/lib/systemd/system/fff.service
 cp -R $BASEDIR/init.d/hltd.service  usr/lib/systemd/system/hltd.service
 cp -R $BASEDIR/init.d/soap2file.service  usr/lib/systemd/system/soap2file.service
 cp -R $BASEDIR/*                    opt/hltd
 cp -R $BASEDIR/etc/hltd.conf        etc/
 cp -R $BASEDIR/etc/hltd.conf        etc/hltd.conf.template
 cp -R $BASEDIR/etc/logrotate.d/hltd etc/logrotate.d/
+rm -rf opt/hltd/init.d
 
-cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/fff
-cp $BASEDIR/init.d/fff.service %{buildroot}/usr/lib/systemd/system/fff.service
+cp $BASEDIR/init.d/fff %{buildroot}/opt/fff/init.d/
+cp $BASEDIR/init.d/hltd %{buildroot}/opt/fff/init.d/
 cp $BASEDIR/python/setupmachine.py %{buildroot}/opt/fff/setupmachine.py
 cp $BASEDIR/python/dbcheck.py %{buildroot}/opt/fff/dbcheck.py
 cp $BASEDIR/etc/instances.input %{buildroot}/opt/fff/instances.input
@@ -379,7 +382,7 @@ cp $BASEDIR/scripts/configurefff.sh %{buildroot}/opt/fff/configurefff.sh
 
 echo "modifying python executable specification to ${pythonver}"
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/*.py          | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
-grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/init.d/hltd   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
+grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/hltd   | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/fff/init.d/fff  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/cgi/*.py     | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
 grep -rl "\#\!/bin/env python" %{buildroot}/opt/hltd/python/*.py  | xargs sed -i 's/^#!\/bin\/env python/#!\/bin\/env ${pythonver}/g'
@@ -394,8 +397,7 @@ rm -rf opt/hltd/scripts/paramcache*
 rm -rf opt/hltd/scripts/*rpm.sh
 rm -rf opt/hltd/scripts/postinstall.sh
 rm -rf opt/hltd/scripts/*.php
-rm -rf opt/hltd/init.d/*.service
-rm -rf opt/fff/init.d/*.service
+#rm -rf opt/fff/init.d/*.service
 rm -rf opt/hltd/python/setupmachine.py
 rm -rf opt/hltd/python/dbcheck.py
 rm -rf opt/hltd/TODO
@@ -425,6 +427,7 @@ chown daqlocal /opt/fff/db.jsn #possibly not needed
 %attr( 755 ,root, root) /opt/fff/dbcheck.py
 %attr( 400 ,daqlocal, daqlocal) /opt/fff/db.jsn
 %attr( 755 ,root, root) /opt/fff/init.d/fff
+%attr( 755 ,root, root) /opt/fff/init.d/hltd
 
 
 %preun

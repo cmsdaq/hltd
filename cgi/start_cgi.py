@@ -11,6 +11,18 @@ if "run" not in form:
     print("<H1>Error</H1>")
     print("Please fill in the run number ")
 else:
-    os.mkdir('run'+str(form["run"].value).zfill(RUNNUMBER_PADDING))
-    print("<H1>run "+str(form["run"].value)+" created</H1>")
-    print("in dir "+os.getcwd())
+    #add BU suffix
+    bu_suffix = "_"+form["buname"].value if "buname" in form else ""
+    #check for duplicate:
+    run_short = 'run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)
+    run_long = 'run'+str(form["run"].value).zfill(RUNNUMBER_PADDING)+bu_suffix
+    #check for both variants (renaming race)
+    if os.path.exists(run_long) or os.path.exists(run_short):
+        print("<H1>run "+str(form["run"].value)+" alreary exists</H1>")
+        print("in dir "+os.getcwd())
+        #trip exception 
+        raise FileExistsError("Directory for " + run_short + " exists")
+    else:
+        os.mkdir(run_short+bu_suffix)
+        print("<H1>run "+str(form["run"].value)+" created</H1>")
+        print("in dir "+os.getcwd())

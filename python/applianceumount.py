@@ -110,6 +110,7 @@ def stopFUs(instance):
     maxTimeout=60 #sec
 
     myhost = os.uname()[1]
+    myhost_short = myhost.split('.')[0]
 
     receiver = None
 
@@ -124,14 +125,14 @@ def stopFUs(instance):
         print("found machine",machine," which is ",str(age)," seconds old")
         syslog.syslog("hltd-"+str(instance)+": found machine "+str(machine) + " which is "+ str(age)+" seconds old")
         if age < 30:
-            if receiver==None:
+            if receiver is None:
                 receiver = UmountResponseReceiver(watch_directory,cgi_port)
                 receiver.start()
                 time.sleep(1)
             try:
                 #subtract cgi offset when connecting machine
                 connection = HTTPConnection(machine, cgi_port-cgi_offset,timeout=5)
-                connection.request("GET",'cgi-bin/suspend_cgi.py?port='+str(cgi_port))
+                connection.request("GET",'cgi-bin/suspend_cgi.py?port='+str(cgi_port)+"&buname"+myhost_short)
                 response = connection.getresponse()
                 machinelist.append(machine)
             except:
@@ -161,7 +162,7 @@ def stopFUs(instance):
         print("Interrupted!")
         syslog.syslog("hltd-"+str(instance)+": FU suspend was interrupted")
         count=0
-        if receiver!=None:
+        if receiver is not None:
             while receiver.finished==False:
                 count+=1
                 if count%100==0:syslog.syslog("hltd-"+str(instance)+": stop: trying to stop suspend receiver HTTP server thread (script interrupted)")
@@ -170,12 +171,11 @@ def stopFUs(instance):
                     time.sleep(.1)
                 except:
                     time.sleep(.5)
-                    pass
             receiver.join()
         return False
 
     count=0
-    if receiver!=None:
+    if receiver is not None:
         while receiver.finished==False:
             count+=1
             if count%100==0:syslog.syslog("hltd-"+str(instance)+": stop: trying to stop suspend receiver HTTP server thread")
@@ -184,7 +184,6 @@ def stopFUs(instance):
                 time.sleep(.1)
             except:
                 time.sleep(.5)
-                pass
         receiver.join()
 
     print("Finished FU suspend for:",str(machinelist))

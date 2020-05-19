@@ -41,7 +41,7 @@ bw_cnt = 0
 #    def write(self, message):
 #        self.logger.error(message)
 
-def decodecstr(raw):return ( raw if isinstance(raw,str) else raw.decode("utf-8") if raw!=None else "")
+def decodecstr(raw):return raw if isinstance(raw,str) else raw.decode("utf-8") if raw is not None else ""
 
 
     #on notify, put the event file in a queue
@@ -131,7 +131,7 @@ class MonitorRanger:
         self.logger.debug("event: %s on: %s" %(str(event.mask),event.fullpath))
         if self.eventQueue:
 
-            if self.queueStatusPath!=None:
+            if self.queueStatusPath is not None:
                 if self.checkNewLumi(event):
                     self.eventQueue.put(event)
             else:
@@ -177,9 +177,9 @@ class MonitorRanger:
         return True
 
     def notifyLumi(self,ls,maxReceivedEoLS,maxClosedLumi,numOpenLumis):
-        if self.queueStatusPath==None:return
+        if self.queueStatusPath is None:return
         self.lock.acquire()
-        if ls!=None and ls in self.queuedLumiList:
+        if ls is not None and ls in self.queuedLumiList:
             self.queuedLumiList.remove(ls)
         self.maxReceivedEoLS=maxReceivedEoLS
         self.maxClosedLumi=maxClosedLumi
@@ -196,7 +196,7 @@ class MonitorRanger:
         self.queueStatusPathDir = path[:path.rfind('/')]
 
     def updateQueueStatusFile(self,tmpsuffix):
-        if self.queueStatusPath==None:return
+        if self.queueStatusPath is None:return
         num_queued_lumis = len(self.queuedLumiList)
         if not os.path.exists(self.queueStatusPathDir):
             self.logger.error("No directory to write queueStatusFile: "+str(self.queueStatusPathDir))
@@ -216,7 +216,7 @@ class MonitorRanger:
                "lumiBW": self.lumi_bw
                }
         
-        if self.queueStatusPath!=None:
+        if self.queueStatusPath is not None:
             attempts=3
             while attempts>0:
                 try:
@@ -248,11 +248,11 @@ class fileHandler(object):
     def __getattr__(self,name):
         if name not in self.__dict__:
             if name in ["dir","ext","basename","name"]: self.getFileInfo()
-            elif name in ["filetype"]: self.filetype = self.getFiletype();
+            elif name in ["filetype"]: self.filetype = self.getFiletype()
             elif name in ["run","ls","stream","index","pid","tid"]: self.getFileHeaders()
-            elif name in ["data"]: self.data = self.getData();
+            elif name in ["data"]: self.data = self.getData()
             elif name in ["definitions"]: self.getDefinitions()
-            elif name in ["host"]: self.host = THISHOST;
+            elif name in ["host"]: self.host = THISHOST
         if name in ["ctime"]: self.ctime = self.getTime('c')
         if name in ["mtime"]: self.mtime = self.getTime('m')
         if name in ["mtimems"]: self.mtimems = self.getTimeEms('m')
@@ -389,7 +389,8 @@ class fileHandler(object):
         try:
             with open(filepath) as fi:
                 data = json.load(fi)
-        except json.scanner.JSONDecodeError as e:
+        #except json.scanner.JSONDecodeError as e:
+        except json.JSONDecodeError as e:
             self.logger.exception(e)
             data = {}
         except Exception as e:
@@ -452,6 +453,9 @@ class fileHandler(object):
             if warning==True:
                 self.logger.warning("bad field request %r in %r" %(field,self.definitions))
             return False
+
+    def setBaseFieldByName(self,field,value):
+        self.data[field]=value
 
         #get definitions from jsd file
     def getDefinitions(self):
@@ -674,7 +678,7 @@ class fileHandler(object):
             json_size+=ifilesize
 
             #if going to merge, open input file
-            if dst == None and not dropAtFU:
+            if dst is None and not dropAtFU:
                 try:
                     dst = open(destinationpath,'wb')
                 except IOError as ex:
@@ -812,7 +816,7 @@ class fileHandler(object):
                 flist = newData[findex].split(',')
                 for l in flist:
                     if l.endswith('.jsndata'):
-                        if (l.startswith('/')==False):
+                        if not l.startswith('/'):
                             self.inputData.append(os.path.join(self.dir,l))
                         else:
                             self.inputData.append(l)
@@ -820,7 +824,6 @@ class fileHandler(object):
                       pbOutput=True
             except Exception as ex:
                 self.logger.exception(ex)
-                pass
             self.writeout()
 
         #detect streams with pb files as DQM Histogram streams and change outfile type
@@ -873,11 +876,14 @@ class fileHandler(object):
         return True
 
 
-    def mergeDQM(self,outDir,setAsError=False):
+    def mergeDQM(self,executable,install_dir,outDir,detFastHadd=True,setAsError=False):
         outputName,outputExt = os.path.splitext(self.basename)
         outputName+='.pb'
         fullOutputPath = os.path.join(outDir,outputName)
-        command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
+        if detFastHadd:
+            command_args = [executable,install_dir,"add","-o",fullOutputPath]
+        else:
+            command_args = ["/usr/bin/fastHadd","add","-o",fullOutputPath]
 
         totalEvents = self.getFieldByName("Processed")+self.getFieldByName("ErrorEvents")
 
@@ -923,7 +929,7 @@ class fileHandler(object):
           if setAsError:
               hasError=True
           else:
-            p = subprocess.Popen(command_args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            p = subprocess.Popen(command_args,shell=False,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
             p_out,p_err = map(decodecstr,p.communicate())
             time_delta = time.time()-time_start
             if p.returncode!=0:
@@ -950,7 +956,7 @@ class fileHandler(object):
                     else:
                         self.logger.info('fastHadd output (truncated):'+ p_out[:100])
 
-          for f in command_args[4:]:
+          for f in command_args[5:]:
               try:
                   if hasError==False or setAsError==True: os.remove(f)
               except OSError as ex:
@@ -978,6 +984,10 @@ class fileHandler(object):
         except:pass
         try:self.data['MergingTimePerFile']=time_delta/numFiles
         except:self.data['MergingTimePerFile']=0
+        #fastHadd installation directory
+        if detFastHadd:
+            self.data['fastHaddInstPath']=install_dir
+
         self.writeout()
         return outputName
 

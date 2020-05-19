@@ -237,7 +237,7 @@ fi
 # we are done here, write the specs and make the fu***** rpm
 cat > hltd-libs.spec <<EOF
 Name: ${pkgname}
-Version: 2.6.0
+Version: 2.7.0
 Release: 0
 Summary: hlt daemon libraried ${python_dir}
 License: gpl

@@ -12,7 +12,6 @@ sys.path.append('/opt/hltd/python')
 #sys.path.append('/opt/hltd/lib')
 import demote
 import hltdconf
-from daemon2 import Daemon2
 
 def writeToFile(filename,content,overwrite):
     try:
@@ -42,10 +41,9 @@ def renamePath(oldpath,newpath):
     except Exception as ex:
         return  "Failed to rename file: "+str(ex)
 
-class Soap2file(Daemon2):
+class Soap2file:
 
     def __init__(self):
-        Daemon2.__init__(self,'soap2file','main','hltd')
         self._conf=hltdconf.hltdConf('/etc/hltd.conf')
         self._hostname = os.uname()[1]
 
@@ -70,20 +68,10 @@ if __name__ == "__main__":
       setproctitle.setproctitle('soap2file')
     except:
       pass
-
-    if len(sys.argv)>1 and sys.argv[1]=='stop':
-        sys.stdout.write("Stopping soap2file:")
-        daemon.stop(do_umount=False)
-        sys.exit(0)
+    #NOTE:forking mode is unused and obsolete
 
     if daemon.checkEnabled():
-        if len(sys.argv)>1 and sys.argv[1]=='--no-forking':
-            #if os.path.exists('/var/run/soap2file.pid'):
-            #    daemon.stop(do_umount=False)
-            #    #os.remove('/var/run/soap2file.pid')
-            daemon.run()
-        else:
-            daemon.start()
+        daemon.run()
     else:
         print("Soap2file service is disabled")
         sys.exit(0)

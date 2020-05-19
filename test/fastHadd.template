@@ -1,3 +1,0 @@
-#!/bin/sh
-source /opt/offline/$SCRAM_ARCH/external/fasthadd/X.Y/etc/profile.d/init.sh
-exec fastHadd "$@"

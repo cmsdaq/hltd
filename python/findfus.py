@@ -16,6 +16,14 @@ def findfus(nostale, nocloud, noquarantined, stale_threshold = 10):
   except:
     print("no blacklist file")
 
+  wl = None
+  try:
+    with open('/fff/ramdisk/appliance/whitelist','r') as wlf:
+      wl = json.load(wlf)
+  except:
+    print("no whitelist file")
+
+
   allwhitelist = []
   allwhitelisthlt = []
   whitelist = []
@@ -31,8 +39,9 @@ def findfus(nostale, nocloud, noquarantined, stale_threshold = 10):
       if f in bl:
         blacklist.append(f)
       else:
-
-        allwhitelist.append(f)
+        is_whitelisted = wl==None or f in wl
+        if is_whitelisted:
+          allwhitelist.append(f)
         fu_in_cloud=False
         fu_quarantined=False
         with open('/fff/ramdisk/appliance/boxes/'+f) as boxf:
@@ -40,7 +49,7 @@ def findfus(nostale, nocloud, noquarantined, stale_threshold = 10):
           if boxj['cloud']>0: fu_in_cloud=False
           else:
             if boxj['idles']==0 and boxj['used']==0 and boxj['quarantined']!=0:fu_quarantined=True
-        if not fu_in_cloud:
+        if not fu_in_cloud and is_whitelisted:
           allwhitelisthlt.append(f)
 
         if nostale:
@@ -56,8 +65,9 @@ def findfus(nostale, nocloud, noquarantined, stale_threshold = 10):
           #otherwise...
         if fu_quarantined:
           qlist.append(f)
-          if not noquarantined: whitelist.append(f)
-        else:
+          if not noquarantined and is_whitelisted:
+            whitelist.append(f)
+        elif is_whitelisted:
           whitelist.append(f)
 
   return dict(

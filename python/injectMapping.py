@@ -1,22 +1,23 @@
 #!/bin/env python
-from __future__ import print_function
 
 import sys,traceback
 import os
 import datetime
 import time
 
-#from aUtils import *
 import mappings
 
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
 
-import requests
 import json
 import socket
+import requests
+from requests.adapters import HTTPAdapter
 
 from elasticBand import parse_elastic_pwd
+
+#TODO: update to use elasticsearch library instead of requests
 
 jsonSerializer = JSONSerializer()
 
@@ -57,13 +58,17 @@ class elasticBandInjector:
     def createDocMappingsMaybe(self,index_name,mapping):
         #update in case of new documents added to mapping definition
 
-            res = requests.get(self.es_server_url+'/'+index_name+'/_mapping')
+            s = requests.Session()
+            s.auth = (self.elasticinfo["user"],self.elasticinfo["pass"])
+            s.headers.update({'Content-Type':'application/json'})
+            s.mount('http://', HTTPAdapter(max_retries=0))
+
+            res = s.get(self.es_server_url+'/'+index_name+'/_mapping')
             #only update if mapping is empty
             if res.status_code==200:
                 if res.content.decode().strip()=='{}':
                     print('inserting new mapping for ' + index_name)
-                    res = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),
-                                        auth=(elasticinfo["user"],elasticinfo["pass"]),headers=self.headers)
+                    res = s.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping))
                 else:
                     #still check if number of properties is identical in each type
                     inmapping = json.loads(res.content.decode())
@@ -77,11 +82,12 @@ class elasticBandInjector:
                                 try_inject=True
                                 print('inserting mapping for ' + index_name + ' which is missing mapping property ' + str(pdoc))
                         if try_inject:
-                            rres = requests.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping),headers = self.headers)
+                            rres = s.post(self.es_server_url+'/'+index_name+'/_mapping',jsonSerializer.dumps(mapping))
                             if rres.status_code!=200:
                                 print(rres.content)
             else:
                 print('requests error code '+res.status_code+' in mapping request')
+            s.close()
 
 if __name__ == "__main__":
 

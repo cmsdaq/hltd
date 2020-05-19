@@ -90,7 +90,6 @@ class elasticCollector():
                             self.infile.moveFile(self.inputMonDir+'/microstatelegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype in [PATHLEGEND]:# and self.movedPathLegend == False:
                 try:
                     if not self.infile.basename.endswith(".jsn"):
@@ -101,14 +100,12 @@ class elasticCollector():
                             self.infile.moveFile(self.inputMonDir+'/pathlegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype in [INPUTLEGEND]:
                 try:
                     if not os.path.exists(self.inputMonDir+'/inputlegend.jsn') and os.path.exists(self.inputMonDir):
                         self.infile.moveFile(self.inputMonDir+'/inputlegend.jsn',silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
             elif filetype == INI:
                 destname = os.path.join(self.inputMonDir,infile.run+'_'+infile.ls+'_'+infile.stream+'_mon.ini')
                 try:
@@ -116,7 +113,6 @@ class elasticCollector():
                         infile.moveFile(destname,silent=True,createDestinationDir=False)
                 except Exception as ex:
                     logger.error(ex)
-                    pass
 
 
 
@@ -195,25 +191,13 @@ if __name__ == "__main__":
 
     dirname = sys.argv[2]
     inmondir = sys.argv[3]
-    expected_processes = int(float(sys.argv[4]))
-    indexSuffix = conf.elastic_cluster
+    bu_name = sys.argv[4]
+    expected_processes = int(float(sys.argv[5]))
+    indexSuffix = conf.elastic_index_suffix
     update_modulo=conf.fastmon_insert_modulo
     rundirname = os.path.basename(os.path.normpath(dirname))
     monDir = os.path.join(dirname,"mon")
     tempDir = os.path.join(dirname,ES_DIR_NAME)
-
-    #find out BU name from bus_config
-    bu_name="unknown"
-    bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-    try:
-        if os.path.exists(bus_config):
-            for line in open(bus_config,'r'):
-                bu_name=line.split('.')[0]
-                break
-    except:
-        pass
-
-
 
     #find out total number of logical cores
     pnproc = subprocess.Popen("nproc",shell=True, stdout=subprocess.PIPE)
@@ -229,7 +213,7 @@ if __name__ == "__main__":
     monMask = inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO
     tempMask = inotify.IN_CLOSE_WRITE | inotify.IN_MOVED_TO
 
-    logger.info("starting elastic for "+rundirname[:3]+' '+rundirname[3:])
+    logger.info("starting elastic for "+rundirname[:3]+' '+rundirname[3:] + ' on appliance ' +bu_name)
 
     try:
         os.makedirs(monDir)
@@ -250,7 +234,7 @@ if __name__ == "__main__":
         mr.start_inotify()
 
         es = elasticBand.elasticBand('http://'+conf.es_local+':9200',rundirname,indexSuffix,expected_processes,update_modulo,conf.force_replicas,conf.force_shards,nprocid,bu_name)
-        es.setCentral(conf.elastic_runindex_url)
+        es.setCentral('http://'+conf.es_cdaq+':9200')
 
         #starting elasticCollector thread
         ec = elasticCollector(ES_DIR_NAME,inmondir)

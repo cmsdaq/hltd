@@ -16,6 +16,9 @@ from signal import SIGKILL
 import logging
 
 from HLTDCommon import dqm_globalrun_filepattern
+
+gl_host_short = os.uname()[1].split('.')[0]
+
 def preexec_function():
     dem = demote.demote(conf.user)
     dem()
@@ -58,21 +61,24 @@ class OnlineResource:
         self.end_run_mask=False
         self.move_q=False
         self.loc_res_lk = threading.Lock()
+        self.ok = True
 
     def ping(self):
         if conf.role == 'bu':
             if not os.system("ping -c 1 "+self.cpu[0])==0: pass #self.hoststate = 0
 
-    def NotifyNewRunStart(self,runnumber):
+    def NotifyNewRunStart(self,runnumber,send_bu):
+        self.ok = True
         self.runnumber = runnumber
-        self.notifyNewRunThread = threading.Thread(target=self.NotifyNewRun,args=[runnumber])
+        self.notifyNewRunThread = threading.Thread(target=self.NotifyNewRun,args=[runnumber,send_bu])
         self.notifyNewRunThread.start()
 
     def NotifyNewRunJoin(self):
         self.notifyNewRunThread.join()
         self.notifyNewRunThread=None
 
-    def NotifyNewRun(self,runnumber):
+    def NotifyNewRun(self,runnumber,send_bu,warnonly=False):
+        self.ok = True
         self.runnumber = runnumber
         self.logger.info("calling start of run on "+self.cpu[0])
         attemptsLeft=3
@@ -82,7 +88,9 @@ class OnlineResource:
                 if self.hostip: resaddr = self.hostip
                 else: resaddr = self.cpu[0]
                 connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=10)
-                connection.request("GET",'cgi-bin/start_cgi.py?run='+str(runnumber))
+                req = 'cgi-bin/start_cgi.py?run='+str(self.runnumber)
+                if send_bu: req+='&buname='+gl_host_short
+                connection.request("GET",req)
                 response = connection.getresponse()
                 #do something intelligent with the response code
                 self.logger.info("response was "+str(response.status))
@@ -92,16 +100,23 @@ class OnlineResource:
                 break
             except Exception as ex:
                 if attemptsLeft>0:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
+                    if warnonly:
+                        self.logger.warning('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
+                    else:
+                        self.logger.error('RUN:'+str(self.runnumber)+' - '+str(ex) + ' contacting '+str(self.cpu[0]))
                     self.logger.info('retrying connection to '+str(self.cpu[0]))
                 else:
-                    self.logger.error('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
-                    self.logger.exception(ex)
+                    if warnonly:
+                        self.logger.warning('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
+                    else:
+                        self.logger.error('RUN:'+str(self.runnumber)+' - exhausted attempts to contact '+str(self.cpu[0]))
+                        self.logger.exception(ex)
+                    self.ok = False
 
     def NotifyShutdown(self):
         try:
             if self.hostip: resaddr = self.hostip
-            else: resaaddr = self.cpu[0]
+            else: resaddr = self.cpu[0]
             connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
             connection.request("GET",'cgi-bin/stop_cgi.py?run='+str(self.runnumber))
             time.sleep(0.05)
@@ -112,7 +127,28 @@ class OnlineResource:
         except Exception as ex:
             self.logger.exception(ex)
 
-    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, transfermode, num_threads, num_streams, is_locked):
+    def NotifyRemoveBoxStart(self):
+        self.ok = True
+        self.notifyRemoveThread = threading.Thread(target=self.NotifyRemoveBox)
+        self.notifyRemoveThread.start()
+
+    def NotifyRemoveBoxJoin(self):
+        self.notifyRemoveThread.join()
+        self.notifyRemoveThread=None
+
+    def NotifyRemoveBox(self):
+        try:
+            if self.hostip: resaddr = self.hostip
+            else: resaddr = self.cpu[0]
+            connection = HTTPConnection(resaddr, conf.cgi_port - conf.cgi_instance_port_offset,timeout=5)
+            connection.request("GET",'cgi-bin/removebox_cgi.py?buname='+str(gl_host_short))
+            time.sleep(0.05)
+            response = connection.getresponse()
+            time.sleep(0.05)
+        except Exception as ex:
+            self.logger.warning("unable to contact resource " + str(resaddr) + " to self remove from BU")
+ 
+    def StartNewProcess(self, runnumber, input_disk, arch, version, menu, num_threads, num_streams, buDataAddr, transferMode, is_locked):
         self.logger.debug("OnlineResource: StartNewProcess called")
         self.runnumber = runnumber
         self.remove_resources_flag=False
@@ -137,16 +173,17 @@ class OnlineResource:
             new_run_args = [conf.cmssw_script_location+'/startRun.sh',
                             conf.cmssw_base,
                             arch,
-                            version,
-                            conf.exec_directory,
                             full_release,
+                            version,
                             menu,
-                            transfermode,
                             str(runnumber),
-                            input_disk,
                             conf.watch_directory,
+                            input_disk,
                             str(num_threads),
-                            str(num_streams)]
+                            str(num_streams),
+                            buDataAddr,
+                            transferMode,
+                            ]
         else: # a dqm machine
             dqm_globalrun_file = input_disk + '/' + dqm_globalrun_filepattern.format(str(runnumber).zfill(conf.run_number_padding))
             runkey = ''
@@ -393,7 +430,6 @@ class ProcessWatchdog(threading.Thread):
                   self.resource.parent.num_errors_res+=len(self.resource.cpu)
                 except Exception as ex:
                   self.logger.warning('unable to update counter:'+str(ex))
-                  pass
 
                 if returncode < 0:
                     self.logger.error('RUN:' + str(self.resource.runnumber)+" - process "+str(pid)
@@ -442,6 +478,12 @@ class ProcessWatchdog(threading.Thread):
                 except: self.logger.exception("unable to create %r" %filename)
                 self.logger.info("pid crash file: %r" %filename)
 
+                #check list of exit codes which whould unqarantine automatically (only if all non-zero exit codes are eligible)
+                if returncode != 0:
+                    if returncode in conf.auto_clear_exitcodes:
+                        self.resource.parent.clear_quarantined_count += 1
+                    else:
+                        self.resource.parent.not_clear_quarantined_count +=1
 
                 if self.resource.retry_attempts < self.retry_limit:
                     """

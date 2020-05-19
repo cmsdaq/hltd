@@ -12,25 +12,6 @@ import json
 import cx_Oracle
 
 
-#old service command (sysV)
-def executeServiceScript(service,commands):
-   arr = ['/opt/hltd/init.d/hltd']
-   arr.append(commands)
-   proc = Popen(arr, stdout=PIPE)
-   output = proc.communicate()[0]
-   if not isinstance(output,str): output = output.decode("utf-8")
-   time.sleep(.1)
-
-   isHltdStatus = service == 'hltd' and 'status' in commands
-   if (isHltdStatus and 'is running' in str(output)) or (not isHltdStatus and proc.returncode==0):
-       print(commands+' '+service+ ':\t\t\t\t [  \033[1;32mOK\033[0;39m  ]')
-       return 0
-   else:
-      print(commands + ' ' + service + '  (return code '+str(proc.returncode)+') : [  \033[1;31mFAILED\033[0;39m  ]')
-      print('command output:\n',str(output))
-      return proc.returncode
-
-
 #new service command (systemd units)
 def executeServiceUnit(command,service):
    arr = ['/usr/bin/systemctl',command,service]
@@ -126,6 +107,10 @@ if __name__ == "__main__":
         print("stop FFF called")
         sys.exit(0)
 
+    elif 'status' == cmd:
+       executeServiceUnit(cmd,'hltd')
+       sys.exit(0)
+
     #non-systemd commands:
     elif 'restartUnblacklisted' == cmd:
         if isBlacklisted():
@@ -141,11 +126,6 @@ if __name__ == "__main__":
 
     elif 'restart' == cmd:
         print("Use: /usr/bin/systemctl restart fff")
-
-    elif 'status' == cmd:
-        #old style status (less verbose than systemctl status)
-        rc=executeServiceScript('hltd',cmd)
-        sys.exit(rc)
 
     elif 'configure' == cmd:
         #only update configuration (same as start)
@@ -200,7 +180,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
   else:
-      print("usage: %s start|stop|status|configure|enableBoot|disableBoot|restartUnblacklisted|disableBlacklisted|restoreUnblacklisted" % sys.argv[0])
+      print("usage: %s start|stop|configure|enableBoot|disableBoot|restartUnblacklisted|disableBlacklisted|restoreUnblacklisted" % sys.argv[0])
       sys.exit(1)
 
 sys.exit(0)

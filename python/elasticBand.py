@@ -54,6 +54,7 @@ def getURLwithIP(url):
     return prefix+str(ip)+suffix
 
 def getCPUInfoIntel():
+   #TODO: parse AMD
     cpu_name = ""
     try:
         with open('/proc/cpuinfo','r') as fi:
@@ -65,6 +66,8 @@ def getCPUInfoIntel():
                         else:
                             if cpu_name: cpu_name = cpu_name+" "+word
                             else: cpu_name=word
+    except:
+        pass
     finally:
         return cpu_name
 
@@ -152,7 +155,7 @@ class elasticBand():
         with open(infile.filepath,'r') as fp:
             try:
                 document = json.load(fp)
-            except json.scanner.JSONDecodeError as ex:
+            except json.JSONDecodeError as ex:
                 if silent==False:
                     self.logger.exception(ex)
                 return None,-1
@@ -172,7 +175,7 @@ class elasticBand():
         stub = self.imbue_csv(infile)
         document = {}
         if len(stub) == 0 or stub[0]=='\n':
-            return;
+            return
         document['doc_type'] = 'prc-i-state'
         try:
             document['macro'] = int(stub[0])
@@ -196,7 +199,6 @@ class elasticBand():
             self.istateBuffer.append(document)
         except Exception as ex:
             self.logger.warning(str(ex))
-            pass
         #if len(self.istateBuffer) == MONBUFFERSIZE:
         if len(self.istateBuffer) == self.monBufferSize and (len(self.istateBuffer)%self.fastUpdateModulo)==0:
             self.flushMonBuffer()

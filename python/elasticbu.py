@@ -1,5 +1,4 @@
 #!/bin/env python
-from __future__ import print_function
 
 import sys,traceback
 import os
@@ -83,22 +82,23 @@ class elasticBandBU:
     def __init__(self,conf,runnumber,startTime,runMode=True,nsslock=None,box_version=None,update_run_mapping=True,update_box_mapping=True):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.conf=conf
-        self.es_server_url=conf.elastic_runindex_url
-        self.runindex_write="runindex_"+conf.elastic_runindex_name+"_write"
-        self.runindex_read="runindex_"+conf.elastic_runindex_name+"_read"
-        self.runindex_name="runindex_"+conf.elastic_runindex_name
-        self.boxinfo_write="boxinfo_"+conf.elastic_runindex_name+"_write"
-        self.boxinfo_read="boxinfo_"+conf.elastic_runindex_name+"_read"
-        self.boxinfo_name="boxinfo_"+conf.elastic_runindex_name
+        self.es_server_url='http://'+conf.es_cdaq+':9200'
+        self.runindex_write="runindex_"+conf.elastic_index_suffix+"_write"
+        self.runindex_read="runindex_"+conf.elastic_index_suffix+"_read"
+        self.runindex_name="runindex_"+conf.elastic_index_suffix
+        self.boxinfo_write="boxinfo_"+conf.elastic_index_suffix+"_write"
+        self.boxinfo_read="boxinfo_"+conf.elastic_index_suffix+"_read"
+        self.boxinfo_name="boxinfo_"+conf.elastic_index_suffix
 
-        self.reshistory_write="reshistory_"+conf.elastic_runindex_name+"_write"
-        self.reshistory_read="reshistory_"+conf.elastic_runindex_name+"_read"
-        self.reshistory_name="reshistory_"+conf.elastic_runindex_name
+        self.reshistory_write="reshistory_"+conf.elastic_index_suffix+"_write"
+        self.reshistory_read="reshistory_"+conf.elastic_index_suffix+"_read"
+        self.reshistory_name="reshistory_"+conf.elastic_index_suffix
  
         self.boxdoc_version=box_version
         self.runnumber = str(runnumber)
         self.startTime = startTime
         self.host = os.uname()[1]
+        self.host_short = os.uname()[1].split('.')[0]
         self.stopping=False
         self.threadEvent = threading.Event()
         self.runMode=runMode
@@ -119,6 +119,8 @@ class elasticBandBU:
         eslib_logger.setLevel(logging.ERROR)
 
         self.black_list=None
+        self.white_list=None
+        self.has_whitelist=False
         if self.conf.instance=='main':
             self.hostinst = self.host
         else:
@@ -133,16 +135,39 @@ class elasticBandBU:
               version = None
               arch = None
               hltmenuname = None
+              isGlobalRun = None
+              daqSystem = None
+              daqInstance = None
+
               with open(os.path.join(mainDir,'hlt',conf.paramfile_name),'r') as fp:
                 fffparams = json.load(fp)
                 version = fffparams['CMSSW_VERSION']
                 arch = fffparams['SCRAM_ARCH']
-                self.logger.info("OK")
-              with open(os.path.join(mainDir,'hlt','HltConfig.py'),'r') as fp:
+
+              with open(os.path.join(mainDir,'hlt',conf.menu_name),'r') as fp:
                 firstline = fp.readline().strip().strip("\n") #first line
                 if firstline.startswith("#"):
                   hltmenuname = firstline.strip("#").strip()
+
+              try:
+                with open(os.path.join(mainDir,'hlt',conf.hltinfofile_name),'r') as fp:
+                  hltInfo = json.load(fp)
+
+                  if isinstance(hltInfo['isGlobalRun'],str):
+                      isGlobalRun = True if hltInfo['isGlobalRun']=="1" else False
+                  else:
+                      isGlobalRun = hltInfo['isGlobalRun']
+                  try:
+                      daqSystem = hltInfo['daqSystem']
+                  except:
+                      pass
+                  daqInstance = hltInfo['daqInstance']
+
+              except Exception as ex:
+                  self.logger.warning(str(ex))
+
               break
+
             except Exception as ex:
               self.logger.info("failed to parse run metadata file "+str(ex)+". retries left "+str(retries))
               time.sleep(0.2)
@@ -161,6 +186,9 @@ class elasticBandBU:
             if version: document['CMSSW_version']=version
             if arch: document['CMSSW_arch']=arch
             if hltmenuname and len(hltmenuname): document['HLT_menu']=hltmenuname
+            if isGlobalRun!=None: document['isGlobalRun']=isGlobalRun
+            if daqSystem and len(daqSystem): document['daqSystem']=daqSystem
+            if daqInstance and len(daqInstance): document['daqInstance']=daqInstance
             documents = [document]
             ret = self.index_documents('run',documents,doc_id,bulk=False,overwrite=False,routing=str(self.runnumber))
             if isinstance(ret,tuple) and ret[1]==409:
@@ -402,19 +430,19 @@ class elasticBandBU:
     def elasticize_box(self,infile):
 
         basename = infile.basename
+        basename_short = infile.basename.split('.')[0]
         self.logger.debug(basename)
         current_time = time.time()
 
         if infile.data=={}:return
 
         bu_doc=False
-        if basename.startswith('bu') or basename.startswith('dvbu') or basename.startswith('d3vrubu'):
+        if basename.startswith('bu') or basename.startswith('dvbu') or basename.startswith('d3vrubu') or basename_short == self.host_short:
             bu_doc=True
 
         #check box file against blacklist
         if bu_doc or self.black_list==None:
             self.black_list=[]
-
             try:
                 with open(os.path.join(self.conf.watch_directory,'appliance','blacklist'),"r") as fi:
                     try:
@@ -426,13 +454,31 @@ class elasticBandBU:
                 #blacklist file is not present, do not filter
                 pass
 
+        if bu_doc or self.white_list==None:
+            self.white_list=[]
+            self.has_whitelist=False
+            try:
+                with open(os.path.join(self.conf.watch_directory,'appliance','whitelist'),"r") as fi:
+                    try:
+                        self.white_list = json.load(fi)
+                        self.has_whitelist = True
+                    except ValueError:
+                        #file is being written or corrupted
+                        return
+            except:
+                #blacklist file is not present, do not filter
+                pass
+
         if basename in self.black_list:return
 
         if bu_doc==False:
+
+            if self.has_whitelist and basename not in self.white_list:return
+
             try:
                 if self.boxdoc_version!=infile.data['version']:
                     self.logger.info('skipping '+basename+' box file version '+str(infile.data['version'])+' which is different from '+str(self.boxdoc_version))
-                    return;
+                    return
             except:
                 self.logger.warning("didn't find version field in box file "+basename)
                 return
@@ -463,6 +509,8 @@ class elasticBandBU:
             document['instance']=self.conf.instance
             if bu_doc==True:
                 document['blacklist']=self.black_list
+                if self.has_whitelist:
+                  document['whitelist']=self.white_list
             #only here
             document['host']=basename
             try:document.pop('version')
@@ -546,7 +594,7 @@ class elasticBandBU:
             except (socket.gaierror,ConnectionError,ConnectionTimeout) as ex:
                 self.logger.warning("detected connection problem: "+str(ex))
                 if attempts>100 and self.runMode:
-                    raise(ex)
+                    raise ex
                 if is_box or attempts<=1:
                     self.logger.warning('elasticsearch connection error: ' + str(ex)+'. retry.')
                 elif (attempts-2)%10==0:
@@ -663,16 +711,27 @@ class elasticCollectorBU():
             time.sleep(60)
             #delete directory because merger is not active
 
+            rundirname = 'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)
             try:
-                self.logger.info("deleting ramdisk and output (drop at FU mode)")
-                shutil.rmtree(os.path.join('/fff',self.es.conf.output_subdirectory_remote,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
+                self.logger.info("deleting "+self.es.conf.watch_directory+" (drop at FU mode)")
+                shutil.rmtree(os.path.join(self.es.conf.watch_directory,rundirname))
+            except Exception as ex:
+                self.logger.exception(ex)
+            try:
+                time.sleep(1)
+                self.logger.info("deleting "+self.es.conf.output_subdirectory_remote+" (drop at FU mode)")
+                shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_remote,rundirname))
+            except Exception as ex:
+                self.logger.exception(ex)
+            try:
+                if conf.output_subdirectory_aux not in [None,"",None]:
+                    time.sleep(1)
+                    self.logger.info("deleting "+self.es.conf.output_subdirectory_aux+" (drop at FU mode)")
+                    shutil.rmtree(os.path.join(conf.fff_base,self.es.conf.output_subdirectory_aux,rundirname))
             except Exception as ex:
                 self.logger.exception(ex)
 
-            try:
-                shutil.rmtree(os.path.join(self.es.conf.watch_directory,'run'+ self.es.runnumber.zfill(self.es.conf.run_number_padding)))
-            except Exception as ex:
-                self.logger.exception(ex)
+
 
         self.logger.info("Stop main loop (watching directory " + str(self.inRunDir) + ")")
 
@@ -859,7 +918,7 @@ class RunCompletedChecker(threading.Thread):
         self.runObj = runObj
         self.runnumber = runObj.runnumber
         rundirstr = 'run'+ str(runObj.runnumber).zfill(conf.run_number_padding)
-        self.indexPrefix = rundirstr + '_' + conf.elastic_cluster
+        self.indexPrefix = rundirstr + '_' + conf.elastic_index_suffix
         self.url =       'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_search&size=0'
         self.urlclose =  'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_close'
         self.urlsearch = 'http://'+conf.es_local+':9200/' + self.indexPrefix + '/_search?size=1'
@@ -893,7 +952,7 @@ class RunCompletedChecker(threading.Thread):
                             fm_time = str(dataq['hits']['hits'][0]['_source']['fm_date'])
                             #fill in central index completition time
                             postq = "{runNumber\":\"" + str(self.runObj.runnumber) + "\",\"completedTime\" : \"" + fm_time + "\"}"
-                            s.post(self.conf.elastic_runindex_url+'/'+"runindex_"+self.conf.elastic_runindex_name+'_write/_doc',postq,timeout=5)
+                            s.post('http://'+self.conf.es_cdaq+':9200'+'/'+"runindex_"+self.conf.elastic_index_suffix+'_write/_doc',postq,timeout=5)
                             self.logger.info("filled in completition time for run "+str(self.runObj.runnumber))
                         except IndexError:
                             # 0 FU resources present in this run, skip writing completition time
@@ -951,7 +1010,7 @@ if __name__ == "__main__":
     runnumber = sys.argv[1]
     watchdir = conf.watch_directory
     mainDir = os.path.join(watchdir,'run'+ runnumber.zfill(conf.run_number_padding))
-    mainOutDir = os.path.join('/fff',conf.output_subdirectory_remote,'run'+ runnumber.zfill(conf.run_number_padding))
+    mainOutDir = os.path.join(conf.fff_base,conf.output_subdirectory_remote,'run'+ runnumber.zfill(conf.run_number_padding))
     dt=os.path.getctime(mainDir)
     startTime = datetime.datetime.utcfromtimestamp(dt).isoformat()
     #EoR file path to watch for
@@ -968,7 +1027,6 @@ if __name__ == "__main__":
         os.mkdir(monDir)
     except OSError as ex:
         logger.info(ex)
-        pass
 
     mr = None
     try:
@@ -993,7 +1051,6 @@ if __name__ == "__main__":
                 pass
             except Exception as ex:
                 logger.warning(str(ex))
-                pass
         checkThread = threading.Thread(target=checkEoR)
         #checkThread.daemon=True
         checkThread.start()

@@ -12,7 +12,7 @@ import socket
 import getnifs
 from aUtils import ES_DIR_NAME
 from elasticbu import elasticBandBU
-
+from MountManager import MountManagerDummy
 
 MSR_CORE_C1_RES=0x660
 MSR_CORE_C3_RESIDENCY=0x3fc
@@ -23,40 +23,43 @@ MSR_CORE_C7_RESIDENCY=0x3fe
 class system_monitor(threading.Thread):
 
     def __init__(self,confClass,stateInfo,resInfo,runList,mountMgr,boxInfo,num_cpus_initial):
-        threading.Thread.__init__(self)
+        #threading.Thread.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
-        try:
-          self.hostip = socket.gethostbyname_ex(os.uname()[1])[2][0]
-        except Exception as ex:
-          #fallback:let BU query DNS
-          self.logger.warning('Unable to get IP address from DNS: ' + str(ex))
-          self.hostip = os.uname()[1]
-        self.running = True
-        self.hostname = os.uname()[1]
-        self.directory = []
-        self.file = []
-        self.create_file=True
-        self.threadEvent = threading.Event()
-        self.threadEventStat = threading.Event()
-        self.threadEventESBox = threading.Event()
-        self.statThread = None
-        self.esBoxThread = None
-        self.stale_flag = False
-        self.cpu_freq_avg_real=0
-        self.highest_run_number = None
-        self.data_in_MB = 0
+        global conf
+        conf = confClass
+
         self.state = stateInfo
         self.resInfo = resInfo
         self.runList = runList
         self.mm = mountMgr
         self.boxInfo = boxInfo
         self.num_cpus = num_cpus_initial 
+        self.num_cpus_real = num_cpus_initial 
+ 
+        try:
+          self.hostip = socket.gethostbyname_ex(os.uname()[1])[2][0]
+        except Exception as ex:
+          #fallback:let BU query DNS
+          self.logger.warning('Unable to get IP address from DNS: ' + str(ex))
+          self.hostip = os.uname()[1]
+        self.hostname = os.uname()[1]
+
+        self.threadEvent = threading.Event()
+        self.threadEventStat = threading.Event()
+        self.threadEventESBox = threading.Event()
+        self.bu_mount_suffix = None
+        self.dummyMountMgr = MountManagerDummy()
+
+        self.resetRunningState()
+
+        self.highest_run_number = None #?
+        self.cpu_freq_avg_real=0
+        self.data_in_MB = 0
+        self.mem_frac = 0.
+
         self.allow_resource_notifications = False
         self.buffered_resource_notification = None
-        self.mem_frac = 0.
         self.last_good = True
-        global conf
-        conf = confClass
         #cpu timing information
         self.cpu_name,self.cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
         #start direct injection into central index (fu role)
@@ -66,11 +69,63 @@ class system_monitor(threading.Thread):
         #always start ESBox thread because dynamic core file require it to run
         self.startESBox()
 
+    def resetRunningState(self):
+
+        threading.Thread.__init__(self)
+        self.threadEvent.clear()
+        self.threadEventStat.clear()
+        self.threadEventESBox.clear()
+        self.running = True
+        self.directory = []
+        self.files = []
+        self.statThread = None
+        self.esBoxThread = None
+        self.stale_flag = False
+        self.dummyMountMgr.reset()
+        self.no_delete_list = []
+
+
     def preStart(self):
+        if conf.role == 'fu' and not self.mm and not self.bu_mount_suffix: return
         self.rehash()
         if conf.mount_control_path:
             self.startStatNFS()
 
+    #stop current instance, restart on another mount point
+    def notifyMaybeChangeBU(self,bu_mount_suffix):
+        if not bu_mount_suffix:
+          return
+        if not self.bu_mount_suffix or self.bu_mount_suffix!=bu_mount_suffix:
+          self.logger.info("Changing BU mountpoint, from:"+str(self.bu_mount_suffix)+" to:",bu_mount_suffix)
+
+          #check if this mount point is moving to identical BU from static conf. Then don't delete, just update the file
+          #this avoids refusing to join this FU (caused by mechanism to detect FUs which reboot during a run)
+          if not self.bu_mount_suffix:
+              bu_name_static = self.getBUNameStatic()
+              if bu_name_static == bu_mount_suffix:
+                  self.no_delete_list = self.files
+
+          #stop, clean up state and restart the monitor
+          self.stop()
+          self.resetRunningState()
+          self.bu_mount_suffix = bu_mount_suffix
+          self.startESBox()
+          self.preStart()
+          self.start()
+          self.logger.info("Change BU mountpoint: all handlers restarted")
+          #started in new mount point if everything went well
+    
+    def notifyMaybeRemoveBUMaybe(self,bu_mount_suffix_old):
+        if not bu_mount_suffix_old:
+          return
+        if self.bu_mount_suffix and self.bu_mount_suffix==bu_mount_suffix_old:
+              #stop, clean up state and restart the monitor
+              self.logger.info("Remove BU mountpoint: " + self.bu_mount_suffix)
+              self.stop()
+              self.resetRunningState()
+              self.bu_mount_suffix = None
+ 
+          
     #called after resource inotify is set up
     def allowResourceNotification(self):
         self.state.lock.acquire()
@@ -82,16 +137,24 @@ class system_monitor(threading.Thread):
 
     def rehash(self):
         if conf.role == 'fu':
-            self.check_directory = [os.path.join(x,'appliance','dn') for x in self.mm.bu_disk_list_ramdisk_instance]
+
             #write only in one location
             if conf.mount_control_path:
                 self.logger.info('Updating box info via control interface')
-                self.directory = [os.path.join(self.mm.bu_disk_ramdisk_CI_instance,'appliance','boxes')]
+                if self.bu_mount_suffix:
+                    self.logger.error("CI-mount/dynamic-mount combination is not supported")
+                    self.check_directory = self.check_file = []
+                elif self.mm:
+                    self.check_directory = [os.path.join(x,'appliance','dn') for x in self.mm.bu_disk_list_ramdisk_instance]
+                    self.directory = [os.path.join(self.mm.bu_disk_ramdisk_CI_instance,'appliance','boxes')]
+                    self.check_file = [os.path.join(x,self.hostname) for x in self.check_directory]
             else:
                 self.logger.info('Updating box info via data interface')
-                if len(self.mm.bu_disk_list_ramdisk_instance):
+                if self.bu_mount_suffix:
+                    self.directory = [os.path.join(conf.bu_base_dir_autofs,self.bu_mount_suffix+'_'+conf.ramdisk_subdirectory,'appliance','boxes')]
+                elif self.mm and len(self.mm.bu_disk_list_ramdisk_instance):
                     self.directory = [os.path.join(self.mm.bu_disk_list_ramdisk_instance[0],'appliance','boxes')]
-            self.check_file = [os.path.join(x,self.hostname) for x in self.check_directory]
+
 
         else:
             self.directory = [os.path.join(conf.watch_directory,'appliance/boxes/')]
@@ -112,10 +175,10 @@ class system_monitor(threading.Thread):
             except:
                 self.boot_id = "empty"
 
-        self.file = [os.path.join(x,self.hostname) for x in self.directory]
+        self.files = [os.path.join(x,self.hostname) for x in self.directory]
 
-        self.logger.info("rehash found the following BU disk(s):"+str(self.file))
-        for disk in self.file:
+        self.logger.info("rehash found the following BU disk(s):"+str(self.files))
+        for disk in self.files:
             self.logger.info(disk)
 
     def startESBox(self):
@@ -139,11 +202,15 @@ class system_monitor(threading.Thread):
             err_detected = False
             try:
                 #check for NFS stale file handle
-                for disk in  self.mm.bu_disk_list_ramdisk:
+                if self.bu_mount_suffix:
+                        pass
+                        #TODO: implement check of the active submount
+                elif self.mm:
+                  for disk in  self.mm.bu_disk_list_ramdisk:
                     mpstat = os.stat(disk)
-                for disk in  self.mm.bu_disk_list_output:
+                  for disk in  self.mm.bu_disk_list_output:
                     mpstat = os.stat(disk)
-                if self.mm.bu_disk_ramdisk_CI:
+                  if self.mm.bu_disk_ramdisk_CI:
                     disk = self.mm.bu_disk_ramdisk_CI
                     mpstat = os.stat(disk)
                 #no issue if we reached this point
@@ -153,9 +220,9 @@ class system_monitor(threading.Thread):
                 if ex.errno == 116:
                     if fu_stale_counter==0 or fu_stale_counter%500==0:
                         self.logger.fatal('detected stale file handle: '+str(disk))
-                        #if BU boot id not same, trigger local suspend (suspend0) mechanism which will perform remount
+                        #if BU boot id not same, trigger local suspend (suspend) mechanism which will perform remount
                         if not self.buBootIdCheck():
-                            with open(os.path.join(conf.watch_directory,'suspend0'),'w'):pass
+                            with open(os.path.join(conf.watch_directory,'suspend'),'w'):pass
                 else:
                     self.logger.warning('stat mountpoint ' + str(disk) + ' caught Error: '+str(ex))
                 fu_stale_counter+=1
@@ -204,26 +271,43 @@ class system_monitor(threading.Thread):
                 return
 
     def buBootIdCheck(self):
-       #skip duplicate check
-       if self.mm.stale_handle_remount_required or self.state.suspended: return False
-       if conf.role=='fu' and len(self.directory):
-           if not self.mm.buBootId:
-               self.mm.buBootId = self.buBootIdFetch(self.directory[0])
-           elif self.mm.buBootId:
+       def checkStale(mm):
+         if mm is None or not mm: return True
+         #skip duplicate check
+         if mm.stale_handle_remount_required or self.state.suspended: return False
+         #not using default static boot config, store boot ID in this class
+         if conf.role=='fu' and len(self.directory):
+           if mm.buBootId is None:
+               mm.buBootId = self.buBootIdFetch(self.directory[0])
+           elif mm.buBootId is not None:
                id_check =  self.buBootIdFetch(self.directory[0])
-               if id_check != self.mm.buBootId: #check if there is new boot timestamp
-                   self.logger.warning('new BU boot id detected. old:' + str(self.mm.buBootId) + ' new:' + str(id_check))
-                   self.mm.stale_handle_remount_required = True
+               if id_check != mm.buBootId: #check if there is new boot timestamp
+                   self.logger.warning('new BU boot id detected. old:' + str(mm.buBootId) + ' new:' + str(id_check))
+                   mm.stale_handle_remount_required = True
                    return False
-       return True
+         return True
+
+       #check on either dynamic or non-dynamic
+       if self.bu_mount_suffix:
+         return checkStale(self.dummyMountMgr)
+       else:
+         return checkStale(self.mm)
+       
 
     def buBootIdFetch(self,buboxdir):
         try:
-          for bf in os.listdir(buboxdir):
+          listed = os.listdir(buboxdir)
+          for bf in listed:
             if bf.startswith('bu-') or bf.startswith('dvbu-')  or bf.startswith('d3vrubu-') or (self.hostname.startswith('dvfu-') and bf.startswith('dvrubu-')):
               with open(os.path.join(buboxdir,bf),'r') as fp:
                 return json.load(fp)['boot_id']
-              break
+          #make this work for test host which doesn't begin with *bu- name
+          for bf in listed:
+            bf_short = bf.split('.')[0]
+            if self.bu_mount_suffix and bf_short == self.bu_mount_suffix:
+              with open(os.path.join(buboxdir,bf),'r') as fp:
+                return json.load(fp)['boot_id']
+
         except Exception as ex:
           self.logger.warning('unable to read BU boot_id: '+str(ex))
         return None
@@ -241,16 +325,18 @@ class system_monitor(threading.Thread):
             if conf.mon_bu_cpus:
                 vtmp_old = self.getIntelCPUPerfVec()
                 ts_old_percpu = time.time()
+            if conf.role == 'fu' and not self.mm and not self.bu_mount_suffix:
+                return
 
             while self.running:
-                self.threadEvent.wait(5 if counter>0 else 1)
+                self.threadEvent.wait(5 if counter>0 else 1) #TODO:interrupt this event in case new file has to be written to the new BU
                 counter+=1
                 counter=counter%5
                 if self.state.suspended: continue
                 tstring = datetime.datetime.utcfromtimestamp(time.time()).isoformat()
 
                 #update BU boot id if not set
-                if conf.role=='fu' and not self.mm.buBootId and len(self.directory): self.mm.buBootId = self.buBootIdFetch(self.directory[0])
+                if conf.role=='fu' and self.mm and not self.mm.buBootId and len(self.directory): self.mm.buBootId = self.buBootIdFetch(self.directory[0])
 
                 ramdisk = None
                 if conf.role == 'bu':
@@ -320,7 +406,7 @@ class system_monitor(threading.Thread):
                         try:
                             edata,etime,lastStatus = self.boxInfo.FUMap[key]
                         except:continue #deleted?
-                        if current_time - etime > 10 or edata == None: continue
+                        if current_time - etime > 10 or edata is None: continue
                         try:
                             try:
                                 if edata['version']!=self.boxInfo.boxdoc_version:
@@ -335,7 +421,7 @@ class system_monitor(threading.Thread):
                               if fu_cpu_name=="N/A":
                                 fu_cpu_name = edata['cpuName']
                               elif fu_cpu_name != edata['cpuName']:
-                                fu_cpu_name == "Unknown"
+                                fu_cpu_name = "Unknown"
                             except:
                               #ignore if not found in fu box document
                               pass
@@ -434,7 +520,7 @@ class system_monitor(threading.Thread):
                             try:
                                 edata,etime,lastStatus = self.boxInfo.FUMap[key]
                             except:continue #deleted?
-                            if current_time - etime > 10 or edata == None: continue
+                            if current_time - etime > 10 or edata is None: continue
                             try:
                                 try:
                                     if edata['version']!=self.boxInfo.boxdoc_version: continue
@@ -482,7 +568,11 @@ class system_monitor(threading.Thread):
                                 "buCPUName":self.cpu_name,
                                 "activePhysCores":fu_phys_cores,
                                 "activeHTCores":fu_ht_cores,
-                                "fuMemFrac":mem_frac_avg
+                                "fuMemFrac":mem_frac_avg,
+                                "isGlobalRun":self.state.isGlobalRun,
+                                "daqSystem":self.state.daqSystem,
+                                "daqInstance":self.state.daqInstance,
+                                "fuGroup":self.state.fuGroup
                               }
                     #BU CPU montoring of C-states and frequency
                     if conf.mon_bu_cpus:
@@ -575,7 +665,7 @@ class system_monitor(threading.Thread):
 
                     except:pass
 
-                for mfile in self.file:
+                for mfile in self.files:
                     if conf.role == 'fu':
 
                             #check if stale file handle (or slow access)
@@ -634,7 +724,7 @@ class system_monitor(threading.Thread):
                             boxdoc = {
                                 'fm_date':tstring,
                                 'idles' : n_idles,
-                                'used' : n_used,
+                                'used' : n_used, # #TODO:minus used processes on previous run prior to switch tu a current BU (calculate inside process, keep track of BUs used per run)
                                 'broken' : n_broken,
                                 'used_activeRun' : n_used_activeRun,
                                 'broken_activeRun' : n_broken_activeRun,
@@ -661,10 +751,13 @@ class system_monitor(threading.Thread):
                                 "cpuName":self.cpu_name,
                                 "cpu_phys_cores":self.cpu_cores,
                                 "cpu_hyperthreads":self.cpu_siblings,
-                                "mem_frac":self.mem_frac
-
+                                "mem_frac":self.mem_frac,
+                                "isGlobalRun":self.state.isGlobalRun,
+                                "daqSystem":self.state.daqSystem,
+                                "daqInstance":self.state.daqInstance,
+                                "fuGroup":self.state.fuGroup
                             }
-                            with open(mfile,'w+') as fp:
+                            with open(mfile,'w') as fp: #recalculate path according to new BU switched. Delete file from the old BU if moving BU
                                 json.dump(boxdoc,fp,indent=True)
                             boxinfo_update_attempts=0
 
@@ -673,9 +766,9 @@ class system_monitor(threading.Thread):
                             #detecting stale file handle on recreated loop fs and remount
                             if conf.instance!='main' and (ex.errno==116 or ex.errno==2) and boxinfo_update_attempts>=5:
                                 boxinfo_update_attempts=0
-                                try:os.unlink(os.path.join(conf.watch_directory,'suspend0'))
+                                try:os.unlink(os.path.join(conf.watch_directory,'suspend'))
                                 except:pass
-                                with open(os.path.join(conf.watch_directory,'suspend0'),'w'):
+                                with open(os.path.join(conf.watch_directory,'suspend'),'w'):
                                     pass
                                 time.sleep(1)
                             boxinfo_update_attempts+=1
@@ -693,10 +786,14 @@ class system_monitor(threading.Thread):
                             'activeRuns':self.runList.getActiveRunNumbers(),
                             "version":self.boxInfo.boxdoc_version,
                             "boot_id":self.boot_id,
-                            "cpuName":self.cpu_name
+                            "cpuName":self.cpu_name,
+                            "isGlobalRun":self.state.isGlobalRun,
+                            "daqSystem":self.state.daqSystem,
+                            "daqInstance":self.state.daqInstance,
+                            "fuGroup":self.state.fuGroup
                         }
                         try:
-                            with open(mfile,'w') as fp:
+                            with open(mfile,'w') as fp: #TODO:
                                 json.dump(boxdoc,fp,indent=True)
                             boxinfo_update_attempts=0
                         except IOError as ex:
@@ -712,7 +809,8 @@ class system_monitor(threading.Thread):
         except Exception as ex:
             self.logger.exception(ex)
 
-        for mfile in self.file:
+        for mfile in self.files:
+            if mfile in self.no_delete_list:continue
             try:
                 os.remove(mfile)
             except OSError:
@@ -811,7 +909,7 @@ class system_monitor(threading.Thread):
       aperf=0
       mperf=0
       cnt=0
-      while cnt<self.num_cpus:
+      while cnt<self.num_cpus_real:
         try:
           fd = None
           fd = os.open("/dev/cpu/"+str(cnt)+"/msr",os.O_RDONLY)
@@ -904,7 +1002,8 @@ class system_monitor(threading.Thread):
     def getMEMInfo(self):
         return dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
 
-    def findMountInterfaces(self):
+    def findMountInterfaces(self): #TODO: find only last interface switched to. Also file_broker address needs to be adjusted. How to discover it? automounter interfaces?
+        #also file broker stuff should be passed by the script, not read from current config
         ipaddrs = []
         for line in open('/proc/mounts').readlines():
           mountpoint = line.split()[1]
@@ -964,34 +1063,45 @@ class system_monitor(threading.Thread):
             self.logger.exception(ex)
           return [0,0,0]
 
+
+    def getBUNameStatic(self):
+
+          #parse bus.config to find BU name 
+          bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
+          try:
+              if os.path.exists(bus_config):
+                  for line in open(bus_config,'r'):
+                      if len(line):
+                          return line.split('.')[0]
+          except:
+              pass
+          return "unknown"
+
     def runESBox(self):
 
-        #find out BU name from bus_config
+        #find out BU name
         self.logger.info("started ES box thread")
-        #parse bus.config to find BU name 
-        bu_name="unknown"
-        bus_config = os.path.join(os.path.dirname(conf.resource_base.rstrip(os.path.sep)),'bus.config')
-        try:
-            if os.path.exists(bus_config):
-                for line in open(bus_config,'r'):
-                    bu_name=line.split('.')[0]
-                    break
-        except:pass
+        if self.bu_mount_suffix:
+          bu_name = self.bu_mount_suffix
+        else:
+          bu_name = self.getBUNameStatic()
         cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
 
         def refreshCPURange():
-           num_cpus_new = self.testCPURange() 
+           num_cpus_new_real = self.testCPURange() 
+           num_cpus_new = num_cpus_new_real * conf.dynamic_resources_multiplier 
            if num_cpus_new!=self.num_cpus:
              if conf.dynamic_resources and not conf.dqm_machine:
                self.state.lock.acquire()
                #notify run ranger thread
-               self.state.os_cpuconfig_change += num_cpus_new-self.num_cpus
+               self.state.os_cpuconfig_change += (num_cpus_new-self.num_cpus)
                if self.allow_resource_notifications:
                  with open(os.path.join(conf.watch_directory,'resourceupdate'),'w') as fp:
                    pass
                else:
                  self.buffered_resource_notification = os.path.join(conf.watch_directory,'resourceupdate')
                self.num_cpus=num_cpus_new
+               self.num_cpus_real = num_cpus_new_real
                self.state.lock.release()
 
 
@@ -1022,6 +1132,9 @@ class system_monitor(threading.Thread):
                   except:
                     pass
 
+                #if self.bu_mount_suffix:
+                #  bu_name = self.bu_mount_suffix.split('.')[0]
+
                 #refresh CPU information (e.g. if HT setting changed)
                 cpu_name,cpu_freq,self.cpu_cores,self.cpu_siblings = self.getCPUInfo()
 
@@ -1048,8 +1161,8 @@ class system_monitor(threading.Thread):
                 if has_turbo:
                   tsc_new,mperf_new,aperf_new=self.getIntelCPUPerfAvgs()
 
-                if self.num_cpus>0 and mperf_new-mperf_old>0 and ts_new-ts_old>0:
-                  self.cpu_freq_avg_real = int((1.* (tsc_new-tsc_old))/self.num_cpus / 1000000 * (aperf_new-aperf_old) / (mperf_new-mperf_old) /(ts_new-ts_old))
+                if self.num_cpus_real>0 and mperf_new-mperf_old>0 and ts_new-ts_old>0:
+                  self.cpu_freq_avg_real = int((1.* (tsc_new-tsc_old))/self.num_cpus_real / 1000000 * (aperf_new-aperf_old) / (mperf_new-mperf_old) /(ts_new-ts_old))
                 else:
                   self.cpu_freq_avg_real = 0
                 #detect counter wrap
@@ -1133,5 +1246,8 @@ class system_monitor(threading.Thread):
             self.statThread.join()
         if self.esBoxThread:
             self.esBoxThread.join()
+        try:
+            self.join()
+        except:pass
 
 

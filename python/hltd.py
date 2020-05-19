@@ -27,11 +27,10 @@ import prctl
 import inotify._inotify as inotify
 
 #modules which are part of hltd
-from daemon2 import Daemon2
 from hltdconf import initConf
 from inotifywrapper import InotifyWrapper
 
-from HLTDCommon import restartLogCollector
+from HLTDCommon import restartLogCollector,restoreFUListOnBU
 from Run import RunList
 from ResourceRanger import ResourceRanger
 from RunRanger import RunRanger
@@ -39,12 +38,14 @@ from MountManager import MountManager
 import SystemMonitor
 
 from elasticbu import BoxInfoUpdater
-from WebCtrl import WebCtrl
+#from WebCtrl import WebCtrl
 
 #shared info classes
 class BoxInfo:
     def __init__(self):
         self.machine_blacklist=[]
+        self.machine_whitelist=[]
+        self.has_whitelist=False
         self.FUMap = {}
         self.boxdoc_version = 5
         self.updater = None
@@ -243,6 +244,10 @@ class StateInfo:
         self.masked_resources = False
         self.os_cpuconfig_change = 0
         self.lock = threading.Lock()
+        self.isGlobalRun = False
+        self.daqSystem = "N/A"
+        self.daqInstance = "N/A"
+        self.fuGroup = "N/A"
 
     #interfaces to the cloud igniter script
     def ignite_cloud(self):
@@ -379,10 +384,9 @@ def setFromConf(myinstance,resInfo):
     conf.dump()
 
 #main class
-class hltd(Daemon2,object):
+class hltd:
     def __init__(self, instance):
         self.instance=instance
-        Daemon2.__init__(self,'hltd',instance,'hltd')
 
     def run(self):
         """
@@ -406,15 +410,21 @@ class hltd(Daemon2,object):
 
         nsslock = threading.Lock()
         resource_lock = threading.Lock()
-        mm = MountManager(conf)
+        mm = None
+        #no static mountpoint if dynamic_mounts parameter is set
+        if not conf.dynamic_mounts or conf.role == 'bu':
+          mm = MountManager(conf)
 
         if conf.role == 'fu':
+
             """
             cleanup resources
             """
             res_in_cloud = len(os.listdir(resInfo.cloud))>0
-            while True:
+            def cloud_check1_maybe():
+              while True:
                 #switch to cloud mode if cloud files are found (e.g. machine rebooted while in cloud)
+                #NOTE: this runs early to activate cloud even if mountpoints are not ready
                 if res_in_cloud:
                     logger.warning('found cores in cloud. this session will start in the cloud mode')
                     try:
@@ -454,25 +464,28 @@ class hltd(Daemon2,object):
                 time.sleep(0.1)
                 logger.warning("retrying cleanup_resources")
 
+            cloud_check1_maybe()
+
+            #init (shoudl not change later)
             resInfo.calculate_threadnumber()
 
             #ensure that working directory is ready
             try:os.makedirs(conf.watch_directory)
             except:pass
 
-        #run class init
-        runList = RunList()
+            #run class init
+            runList = RunList()
 
-        #start monitor thread to get fu-box-status docs inserted early in case of mount problems
-        boxInfo = BoxInfo()
-        num_cpus_initial=-1
+            #start monitor thread to get fu-box-status docs inserted early in case of mount problems
+            boxInfo = BoxInfo()
+            num_cpus_initial=-1
 
-        if conf.role == 'fu':
-            """
-            recheck mount points
-            """
-            #switch to cloud mode if active, but hltd did not have cores in cloud directory in the last session
-            if not res_in_cloud and state.cloud_script_available():
+            def cloud_check2_maybe():
+                """
+                recheck mount points
+                """
+                #switch to cloud mode if active, but hltd did not have cores in cloud directory in the last session
+                if not res_in_cloud and state.cloud_script_available():
                     cl_status = state.cloud_status()
                     cnt = 5
                     while not (cl_status == 1 or cl_status == 0 or cl_status==66) and cnt>0:
@@ -498,21 +511,47 @@ class hltd(Daemon2,object):
                             resInfo.move_resources_to_cloud()
                             state.cloud_mode=True
 
+            #first check before mounting, to set resources to cloud (if cloud mode) eatly on for monitoring even if mountpoints are not ready
+            cloud_check2_maybe()
+
+            #cleanup old directory
             if conf.watch_directory.startswith('/fff/'):
                 p = subprocess.Popen("rm -rf " + conf.watch_directory+'/*',shell=True)
                 p.wait()
 
-            if not mm.cleanup_mountpoints(nsslock):
+
+            if mm and not mm.cleanup_mountpoints(nsslock):
                 logger.fatal("error mounting - terminating service")
                 os._exit(10)
+
+            #check after mountpoint (which depends on BU availability and does not have bound duration
+            res_in_cloud = len(os.listdir(resInfo.cloud))>0
+            if not state.cloud_mode:
+                #cloud was OFF. Check if anything changed (resources moved by hand, or scripts started by hand)
+                cloud_check1_maybe()
+                cloud_check2_maybe()
+            if state.cloud_mode:
+                logger.info("init finished - cloud mode active")
+            else:
+                logger.info("init finished - HLT mode set")
+            #TODO:check if cloud was turned OFF during mountpoint check
+
 
             #recursively remove any stale run data and other commands in the FU watch directory
             #if conf.watch_directory.strip()!='/':
             #    p = subprocess.Popen("rm -rf " + conf.watch_directory.strip()+'/{run*,end*,quarantined*,exclude,include,suspend*,populationcontrol,herod,logrestart,emu*}',shell=True)
             #    p.wait()
 
+
             #count core files
             if conf.dynamic_resources: num_cpus_initial = resInfo.count_resources()
+
+        else: #BU mode
+            #run class init
+            runList = RunList()
+            #start monitor thread
+            boxInfo = BoxInfo()
+            num_cpus_initial=-1
 
         #start monitor after all state checks/migration have finished
         sm = SystemMonitor.system_monitor(conf,state,resInfo,runList,mm,boxInfo,num_cpus_initial)
@@ -529,8 +568,11 @@ class hltd(Daemon2,object):
 
         #BU mode threads
         if conf.role == 'bu':
-            #update_success,machine_blacklist=updateBlacklist()
-            boxInfo.machine_blacklist=[]
+
+            #restore blacklist and whitelist from cache if service restarted
+            boxInfo.machine_blacklist=restoreFUListOnBU(conf,logger,"blacklist")
+            boxInfo.machine_whitelist=restoreFUListOnBU(conf,logger,"whitelist")
+
             mm.ramdisk_submount_size=0
             if self.instance == 'main':
                 #if there are other instance mountpoints in ramdisk, they will be subtracted from size estimate
@@ -545,7 +587,7 @@ class hltd(Daemon2,object):
                 boxInfo.updater = BoxInfoUpdater(conf,nsslock,boxInfo.boxdoc_version)
                 boxInfo.updater.start()
 
-        rr = ResourceRanger(conf,state,resInfo,runList,mm,boxInfo,sm,resource_lock)
+        rr = ResourceRanger(conf,state,resInfo,runList,boxInfo,sm,resource_lock)
 
         #init resource ranger
         try:
@@ -568,7 +610,7 @@ class hltd(Daemon2,object):
 
 
         #start monitoring new runs
-        runRanger = RunRanger(self.instance,conf,state,resInfo,runList,rr,mm,logCollector,nsslock,resource_lock)
+        runRanger = RunRanger(self.instance,conf,state,resInfo,runList,rr,mm,sm,logCollector,nsslock,resource_lock)
         runRanger.register_inotify_path(conf.watch_directory,inotify.IN_CREATE)
         runRanger.start_inotify()
         logger.info("started RunRanger  - watch_directory " + conf.watch_directory)
@@ -622,9 +664,10 @@ class hltd(Daemon2,object):
             httpd.socket.close()
             logger.info(threading.enumerate())
             logger.info("unmounting mount points")
-            if not mm.cleanup_mountpoints(nsslock,remount=False):
-                time.sleep(1)
-                mm.cleanup_mountpoints(nsslock,remount=False)
+            if conf.role == 'fu' and mm:
+                if not mm.cleanup_mountpoints(nsslock,remount=False):
+                    time.sleep(1)
+                    mm.cleanup_mountpoints(nsslock,remount=False)
 
             logger.info("shutdown of service (main thread) completed")
             os._exit(0)
@@ -638,20 +681,15 @@ class hltd(Daemon2,object):
 
     def webHandler(self,option):
         logger.info('TEST:received option ' + option)
-        pass
 
 if __name__ == "__main__":
     import setproctitle
     setproctitle.setproctitle('hltd')
+
     p_instance = "main"
-    do_forking = False
     if len(sys.argv)>1:
-      for param in sys.argv[1:]:
-        if param=="--forking":do_forking=True
-        else: p_instance=param
+      p_instance=sys.argv[1]
+
     daemon = hltd(p_instance)
-    if do_forking:
-      daemon.start()
-    else: #default
-      os.umask(0)
-      daemon.run()
+    os.umask(0)
+    daemon.run()

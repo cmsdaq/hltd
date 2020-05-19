@@ -6,9 +6,9 @@ PartOf=fff.service
 
 [Service]
 Type=simple
-ExecStartPre=/opt/hltd/init.d/hltd pre-start
+ExecStartPre=/opt/fff/init.d/hltd pre-start
 ExecStart=/opt/hltd/scratch/python/hltd.py
-ExecStopPost=/opt/hltd/init.d/hltd post-stop
+ExecStopPost=/opt/fff/init.d/hltd post-stop
 Restart=always
 RestartSec=25
 KillMode=control-group

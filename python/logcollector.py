@@ -120,7 +120,7 @@ class ContextualCounter(object):
         else:
             #suppressing maximum of 'suppressMax' different messages at the time
             for e in self.suppressList:
-                if (e.msgId==msgId):return False
+                if e.msgId==msgId:return False
 
             #message id not found in suppressed list..
             self.logger.info("Start suppressing message of lexical id "+str(msgId))
@@ -536,11 +536,11 @@ class CMSSWLogESWriter(threading.Thread):
         self.initialized = False
 
         #try to create elasticsearch index for run logging
-        #if not conf.elastic_cluster:
+        #if not conf.elastic_index_suffix:
         #    self.index_name = 'log_run'+str(self.rn).zfill(conf.run_number_padding)
         #else:
         self.index_runstring = 'run'+str(self.rn).zfill(conf.run_number_padding)
-        self.index_suffix = conf.elastic_cluster
+        self.index_suffix = conf.elastic_index_suffix
         self.eb = elasticBand('http://'+conf.es_local+':9200',self.index_runstring,self.index_suffix,0,0,conf.force_replicas,conf.force_shards)
         self.contextualCounter = ContextualCounter()
         self.initialized=True
@@ -795,7 +795,7 @@ class HLTDLogIndex():
         self.threadEvent = threading.Event()
         self.es_type_name_param = True
 
-        self.index_name = 'hltdlogs_'+conf.elastic_runindex_name+"_write" #using write alias
+        self.index_name = 'hltdlogs_'+conf.elastic_index_suffix+"_write" #using write alias
 
         attempts=10
         s = requests.Session()
@@ -981,7 +981,6 @@ class HLTDLogParser(threading.Thread):
                         except Exception as ex:
                             self.logger.info('problem reopening file')
                             self.logger.exception(ex)
-                            pass
                     continue
                 else:break
 
@@ -1033,7 +1032,7 @@ class HLTDLogCollector():
         self.loglevel=loglevel
         self.activeFiles=[]
         self.handlers = []
-        self.esurl = conf.elastic_runindex_url
+        self.esurl = 'http://'+conf.es_cdaq+':9200'
         self.esHandler = HLTDLogIndex(self.esurl)
         self.firstScan=True
 
@@ -1165,7 +1164,6 @@ if __name__ == "__main__":
                         logger.error('exception starting hltd log monitor')
                         logger.exception(ex)
                         hlc=None
-                        pass
             counter+=1
 
             threadEvent.wait(5)

@@ -1,9 +1,8 @@
 #!/bin/env python
-from __future__ import print_function
 import os,sys
 sys.path.append('/opt/hltd/python')
 sys.path.append('/opt/hltd/lib')
-from daemon2 import Daemon2
+from daemon2 import emergencyUmount
 from hltdconf import initConf
 from subprocess import Popen,check_call
 from subprocess import PIPE
@@ -11,6 +10,8 @@ from applianceumount import stopFUs
 from applianceumount import checkMode
 import time
 import syslog
+
+hltdconf = '/etc/hltd.conf'
 
 def preStartHLTD():
     if os.getuid() != 0:
@@ -24,12 +25,6 @@ def preStartHLTD():
     check_call(['cp','-R','/opt/hltd/python','/opt/hltd/scratch/'])
     check_call(['cp','-R', '/opt/hltd/cgi','/opt/hltd/scratch/'])
     check_call(['cp','-R','/opt/hltd/scripts','/opt/hltd/scratch/'])
-
-#old style (forking)
-#def startHLTD(instance):
-#    proc = Popen(["/opt/hltd/scratch/python/hltd.py",instance,"--forking"], stdout=PIPE)
-#    output = proc.communicate()[0]
-
 
 def suspendRemoteClientsMaybe(instance,force):
     #determine target (runlevel). If host is BU and machine is shutting doen, this will trigger temporary umount on FUs
@@ -79,8 +74,7 @@ def suspendRemoteClientsMaybe(instance,force):
 
 def tryEmergencyUmount(instance):
     print("Running post-stop emergencyUmount check")
-    daemon = Daemon2('hltd',instance)
-    daemon.emergencyUmount()
+    emergencyUmount(hltdconf)
 
 
 
@@ -101,7 +95,6 @@ if __name__ == "__main__":
         instances = [sys.argv[2]]
 
     for instance in instances:
-        #daemon = Daemon2('hltd',instance)
 
         if len(sys.argv) >= 2:
             if 'pre-start' == sys.argv[1]:
@@ -128,7 +121,7 @@ if __name__ == "__main__":
                 sys.exit(2)
 
         else:
-            print("usage: %s start|stop|restart|status all|main|instance" % sys.argv[0])
+            print("usage: %s pre-start|post-stop|stop-appliance all|main|instance" % sys.argv[0])
             sys.exit(2)
 
 sys.exit(0)

@@ -9,12 +9,6 @@ rm -rf /etc/hltd.instances
 #notofier to update resource count for hltd, triggered at next hltd service restart
 touch /opt/hltd/scratch/new-version || true
 
-#unregister old sysV style scripts. only soap2file is terminated at this point
-/opt/hltd/python/soap2file.py stop || true
-/sbin/chkconfig --del hltd >& /dev/null || true
-/sbin/chkconfig --del fffmeta >& /dev/null || true
-/sbin/chkconfig --del soap2file >& /dev/null || true
-
 #notify systemd of updated unit files and enable them (but don't restart except soap2file)
 /usr/bin/systemctl daemon-reload
 
@@ -28,4 +22,6 @@ touch /opt/hltd/scratch/new-version || true
 /usr/bin/systemctl restart soap2file
 
 #start hltd if not running (ensures hltd startup on new installation)
+rm -rf /var/cache/whitelist.last >& /dev/null || true
+rm -rf /var/cache/blacklist.last >& /dev/null || true
 /usr/bin/systemctl start hltd

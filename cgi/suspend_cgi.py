@@ -11,7 +11,19 @@ portsuffix=""
 if "port" in form:
     portsuffix=form["port"].value
 
-try:os.remove('suspend'+portsuffix)
-except: pass
+def mkfile(filename):
+    try:os.remove(filename)
+    except: pass
+    with open(filename,'w+') as fp:
+      pass
 
-with open('suspend'+portsuffix,'w+') as fp: pass
+if str(portsuffix)!="" and str(portsuffix)!="0":
+    bu_suffix = "_"+form["buname"].value if "buname" in form else ""
+    try:
+        ipaddress = '_'+cgi.escape(os.environ["REMOTE_ADDR"])
+        mkfile('suspend'+portsuffix+ipaddress+bu_suffix)
+    except:
+        #no-reply version
+        mkfile('suspend')
+else:
+    mkfile('suspend')
